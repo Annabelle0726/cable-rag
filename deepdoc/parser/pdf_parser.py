@@ -1948,13 +1948,13 @@ class RAGFlowPdfParser:
         if not poss:
             if need_position:
                 return None, None
-            return
+            return None
 
         if not getattr(self, "page_images", None):
             logging.warning("crop called without page images; skipping image generation.")
             if need_position:
                 return None, None
-            return
+            return None
 
         page_count = len(self.page_images)
 
@@ -1974,20 +1974,25 @@ class RAGFlowPdfParser:
             logging.warning("No valid positions after filtering; skip cropping.")
             if need_position:
                 return None, None
-            return
+            return None
 
         max_width = max(np.max([right - left for (_, left, right, _, _) in poss]), 6)
         GAP = 6
+
+        # Add buffer space to the top of the first segment
         pos = poss[0]
         first_page_idx = pos[0][0]
         poss.insert(0, ([first_page_idx], pos[1], pos[2], max(0, pos[3] - 120), max(pos[3] - GAP, 0)))
+
+        # Add buffer space to the bottom of the last segment
         pos = poss[-1]
         last_page_idx = pos[0][-1]
         if not (0 <= last_page_idx < page_count):
             logging.warning(f"Last page index {last_page_idx} out of range for {page_count} pages; skipping crop.")
             if need_position:
                 return None, None
-            return
+            return None
+
         last_page_height = self.page_images[last_page_idx].size[1] / ZM
         poss.append(
             (
@@ -2001,10 +2006,12 @@ class RAGFlowPdfParser:
 
         positions = []
         for ii, (pns, left, right, top, bottom) in enumerate(poss):
+            # Adjust width constraints depending on if it's a buffer zone or main content
             if 0 < ii < len(poss) - 1:
                 right = max(left + 10, right)
             else:
                 right = left + max_width
+
             bottom *= ZM
             for pn in pns[1:]:
                 if 0 <= pn - 1 < page_count:
@@ -2016,10 +2023,15 @@ class RAGFlowPdfParser:
                 logging.warning(f"Base page index {pns[0]} out of range for {page_count} pages during crop; skipping this segment.")
                 continue
 
+            # Crop the first page of the current block
             imgs.append(self.page_images[pns[0]].crop((left * ZM, top * ZM, right * ZM, min(bottom, self.page_images[pns[0]].size[1]))))
             if 0 < ii < len(poss) - 1:
                 positions.append((pns[0] + self.page_from, left, right, top, min(bottom, self.page_images[pns[0]].size[1]) / ZM))
+
+            # Deduct the height of the processed first page
             bottom -= self.page_images[pns[0]].size[1]
+
+            # Crop subsequent pages for this block, starting from y=0 on each page
             for pn in pns[1:]:
                 if not (0 <= pn < page_count):
                     logging.warning(f"Page index {pn} out of range for {page_count} pages during crop; skipping this page.")
@@ -2027,31 +2039,33 @@ class RAGFlowPdfParser:
                 imgs.append(self.page_images[pn].crop((left * ZM, 0, right * ZM, min(bottom, self.page_images[pn].size[1]))))
                 if 0 < ii < len(poss) - 1:
                     positions.append((pn + self.page_from, left, right, 0, min(bottom, self.page_images[pn].size[1]) / ZM))
+
+                # Deduct height for the next iteration
                 bottom -= self.page_images[pn].size[1]
 
+        # Merge all cropped image segments vertically
         if not imgs:
             if need_position:
                 return None, None
-            return
-        height = 0
+            return None
+
+        # Calculate dimensions for the final stitched image
+        total_height = sum(img.size[1] for img in imgs)
+        max_img_width = max(img.size[0] for img in imgs)
+
+        # Create a white background canvas
+        merged_image = Image.new("RGB", (int(max_img_width), int(total_height)), (245, 245, 245))
+
+        # Paste all cropped components onto the canvas
+        current_y = 0
         for img in imgs:
-            height += img.size[1] + GAP
-        height = int(height)
-        width = int(np.max([i.size[0] for i in imgs]))
-        pic = Image.new("RGB", (width, height), (245, 245, 245))
-        height = 0
-        for ii, img in enumerate(imgs):
-            if ii == 0 or ii + 1 == len(imgs):
-                img = img.convert("RGBA")
-                overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
-                overlay.putalpha(128)
-                img = Image.alpha_composite(img, overlay).convert("RGB")
-            pic.paste(img, (0, int(height)))
-            height += img.size[1] + GAP
+            merged_image.paste(img, (0, int(current_y)))
+            current_y += img.size[1]
 
         if need_position:
-            return pic, positions
-        return pic
+            return merged_image, positions
+
+        return merged_image
 
     def get_position(self, bx, ZM):
         poss = []
