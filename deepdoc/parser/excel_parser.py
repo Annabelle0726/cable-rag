@@ -280,40 +280,55 @@ class RAGFlowExcelParser:
         return df.to_markdown(index=False)
 
     def __call__(self, fnm):
+        import json
+
         file_like_object = BytesIO(fnm) if not isinstance(fnm, str) else fnm
-        wb = RAGFlowExcelParser._load_excel_to_workbook(file_like_object)
+        wb = RAGFlowExcelParser._load_excel_to_workbook(file_like_object)  #
 
         res = []
-        for sheet_idx, sheetname in enumerate(wb.sheetnames):
-            ws = wb[sheetname]
+        for sheet_idx, sheetname in enumerate(wb.sheetnames):  #
+            ws = wb[sheetname]  # [cite: 2]
             try:
-                rows = RAGFlowExcelParser._get_rows_limited(ws)
+                rows = RAGFlowExcelParser._get_rows_limited(ws)  # [cite: 2]
             except Exception as e:
-                logging.warning(f"Skip sheet '{sheetname}' due to rows access error: {e}")
+                logging.warning(f"Skip sheet '{sheetname}' due to rows access error: {e}")  # [cite: 2]
                 continue
             if not rows:
                 continue
-            ti = list(rows[0])
-            for row_idx, r in enumerate(list(rows[1:]), start=2):
-                fields = []
+
+            # 第一行作为表头提取
+            ti = list(rows[0])  # [cite: 2]
+
+            # 从第二行开始遍历数据
+            for row_idx, r in enumerate(list(rows[1:]), start=2):  # [cite: 2]
+                row_data = {}  # 【改造点】用字典来封装每一行的 BOM 数据
                 col_min, col_max = None, None
-                for i, c in enumerate(r):
-                    if c.value is None or str(c.value).strip() == "":
+                for i, c in enumerate(r):  # [cite: 2]
+                    if c.value is None or str(c.value).strip() == "":  # [cite: 2]
                         continue
-                    col = i + 1
-                    col_min = col if col_min is None else min(col_min, col)
-                    col_max = col if col_max is None else max(col_max, col)
-                    # A blank header cell is not a label: str(None) is "None", which is truthy,
-                    # so it defeats the separator guard below and lands "None：" in the chunk text.
-                    t = str(ti[i].value) if i < len(ti) and ti[i].value is not None else ""
-                    t += ("：" if t else "") + str(c.value)
-                    fields.append(t)
-                if not fields:
+                    col = i + 1  # [cite: 2]
+                    col_min = col if col_min is None else min(col_min, col)  # [cite: 2]
+                    col_max = col if col_max is None else max(col_max, col)  # [cite: 2]
+
+                    # 【改造点】提取表头作为 JSON 的 Key
+                    key = str(ti[i].value).strip() if i < len(ti) and ti[i].value is not None else f"Column_{i + 1}"
+                    if not key:
+                        key = f"Column_{i + 1}"
+
+                    # 【改造点】提取单元格的值作为 JSON 的 Value
+                    row_data[key] = str(c.value).strip()
+
+                if not row_data:
                     continue
-                line = "; ".join(fields)
-                if sheetname.lower().find("sheet") < 0:
-                    line += " ——" + sheetname
-                res.append((line, (sheet_idx, row_idx, row_idx, col_min or 1, col_max or 1)))
+
+                # 【改造点】补充 sheet 名称作为附加属性
+                if sheetname.lower().find("sheet") < 0:  # [cite: 2]
+                    row_data["sheet_name"] = sheetname
+
+                # 【核心改造点】将整行数据打包成一个标准的 JSON 字符串块，防止被切碎
+                line = json.dumps(row_data, ensure_ascii=False)
+
+                res.append((line, (sheet_idx, row_idx, row_idx, col_min or 1, col_max or 1)))  # [cite: 2]
         return res
 
     @staticmethod
