@@ -132,7 +132,11 @@ module.exports = {
         'cable-divider': 'var(--cable-divider)',
         'cable-muted': 'var(--cable-muted)',
         'cable-hairline': 'var(--cable-hairline)',
-      'cable-backdrop': 'var(--cable-backdrop)',
+        'cable-backdrop': 'var(--cable-backdrop)',
+        'cable-avatar': {
+          DEFAULT: 'var(--cable-avatar-surface)',
+          foreground: 'var(--cable-avatar-foreground)',
+        },
         'cable-nav': {
           DEFAULT: 'var(--cable-nav-text)',
           hover: 'var(--cable-nav-text-hover)',

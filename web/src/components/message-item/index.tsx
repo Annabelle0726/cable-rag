@@ -45,6 +45,8 @@ interface IProps extends Partial<IRemoveMessageById>, IRegenerateMessage {
   sendLoading?: boolean;
   visibleAvatar?: boolean;
   nickname?: string;
+  /** Second source for the user's initial, used when the nickname is empty. */
+  email?: string;
   avatar?: string;
   avatarDialog?: string | null;
   clickDocumentButton?: (documentId: string, chunk: IReferenceChunk) => void;
@@ -69,6 +71,7 @@ const MessageItem = ({
   showLoudspeaker = true,
   visibleAvatar = true,
   nickname,
+  email,
   isLast = false,
 }: IProps) => {
   const { theme } = useTheme();
@@ -113,11 +116,14 @@ const MessageItem = ({
         >
           {visibleAvatar &&
             (item.role === MessageType.User ? (
+              // No placeholder logo: with nothing uploaded the avatar shows the
+              // first character of the nickname (or the email) instead.
               <RAGFlowAvatar
                 className="size-10"
-                avatar={avatar ?? '/logo.svg'}
-                isPerson
+                avatar={avatar}
                 name={nickname}
+                email={email}
+                isPerson
               />
             ) : avatarDialog ? (
               <RAGFlowAvatar

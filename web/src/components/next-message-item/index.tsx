@@ -66,6 +66,8 @@ interface IProps
   sendLoading?: boolean;
   visibleAvatar?: boolean;
   nickname?: string;
+  /** Second source for the user's initial, used when the nickname is empty. */
+  email?: string;
   avatar?: string;
   avatarDialog?: string | null;
   agentName?: string;
@@ -98,6 +100,7 @@ function MessageItem({
   showLog,
   isShare,
   nickname,
+  email,
 }: IProps) {
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -207,9 +210,12 @@ function MessageItem({
         >
           {visibleAvatar &&
             (item.role === MessageType.User ? (
+              // No placeholder logo: with nothing uploaded the avatar shows the
+              // first character of the nickname (or the email) instead.
               <RAGFlowAvatar
-                avatar={avatar ?? '/logo.svg'}
+                avatar={avatar}
                 name={nickname}
+                email={email}
                 isPerson
               />
             ) : avatarDialog || agentName ? (

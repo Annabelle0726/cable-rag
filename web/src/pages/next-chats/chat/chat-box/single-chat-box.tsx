@@ -96,6 +96,7 @@ export function SingleChatBox({ conversation }: IProps) {
               key={buildMessageUuidWithRole(message)}
               item={message}
               nickname={userInfo.nickname}
+              email={userInfo.email}
               avatar={userInfo.avatar}
               avatarDialog={currentDialog.icon}
               reference={messageReferences.get(message) ?? EmptyReference}

@@ -177,6 +177,7 @@ export function SessionChat({ session }: SessionChatProps) {
                       key={buildMessageUuidWithRole(message)}
                       item={message}
                       nickname={userInfo.nickname}
+                      email={userInfo.email}
                       avatar={userInfo.avatar}
                       avatarDialog={canvasInfo?.avatar || ''}
                       reference={

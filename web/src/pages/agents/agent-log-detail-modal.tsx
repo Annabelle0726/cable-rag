@@ -134,6 +134,7 @@ export const AgentLogDetailModal: React.FC<CustomModalProps> = ({
                   message as Partial<Message | IMessage>,
                 )}
                 nickname={userInfo.nickname}
+                email={userInfo.email}
                 avatar={userInfo.avatar}
                 avatarDialog={canvasInfo.avatar}
                 item={message as IMessage}

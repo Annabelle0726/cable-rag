@@ -145,6 +145,10 @@
        readable while the settings are open. */
     --cable-drawer-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
     --cable-backdrop: rgba(15, 23, 42, 0.3);
+    /* A person without an uploaded image shows the first character of their
+       name on the brand's dark slate blue with white text. */
+    --cable-avatar-surface: #1e3a8a;
+    --cable-avatar-foreground: #ffffff;
 
     /* Top navigation states: quiet by default, brand-blue and bold when active. */
     --cable-nav-text: #64748b;
@@ -271,6 +275,10 @@
     --cable-shadow-hover: none;
     --cable-drawer-shadow: -4px 0 16px rgba(0, 0, 0, 0.45);
     --cable-backdrop: rgba(2, 6, 23, 0.5);
+    /* Brighter than the light-mode slate so the white initial keeps its
+       contrast against a dark page. */
+    --cable-avatar-surface: #1d4ed8;
+    --cable-avatar-foreground: #ffffff;
 
     --cable-nav-text: #94a3b8;
     --cable-nav-text-hover: #f1f5f9;

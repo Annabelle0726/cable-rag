@@ -98,6 +98,7 @@ export function SideBar() {
           <RAGFlowAvatar
             avatar={userInfo?.avatar}
             name={userInfo?.nickname}
+            email={userInfo?.email}
             isPerson
           />
 

@@ -16,6 +16,7 @@
 
 import { cn } from '@/lib/utils';
 import * as AvatarPrimitive from '@radix-ui/react-avatar';
+import { LucideUser } from 'lucide-react';
 import { forwardRef, memo, useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
@@ -51,6 +52,24 @@ const getInitials = (name?: string) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
+/**
+ * The single character a person's avatar falls back to.
+ *
+ * Candidates are tried in the order the caller passes them — nickname, then
+ * name, then email — and the first one holding text wins. `Array.from` keeps a
+ * surrogate pair (an emoji, or most CJK extensions) in one piece.
+ */
+export const getAvatarInitial = (...candidates: Array<string | undefined>) => {
+  for (const candidate of candidates) {
+    const value = candidate?.trim();
+    if (value) {
+      return Array.from(value)[0].toUpperCase();
+    }
+  }
+
+  return '';
+};
+
 const getColorForName = (name: string): { from: string; to: string } => {
   const hash = getStringHash(name);
   const index = hash % PREDEFINED_COLORS.length;
@@ -62,19 +81,23 @@ export const RAGFlowAvatar = memo(
     React.ElementRef<typeof AvatarPrimitive.Root>,
     React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root> & {
       name?: string;
+      /** Second source for a person's initial, used when the name is empty. */
+      email?: string;
       avatar?: string;
       isPerson?: boolean;
     }
-  >(({ name, avatar, isPerson = false, className, ...props }, ref) => {
+  >(({ name, email, avatar, isPerson = false, className, ...props }, ref) => {
     // Generate initial letter logic
     const { initials, from, to } = useMemo(
       () => ({
-        initials: getInitials(name),
+        // A person falls back to one character of their name or email; other
+        // avatars (datasets, agents) keep the two-letter form of their name.
+        initials: isPerson ? getAvatarInitial(name, email) : getInitials(name),
         from: 'hsl(0, 0%, 30%)',
         to: 'hsl(0, 0%, 80%)',
         ...(name ? getColorForName(name) : {}),
       }),
-      [name],
+      [email, isPerson, name],
     );
 
     return (
@@ -85,27 +108,41 @@ export const RAGFlowAvatar = memo(
       >
         <AvatarImage src={avatar} />
         <AvatarFallback
-          className="flex items-center justify-center bg-gradient-to-b text-white"
-          style={{
-            backgroundImage: `linear-gradient(to bottom, ${from}, ${to})`,
-          }}
+          className={cn(
+            'flex items-center justify-center',
+            isPerson
+              ? 'bg-cable-avatar text-cable-avatar-foreground'
+              : 'bg-gradient-to-b text-white',
+          )}
+          style={
+            isPerson
+              ? undefined
+              : { backgroundImage: `linear-gradient(to bottom, ${from}, ${to})` }
+          }
           role="presentation"
           aria-hidden="true"
+          data-testid="avatar-fallback"
         >
-          <svg
-            className="size-full block text-current select-none"
-            viewBox={`${-(50 + 22.5 * (initials.length - 1))} -50 ${100 + 45 * (initials.length - 1)} 100`}
-            preserveAspectRatio="xMinYMid meet"
-          >
-            <text
-              fontSize={55}
-              fill="currentColor"
-              textAnchor="middle"
-              dominantBaseline="central"
+          {initials ? (
+            <svg
+              className="size-full block text-current select-none"
+              viewBox={`${-(50 + 22.5 * (initials.length - 1))} -50 ${100 + 45 * (initials.length - 1)} 100`}
+              preserveAspectRatio="xMinYMid meet"
             >
-              {initials}
-            </text>
-          </svg>
+              <text
+                fontSize={55}
+                fill="currentColor"
+                textAnchor="middle"
+                dominantBaseline="central"
+              >
+                {initials}
+              </text>
+            </svg>
+          ) : (
+            // Nothing to initialise from: a neutral person glyph beats an
+            // empty coloured disc.
+            <LucideUser className="h-1/2 w-1/2" />
+          )}
         </AvatarFallback>
       </Avatar>
     );

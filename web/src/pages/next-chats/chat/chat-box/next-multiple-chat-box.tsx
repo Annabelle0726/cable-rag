@@ -299,6 +299,7 @@ const ChatCard = forwardRef(function ChatCard(
                   key={buildMessageUuidWithRole(message)}
                   item={message}
                   nickname={userInfo.nickname}
+                  email={userInfo.email}
                   avatar={userInfo.avatar}
                   avatarDialog={currentDialog.icon}
                   reference={messageReferences.get(message) ?? EmptyReference}

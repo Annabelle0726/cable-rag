@@ -113,6 +113,7 @@ function AgentChatBox() {
                   }
                   key={buildMessageUuidWithRole(message)}
                   nickname={userInfo.nickname}
+                  email={userInfo.email}
                   avatar={userInfo.avatar}
                   avatarDialog={canvasInfo.avatar}
                   item={message}
