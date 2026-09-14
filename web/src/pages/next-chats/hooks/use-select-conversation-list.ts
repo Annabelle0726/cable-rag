@@ -5,7 +5,7 @@ import {
   useFetchSessionList,
 } from '@/hooks/use-chat-request';
 import { IConversation } from '@/interfaces/database/chat';
-import { generateConversationId } from '@/utils/chat';
+import { generateTemporaryConversationId } from '@/utils/chat';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 import { useChatUrlParams } from './use-chat-url';
@@ -38,39 +38,43 @@ export const useSelectDerivedConversationList = () => {
   const { setConversationBoth } = useChatUrlParams();
 
   const addTemporaryConversation = useCallback(() => {
-    const conversationId = generateConversationId();
+    if (!dialogId) {
+      return;
+    }
     // Clear the search keyword, otherwise the newly created session will be
     // filtered out by the search after it is persisted and refetched.
     setSearchString('');
-    setList((pre) => {
-      if (dialogId) {
-        setConversationBoth(conversationId, 'true');
-        const nextList = [
-          {
-            id: conversationId,
-            name: t('newConversation'),
-            chat_id: dialogId,
-            is_new: true,
-            messages: [
-              {
-                content: prologue,
-                role: MessageType.Assistant,
-              },
-            ],
-          } as any,
-          ...conversationList,
-        ];
-        return nextList;
-      }
+    // Open the placeholder conversation, so its prologue shows and the list
+    // highlights the row. The id is marked temporary, which keeps every session
+    // request away from the server until the first send creates the real one.
+    //
+    // Write the route BEFORE touching state: writing it from inside a state
+    // updater let React defer or re-run the update and left the previous
+    // conversationId in the query string, so the page requested a session that
+    // does not exist (`102 Session not found`).
+    const conversationId = generateTemporaryConversationId();
+    setConversationBoth(conversationId, 'true');
 
-      return pre;
-    });
+    setList((previous) => [
+      {
+        id: conversationId,
+        name: t('newConversation'),
+        chat_id: dialogId,
+        is_new: true,
+        messages: [
+          {
+            content: prologue,
+            role: MessageType.Assistant,
+          },
+        ],
+      } as any,
+      ...previous,
+    ]);
   }, [
     dialogId,
     setConversationBoth,
     t,
     prologue,
-    conversationList,
     setSearchString,
   ]);
 
