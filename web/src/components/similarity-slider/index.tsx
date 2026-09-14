@@ -38,8 +38,12 @@ interface SimilaritySliderFormFieldProps {
   numberInputClassName?: string;
 }
 
+// Cable vertical defaults: 0.25 for the similarity threshold and a 0.30 vector /
+// 0.70 full-text split. These are the values a new dataset or assistant is
+// created with on the backend (api/db/cable_defaults.py), used here whenever a
+// form has no stored value yet.
 export const initialSimilarityThresholdValue = {
-  similarity_threshold: 0.2,
+  similarity_threshold: 0.25,
 };
 export const initialKeywordsSimilarityWeightValue = {
   keywords_similarity_weight: 0.7,
