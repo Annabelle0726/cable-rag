@@ -15,6 +15,12 @@
 #
 
 import pytest
+from api.db.cable_defaults import (
+    EMPTY_RESPONSE as DEFAULT_CHAT_EMPTY_RESPONSE,
+    PROLOGUE as DEFAULT_CHAT_PROLOGUE,
+    SIMILARITY_THRESHOLD as DEFAULT_CHAT_SIMILARITY_THRESHOLD,
+    SYSTEM_PROMPT as DEFAULT_CHAT_SYSTEM_PROMPT,
+)
 from common import create_chat_assistant
 from configs import CHAT_ASSISTANT_NAME_LIMIT, INVALID_API_TOKEN
 from libs.auth import RAGFlowHttpApiAuth
@@ -250,18 +256,15 @@ class TestChatAssistantCreate:
                     else:
                         assert res["data"][k] == v
             else:
-                assert res["data"]["similarity_threshold"] == 0.1
+                assert res["data"]["similarity_threshold"] == DEFAULT_CHAT_SIMILARITY_THRESHOLD
                 assert res["data"]["vector_similarity_weight"] == 0.3
                 assert res["data"]["top_n"] == 6
                 assert res["data"]["rerank_id"] == ""
                 assert res["data"]["prompt_config"]["parameters"] == [{"key": "knowledge", "optional": False}]
-                assert res["data"]["prompt_config"]["empty_response"] == "Sorry! No relevant content was found in the knowledge base!"
-                assert res["data"]["prompt_config"]["prologue"] == "Hi! I'm your assistant. What can I do for you?"
+                assert res["data"]["prompt_config"]["empty_response"] == DEFAULT_CHAT_EMPTY_RESPONSE
+                assert res["data"]["prompt_config"]["prologue"] == DEFAULT_CHAT_PROLOGUE
                 assert res["data"]["prompt_config"]["quote"] is True
-                assert (
-                    res["data"]["prompt_config"]["system"]
-                    == 'You are an intelligent assistant. Please summarize the content of the dataset to answer the question. Please list the data in the dataset and answer in detail. When all dataset content is irrelevant to the question, your answer must include the sentence "The answer you are looking for is not found in the dataset!" Answers need to consider chat history.\n      Here is the knowledge base:\n      {knowledge}\n      The above is the knowledge base.'
-                )
+                assert res["data"]["prompt_config"]["system"] == DEFAULT_CHAT_SYSTEM_PROMPT
         else:
             assert res["message"] == expected_message
 
