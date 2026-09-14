@@ -1,5 +1,6 @@
 /*
  *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -37,9 +38,12 @@ import {
   escapeUnmatchedAngleBrackets,
   parseCitationIndex,
   preprocessLaTeX,
+  promoteCaretExponentsToLaTeX,
+  replaceAgenticLogsToSection,
   replaceRetrievingToSection,
   replaceTextByOldReg,
   replaceThinkToSection,
+  trimExtractionResidue,
   unescapeAngleBrackets,
 } from '@/utils/chat';
 import { citationMarkerReg } from '@/utils/citation-utils';
@@ -98,10 +102,18 @@ const MarkdownContent = ({
       text = t('chat.searching');
     }
     const nextText = replaceTextByOldReg(text);
+    // Reasoning, retrieval and Agentic RAG progress output are separated from
+    // the answer into collapsed panels, so the body only shows the result.
+    const logSummary = t('chat.agenticLog');
     return unescapeAngleBrackets(
       pipe(
-        replaceThinkToSection,
-        replaceRetrievingToSection,
+        (value: string) =>
+          replaceThinkToSection(value, t('chat.thought'), logSummary),
+        (value: string) =>
+          replaceRetrievingToSection(value, t('chat.retrieving')),
+        (value: string) => replaceAgenticLogsToSection(value, logSummary),
+        trimExtractionResidue,
+        promoteCaretExponentsToLaTeX,
         preprocessLaTeX,
       )(nextText),
     );

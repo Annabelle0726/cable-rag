@@ -1,5 +1,6 @@
 //
 //  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+//  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -139,6 +140,11 @@ func Init(configPath string) error {
 	err = globalConfig.ParseSMTPConfig(v)
 	if err != nil {
 		return fmt.Errorf("parse SMTP config error: %w", err)
+	}
+
+	err = globalConfig.ParseCableConfig(v)
+	if err != nil {
+		return fmt.Errorf("parse cable config error: %w", err)
 	}
 
 	err = globalConfig.GetEnvironments()

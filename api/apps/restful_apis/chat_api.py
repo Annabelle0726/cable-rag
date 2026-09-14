@@ -1,5 +1,6 @@
 #
 #  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+#  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -28,6 +29,7 @@ from werkzeug.exceptions import BadRequest
 
 from api.apps import current_user, login_required
 from api.apps.restful_apis._generation_params import merge_generation_config, pop_generation_config
+from api.db import cable_defaults
 from api.db.services.llm_service import resolve_llm_setting
 from api.db.joint_services.tenant_model_service import (
     get_api_key,
@@ -56,6 +58,7 @@ from api.utils.pagination_utils import validate_rest_api_ids, validate_rest_api_
 from common.constants import LLMType, RetCode, StatusEnum
 from common import settings
 from common.misc_utils import get_uuid, thread_pool_exec
+from common.text_utils import normalize_conversation_title
 from rag.prompts.generator import chunks_format
 from rag.prompts.template import load_prompt
 
@@ -93,18 +96,12 @@ def _sanitize_json_floats(obj):
 
 
 _DEFAULT_PROMPT_CONFIG = {
-    "system": (
-        "You are an intelligent assistant. Please summarize the content of the dataset to answer the question. "
-        "Please list the data in the dataset and answer in detail. When all dataset content is irrelevant to the "
-        'question, your answer must include the sentence "The answer you are looking for is not found in the dataset!" '
-        "Answers need to consider chat history.\n"
-        "      Here is the knowledge base:\n"
-        "      {knowledge}\n"
-        "      The above is the knowledge base."
-    ),
-    "prologue": "Hi! I'm your assistant. What can I do for you?",
-    "parameters": [{"key": "knowledge", "optional": False}, {"key": "date", "optional": True}],
-    "empty_response": "Sorry! No relevant content was found in the knowledge base!",
+    # Cable vertical defaults; see api/db/cable_defaults.py for the values and
+    # why the model defaults use the same source.
+    "system": cable_defaults.SYSTEM_PROMPT,
+    "prologue": cable_defaults.PROLOGUE,
+    "parameters": [dict(parameter) for parameter in cable_defaults.PROMPT_PARAMETERS],
+    "empty_response": cable_defaults.EMPTY_RESPONSE,
     "quote": True,
     "tts": False,
     "refine_multiturn": True,
@@ -199,12 +196,12 @@ def _build_default_completion_dialog():
         llm_setting={},
         prompt_config=deepcopy(_DEFAULT_DIRECT_CHAT_PROMPT_CONFIG),
         kb_ids=[],
-        top_n=6,
-        rerank_candidates_count=64,
+        top_n=cable_defaults.TOP_N,
+        rerank_candidates_count=cable_defaults.RERANK_CANDIDATES_COUNT,
         top_k=1024,
         rerank_id="",
-        similarity_threshold=0.1,
-        vector_similarity_weight=0.3,
+        similarity_threshold=cable_defaults.SIMILARITY_THRESHOLD,
+        vector_similarity_weight=cable_defaults.VECTOR_SIMILARITY_WEIGHT,
         meta_data_filter=None,
     )
 
@@ -414,6 +411,20 @@ def _apply_prompt_defaults(req):
         prompt_config.setdefault("parameters", []).append({"key": "date", "optional": True})
 
 
+def _apply_retrieval_defaults(req):
+    """Fill the retrieval settings a new chat assistant is created with.
+
+    The cable values live in api/db/cable_defaults.py so the API, the persisted
+    model defaults and the Go backend all start a chat from the same numbers.
+    """
+    req.setdefault("top_n", cable_defaults.TOP_N)
+    req.setdefault("rerank_candidates_count", cable_defaults.RERANK_CANDIDATES_COUNT)
+    req.setdefault("top_k", 1024)
+    req.setdefault("rerank_id", "")
+    req.setdefault("similarity_threshold", cable_defaults.SIMILARITY_THRESHOLD)
+    req.setdefault("vector_similarity_weight", cable_defaults.VECTOR_SIMILARITY_WEIGHT)
+
+
 @manager.route("/chats", methods=["POST"])  # noqa: F821
 @login_required
 async def create():
@@ -468,13 +479,8 @@ async def create():
             req["llm_id"] = tenant.tenant_llm_id
         req.setdefault("llm_setting", {})
         req.setdefault("description", "A helpful Assistant")
-        req.setdefault("top_n", 6)
-        req.setdefault("rerank_candidates_count", 64)
-        req.setdefault("top_k", 1024)
-        req.setdefault("rerank_id", "")
-        req.setdefault("similarity_threshold", 0.1)
-        req.setdefault("vector_similarity_weight", 0.3)
         req.setdefault("icon", "")
+        _apply_retrieval_defaults(req)
         _apply_prompt_defaults(req)
         # err = _validate_prompt_config(req["prompt_config"])
         # if err:
@@ -1235,6 +1241,37 @@ async def recommendation():
         gen_conf,
     )
     return get_json_result(data=[re.sub(r"^[0-9]\. ", "", a) for a in ans.split("\n") if re.match(r"^[0-9]\. ", a)])
+
+
+@manager.route("/chat/title", methods=["POST"])  # noqa: F821
+@login_required
+@validate_request("question")
+async def conversation_title():
+    """Summarize a conversation's first question into a short header title.
+
+    One LLM call with no retrieval, and nothing is written: the client owns the
+    session row, so a title the user renamed by hand can never be overwritten
+    here. Returns an empty title when the model produces nothing usable.
+    """
+    req = await get_request_json()
+    question = (req.get("question") or "").strip()
+    if not question:
+        return get_json_result(data={"title": ""})
+
+    model_ref = (req.get("llm_id") or "").strip()
+    if model_ref:
+        chat_model_config = resolve_model_config(current_user.id, LLMType.CHAT, model_ref)
+    else:
+        chat_model_config = get_tenant_default_model_by_type(current_user.id, LLMType.CHAT)
+    chat_mdl = LLMBundle(current_user.id, chat_model_config)
+
+    answer = await chat_mdl.async_chat(
+        load_prompt("conversation_title"),
+        [{"role": "user", "content": question}],
+        {"temperature": 0.2, "top_p": 0.3, "max_tokens": 64},
+    )
+
+    return get_json_result(data={"title": normalize_conversation_title(answer)})
 
 
 @manager.route("/chat/completions", methods=["POST"])  # noqa: F821

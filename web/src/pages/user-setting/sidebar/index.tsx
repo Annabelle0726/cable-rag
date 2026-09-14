@@ -1,5 +1,6 @@
 /*
  *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -98,6 +99,7 @@ export function SideBar() {
           <RAGFlowAvatar
             avatar={userInfo?.avatar}
             name={userInfo?.nickname}
+            email={userInfo?.email}
             isPerson
           />
 

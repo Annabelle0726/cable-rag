@@ -1,5 +1,6 @@
 //
 //  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+//  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -43,6 +44,7 @@ import (
 	"ragflow/internal/common"
 	"ragflow/internal/dao"
 	"ragflow/internal/entity"
+	"ragflow/internal/server"
 	"ragflow/internal/tokenizer"
 
 	dslpkg "ragflow/internal/agent/dsl"
@@ -429,11 +431,35 @@ func NewAgentServiceWithOptions(
 	}
 }
 
-// ListTemplates returns every canvas template. Mirrors Python
-// agent_api.list_agent_template, which iterates CanvasTemplateService.get_all()
-// and serialises each row.
+// ListTemplates returns the canvas templates this deployment may serve. Mirrors
+// Python agent_api.list_agent_template: it iterates CanvasTemplateService.get_all()
+// and, when the cable-domain switch is on, keeps only the cable templates so rows
+// seeded before the switch was enabled disappear as well.
 func (s *AgentService) ListTemplates(ctx context.Context) ([]*entity.CanvasTemplate, error) {
-	return s.canvasTemplateDAO.GetAll(ctx, dao.DB)
+	templates, err := s.canvasTemplateDAO.GetAll(ctx, dao.DB)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := server.GetConfig()
+	if cfg == nil || !cfg.CableOnly() {
+		return templates, nil
+	}
+
+	return filterCableTemplates(templates, dao.CableTemplateIDs()), nil
+}
+
+// filterCableTemplates drops every template the cable domain does not own. A
+// missing cable directory yields an empty allowed set, which intentionally hides
+// the whole catalogue rather than falling back to the official one.
+func filterCableTemplates(templates []*entity.CanvasTemplate, allowed map[string]struct{}) []*entity.CanvasTemplate {
+	filtered := make([]*entity.CanvasTemplate, 0, len(templates))
+	for _, template := range templates {
+		if _, ok := allowed[template.ID]; ok {
+			filtered = append(filtered, template)
+		}
+	}
+	return filtered
 }
 
 // AgentItem is one entry in the list response.

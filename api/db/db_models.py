@@ -1,5 +1,6 @@
 #
 #  Copyright 2024 The InfiniFlow Authors. All Rights Reserved.
+#  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -51,6 +52,7 @@ from playhouse.pool import PooledMySQLDatabase, PooledPostgresqlDatabase
 
 from api import utils
 from api.db import SerializedType
+from api.db import cable_defaults
 from api.db.gaussdb_error_utils import (
     is_duplicate_column_error,
     is_duplicate_object_error,
@@ -1272,8 +1274,8 @@ class Knowledgebase(DataBaseModel):
     doc_num = IntegerField(default=0, index=True)
     token_num = IntegerField(default=0, index=True)
     chunk_num = IntegerField(default=0, index=True)
-    similarity_threshold = FloatField(default=0.2, index=True)
-    vector_similarity_weight = FloatField(default=0.3, index=True)
+    similarity_threshold = FloatField(default=cable_defaults.SIMILARITY_THRESHOLD, index=True)
+    vector_similarity_weight = FloatField(default=cable_defaults.VECTOR_SIMILARITY_WEIGHT, index=True)
 
     parser_id = CharField(max_length=32, null=False, help_text="default parser ID", default=ParserType.NAIVE.value, index=True)
     pipeline_id = CharField(max_length=32, null=True, help_text="Pipeline ID", index=True)
@@ -1467,15 +1469,17 @@ class Dialog(DataBaseModel):
     prompt_type = CharField(max_length=16, null=False, default="simple", help_text="simple|advanced", index=True)
     prompt_config = JSONField(
         null=False,
-        default={"system": "", "prologue": "Hi! I'm your assistant. What can I do for you?", "parameters": [], "empty_response": "Sorry! No relevant content was found in the knowledge base!"},
+        # Cable vertical: new assistants start from the cable expert prompt,
+        # opener and no-result answer (api/db/cable_defaults.py).
+        default=cable_defaults.prompt_config,
     )
     meta_data_filter = JSONField(null=True, default={})
 
-    similarity_threshold = FloatField(default=0.2)
-    vector_similarity_weight = FloatField(default=0.3)
+    similarity_threshold = FloatField(default=cable_defaults.SIMILARITY_THRESHOLD)
+    vector_similarity_weight = FloatField(default=cable_defaults.VECTOR_SIMILARITY_WEIGHT)
 
-    top_n = IntegerField(default=6)
-    rerank_candidates_count = IntegerField(default=64)
+    top_n = IntegerField(default=cable_defaults.TOP_N)
+    rerank_candidates_count = IntegerField(default=cable_defaults.RERANK_CANDIDATES_COUNT)
 
     top_k = IntegerField(default=1024)
 

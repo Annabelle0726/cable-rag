@@ -1,37 +1,67 @@
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { DatasetMetadata } from '@/constants/chat';
-import { useSetModalState } from '@/hooks/common-hooks';
 import { useFetchChat, useUpdateChat } from '@/hooks/use-chat-request';
 import { useFindLlmByUuid } from '@/hooks/use-llm-request';
 import {
   useRevalidateStaleDatasetIds,
   useStaleDatasetFormSchema,
 } from '@/hooks/use-stale-dataset-validation';
-import { cn } from '@/lib/utils';
 import {
   removeUselessFieldsFromValues,
   setLLMSettingEnabledValues,
 } from '@/utils/form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isEmpty, omit } from 'lodash';
-import { LucidePanelRightClose, LucideSettings } from 'lucide-react';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { z } from 'zod';
-import ChatBasicSetting from './chat-basic-settings';
-import { ChatPromptEngine } from './chat-prompt-engine';
+import { getWebSearchProvider } from '../web-search-api-key';
+import { ModelDatasetFields } from './sections/model-dataset-fields';
+import { PrologueFields } from './sections/prologue-fields';
+import { RetrievalFields } from './sections/retrieval-fields';
+import { SystemPromptFields } from './sections/system-prompt-fields';
 import { SavingButton } from './saving-button';
+import { SettingsDrawer } from './settings-drawer';
 import { useChatSettingSchema } from './use-chat-setting-schema';
 import { useRevealSubmitErrors } from './use-reveal-submit-errors';
-import { getWebSearchProvider } from '../web-search-api-key';
 
-type ChatSettingsProps = { hasSingleChatBox: boolean };
+type ChatSettingsProps = {
+  /** Open state of the drawer. The chat page owns it so every trigger shares it. */
+  visible: boolean;
+  onVisibleChange: (visible: boolean) => void;
+  /** Enters the multi-model comparison view from the model section. */
+  onOpenMultiModel?: () => void;
+};
 
-export function ChatSettings({ hasSingleChatBox }: ChatSettingsProps) {
+/** The drawer's accordion sections; the first one is open when it slides in. */
+const RetrievalSection = 'retrieval';
+const SystemSection = 'system';
+const PrologueSection = 'prologue';
+const ModelSection = 'model';
+
+const SettingsSections = [
+  RetrievalSection,
+  SystemSection,
+  PrologueSection,
+  ModelSection,
+] as const;
+
+const SettingsFormId = 'chat-settings-form';
+
+export function ChatSettings({
+  visible,
+  onVisibleChange,
+  onOpenMultiModel,
+}: ChatSettingsProps) {
   const { data } = useFetchChat();
 
   const chatSettingSchema = useChatSettingSchema();
@@ -44,17 +74,16 @@ export function ChatSettings({ hasSingleChatBox }: ChatSettingsProps) {
   const { id } = useParams();
   const { t } = useTranslation();
 
-  const { visible: settingVisible, switchVisible: switchSettingVisible } =
-    useSetModalState(false);
+  const closeSettings = useCallback(() => {
+    onVisibleChange(false);
+  }, [onVisibleChange]);
 
   const {
     formContainerRef,
     handleInvalidSubmit,
-    modelSettingOpen,
-    onModelSettingOpenChange,
-    advancedSettingOpen,
-    onAdvancedSettingOpenChange,
-  } = useRevealSubmitErrors();
+    openSections,
+    onOpenSectionsChange,
+  } = useRevealSubmitErrors(SettingsSections, [RetrievalSection]);
 
   type FormSchemaType = z.infer<typeof formSchema>;
 
@@ -81,10 +110,10 @@ export function ChatSettings({ hasSingleChatBox }: ChatSettingsProps) {
           fields: undefined,
         },
       },
-      top_n: 8,
+      top_n: 6,
       rerank_candidates_count: 64,
-      similarity_threshold: 0.2,
-      vector_similarity_weight: 0.2,
+      similarity_threshold: 0.25,
+      vector_similarity_weight: 0.3,
       meta_data_filter: {
         method: DatasetMetadata.Disabled,
         manual: [],
@@ -165,82 +194,77 @@ export function ChatSettings({ hasSingleChatBox }: ChatSettingsProps) {
 
   useRevalidateStaleDatasetIds(form, datasetsFetched);
 
+  const sections = [
+    {
+      value: RetrievalSection,
+      title: t('chat.retrievalSettings'),
+      content: <RetrievalFields />,
+    },
+    {
+      value: SystemSection,
+      title: t('chat.roleAndPrompt'),
+      content: <SystemPromptFields />,
+    },
+    {
+      value: PrologueSection,
+      title: t('chat.prologueAndFallback'),
+      content: <PrologueFields />,
+    },
+    {
+      value: ModelSection,
+      title: t('chat.modelAndDataset'),
+      content: <ModelDatasetFields onOpenMultiModel={onOpenMultiModel} />,
+    },
+  ];
+
   return (
-    <>
-      {settingVisible || (
-        <div className="p-5">
+    <SettingsDrawer
+      open={visible}
+      onOpenChange={onVisibleChange}
+      title={t('chat.chatSetting')}
+      footer={
+        <div className="flex items-center justify-end gap-3">
           <Button
-            onClick={switchSettingVisible}
-            disabled={!hasSingleChatBox}
-            variant={'ghost'}
-            size="icon-sm"
-            data-testid="chat-settings"
+            variant={'outline'}
+            onClick={closeSettings}
+            data-testid="chat-detail-settings-cancel"
           >
-            <LucideSettings />
+            {t('chat.cancel')}
           </Button>
+          <SavingButton loading={loading} form={SettingsFormId}></SavingButton>
         </div>
-      )}
-
-      <section
-        data-testid="chat-detail-settings"
-        className={cn(
-          'transition-[width] ease-out duration-300 flex-shrink-0 flex flex-col overflow-hidden',
-          settingVisible ? 'w-[440px]' : 'w-0',
-        )}
-      >
-        {settingVisible && (
-          <>
-            <div className="p-5 pb-2 flex justify-between items-center text-base">
-              {t('chat.chatSetting')}
-
-              <Button
-                variant="transparent"
-                size="icon-sm"
-                className="border-0"
-                onClick={switchSettingVisible}
-                data-testid="chat-detail-settings-close"
+      }
+    >
+      <Form {...form}>
+        <form
+          ref={formContainerRef}
+          id={SettingsFormId}
+          onSubmit={form.handleSubmit(onSubmit, handleInvalidSubmit)}
+        >
+          <Accordion
+            type="multiple"
+            value={openSections}
+            onValueChange={onOpenSectionsChange}
+            className="space-y-2"
+          >
+            {sections.map((section) => (
+              <AccordionItem
+                key={section.value}
+                value={section.value}
+                className="rounded-xl border border-cable-border px-4 data-[state=open]:bg-cable-surface-muted"
               >
-                <LucidePanelRightClose
-                  className="size-4 cursor-pointer"
-                  onClick={switchSettingVisible}
-                />
-              </Button>
-            </div>
-
-            <Form {...form}>
-              <form
-                ref={formContainerRef}
-                onSubmit={form.handleSubmit(onSubmit, handleInvalidSubmit)}
-                className="flex-1 flex flex-col min-h-0"
-              >
-                <ScrollArea viewportClassName="[&>div]:!block">
-                  <section className="p-5 space-y-6 overflow-auto flex-1 min-h-0">
-                    <ChatBasicSetting
-                      collapseOpen={modelSettingOpen}
-                      onCollapseOpenChange={onModelSettingOpenChange}
-                    ></ChatBasicSetting>
-                    <ChatPromptEngine
-                      collapseOpen={advancedSettingOpen}
-                      onCollapseOpenChange={onAdvancedSettingOpenChange}
-                    ></ChatPromptEngine>
-                  </section>
-                </ScrollArea>
-
-                <div className="p-5 pt-4 space-x-5 text-right">
-                  <Button
-                    variant={'outline'}
-                    onClick={switchSettingVisible}
-                    data-testid="chat-detail-settings-cancel"
-                  >
-                    {t('chat.cancel')}
-                  </Button>
-                  <SavingButton loading={loading}></SavingButton>
-                </div>
-              </form>
-            </Form>
-          </>
-        )}
-      </section>
-    </>
+                <AccordionTrigger
+                  className="text-sm font-medium text-text-primary hover:no-underline"
+                  data-testid={`chat-settings-section-${section.value}`}
+                >
+                  {section.title}
+                </AccordionTrigger>
+                <AccordionContent>{section.content}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </form>
+      </Form>
+    </SettingsDrawer>
   );
 }

@@ -1,5 +1,6 @@
 //
 //  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+//  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -298,10 +299,10 @@ func (s *ChatService) Create(ctx context.Context, userID string, req map[string]
 		req["description"] = "A helpful Assistant"
 	}
 	if _, ok := req["top_n"]; !ok {
-		req["top_n"] = 6
+		req["top_n"] = CableDefaultTopN
 	}
 	if _, ok := req["rerank_candidates_count"]; !ok {
-		req["rerank_candidates_count"] = 64
+		req["rerank_candidates_count"] = CableDefaultRerankCandidatesCount
 	}
 	if _, ok := req["top_k"]; !ok {
 		req["top_k"] = 1024
@@ -311,10 +312,10 @@ func (s *ChatService) Create(ctx context.Context, userID string, req map[string]
 		req["tenant_rerank_id"] = nil
 	}
 	if _, ok := req["similarity_threshold"]; !ok {
-		req["similarity_threshold"] = 0.1
+		req["similarity_threshold"] = CableDefaultSimilarityThreshold
 	}
 	if _, ok := req["vector_similarity_weight"]; !ok {
-		req["vector_similarity_weight"] = 0.3
+		req["vector_similarity_weight"] = CableDefaultVectorSimilarityWeight
 	}
 	if _, ok := req["do_refer"]; !ok {
 		req["do_refer"] = "1"
@@ -474,7 +475,7 @@ func applyCreatePromptDefaults(req map[string]interface{}) {
 	kbIDs, _ := listFromValue(req["kb_ids"])
 	if system, ok := promptConfig["system"]; !ok || !isTruthy(system) {
 		if len(kbIDs) > 0 {
-			promptConfig["system"] = pyDefaultSystemPrompt
+			promptConfig["system"] = CableDefaultSystemPrompt
 		} else {
 			// No dataset bound: do not seed the dataset-oriented default system prompt. Its
 			// hard-coded "not found in the dataset" sentence would otherwise be sent verbatim
@@ -483,13 +484,13 @@ func applyCreatePromptDefaults(req map[string]interface{}) {
 		}
 	}
 	if _, ok := promptConfig["prologue"]; !ok {
-		promptConfig["prologue"] = pyDefaultPrologue
+		promptConfig["prologue"] = CableDefaultPrologue
 	}
 	if _, ok := promptConfig["parameters"]; !ok {
 		promptConfig["parameters"] = []interface{}{map[string]interface{}{"key": "knowledge", "optional": false}}
 	}
 	if _, ok := promptConfig["empty_response"]; !ok {
-		promptConfig["empty_response"] = pyDefaultEmptyResponse
+		promptConfig["empty_response"] = CableDefaultEmptyResponse
 	}
 	if _, ok := promptConfig["quote"]; !ok {
 		promptConfig["quote"] = true
@@ -771,20 +772,6 @@ func (s *ChatService) getDatasetNamesAndIDs(ctx context.Context, kbIDs entity.JS
 	}
 	return names, ids
 }
-
-const (
-	pyDefaultSystemPrompt = "You are an intelligent assistant. Please summarize the content of the dataset to answer the question. " +
-		"Please list the data in the dataset and answer in detail. " +
-		"When all dataset content is irrelevant to the question, your answer must include the sentence " +
-		`"The answer you are looking for is not found in the dataset!" ` +
-		"Answers need to consider chat history.\n" +
-		"      Here is the knowledge base:\n" +
-		"      {knowledge}\n" +
-		"      The above is the knowledge base."
-
-	pyDefaultPrologue      = "Hi! I'm your assistant. What can I do for you?"
-	pyDefaultEmptyResponse = "Sorry! No relevant content was found in the knowledge base!"
-)
 
 func (s *ChatService) getOwnedValidChat(ctx context.Context, userID, chatID string) (*entity.Chat, error) {
 	chat, err := s.chatDAO.GetByIDAndStatus(ctx, dao.DB, chatID, string(entity.StatusValid))

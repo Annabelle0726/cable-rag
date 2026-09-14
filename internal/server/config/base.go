@@ -1,5 +1,6 @@
 //
 //  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+//  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -35,6 +36,9 @@ type Config struct {
 
 	log  LogConfig
 	smtp common.SMTPConfig
+
+	// Cable-domain fork switch (top-level `show_cable_only` in service_conf.yaml).
+	cableOnly bool
 
 	// From environments
 	environments Environments

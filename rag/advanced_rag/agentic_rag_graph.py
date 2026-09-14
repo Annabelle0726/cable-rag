@@ -1,5 +1,6 @@
 #
 #  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+#  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -861,6 +862,13 @@ async def _compose_answer_from_evidence(state: AgenticState, tools, token_queue:
 
     _CITE_CHUNK_CAP = 6
     cite_chunks = ranked[:_CITE_CHUNK_CAP] or all_chunks
+    # DESIGN ENHANCEMENT (Go parity: RunResponse.SlotCitations): expose the
+    # slot evidence ids and the citation-pool chunk ids so the rag tool's
+    # post-processing can rewrite unresolvable [ID:Slot N] markers into real
+    # chunk citations (see _repair_slot_citation_markers in agentic_rag.py)
+    # and expand range-merged citations (see _expand_range_citation_markers).
+    tools._rag_slot_evidence = state.get("slot_evidence") or {}
+    tools._rag_cite_chunk_ids = [str(c.get("chunk_id") or c.get("id") or "") for c in cite_chunks]
     evidence_kbinfos = dict(kbinfos, chunks=cite_chunks)
     evidence_blocks = kb_prompt(evidence_kbinfos, min(tools.chat_mdl.max_length, _EVIDENCE_BUDGET_TOKENS))
     evidence = "\n".join(evidence_blocks) if isinstance(evidence_blocks, list) else str(evidence_blocks)
@@ -932,7 +940,11 @@ async def _compose_answer_from_evidence(state: AgenticState, tools, token_queue:
             "provided evidence, those three take precedence."
         )
 
-    parts.append(f"Evidence:\n{evidence}")
+    # DESIGN NOTE: dataset names are mutable runtime data — exposed here in
+    # the untrusted evidence block (user directive), never via the system
+    # prompt's {knowledge} placeholder (trusted template content only).
+    bound = (getattr(tools, "_bound_dataset_names", "") or "").strip()
+    parts.append(f"Evidence:\n{('Bound datasets: ' + bound + '\n') if bound else ''}{evidence}")
     user_content = "\n".join(parts)
 
     _LOG.info(
@@ -2087,6 +2099,23 @@ async def _naive_rag(tools, messages: list, gen_conf: dict | None = None):
         yield evidence[:4000]
 
 
+def _graph_failure_reason(exc: BaseException) -> str:
+    """A one-line reason for a failed research graph, for the user-facing fallback.
+
+    The fallback answer is the only thing the user sees, so a bare "internal
+    error" leaves no way to tell a broken knowledge base from an unreachable
+    embedding or LLM provider (the most common causes). LangGraph reports a node
+    failure either directly or wrapped in a task group, so unwrap first, and keep
+    the message short enough to read inline.
+    """
+    while isinstance(exc, BaseExceptionGroup) and exc.exceptions:
+        exc = exc.exceptions[0]
+    reason = " ".join(str(exc).split()) or type(exc).__name__
+    if len(reason) > 300:
+        reason = reason[:297] + "..."
+    return reason
+
+
 async def run_agentic_rag(tools, messages: list, max_loops: int = 3, gen_conf: dict | None = None):
     """Drive the agentic-search graph, yielding answer-token strings."""
     _LOG.info(
@@ -2143,9 +2172,10 @@ async def run_agentic_rag(tools, messages: list, max_loops: int = 3, gen_conf: d
         # the final answer stream runs until the model finishes.
         try:
             holder["state"] = await graph.ainvoke(init_state, {"recursion_limit": recursion_limit})
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
             logging.exception("run_agentic_rag: graph execution failed")  # noqa: LOG015
             holder["error"] = True
+            holder["error_reason"] = _graph_failure_reason(exc)
         finally:
             token_queue.put_nowait(_SENTINEL)
 
@@ -2184,4 +2214,11 @@ async def run_agentic_rag(tools, messages: list, max_loops: int = 3, gen_conf: d
         )
 
     if not produced and holder.get("error"):
-        yield "I couldn't complete the search due to an internal error."
+        # The reason travels with the answer: without it the user only learns
+        # that "something" failed, with no way to act on it.
+        reason = holder.get("error_reason") or ""
+        yield (
+            "检索失败：知识库检索未能完成"
+            + (f"（{reason}）" if reason else "")
+            + "。请检查嵌入模型、向量库与知识库配置后重试。"
+        )

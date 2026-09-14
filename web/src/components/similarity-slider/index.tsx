@@ -1,5 +1,6 @@
 /*
  *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -38,8 +39,12 @@ interface SimilaritySliderFormFieldProps {
   numberInputClassName?: string;
 }
 
+// Cable vertical defaults: 0.25 for the similarity threshold and a 0.30 vector /
+// 0.70 full-text split. These are the values a new dataset or assistant is
+// created with on the backend (api/db/cable_defaults.py), used here whenever a
+// form has no stored value yet.
 export const initialSimilarityThresholdValue = {
-  similarity_threshold: 0.2,
+  similarity_threshold: 0.25,
 };
 export const initialKeywordsSimilarityWeightValue = {
   keywords_similarity_weight: 0.7,

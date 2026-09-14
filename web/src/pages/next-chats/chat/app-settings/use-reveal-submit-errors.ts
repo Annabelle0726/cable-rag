@@ -10,18 +10,26 @@ const ErrorIndicatorSelector =
  * settings section and scrolls the first error into view. The signal counter
  * re-triggers the layout effect on every invalid submit, even when the
  * sections are already open.
+ *
+ * The sections are the drawer's accordion items, so both the list of ids and
+ * the ones open at first are supplied by the caller.
  */
-export function useRevealSubmitErrors() {
-  const [modelSettingOpen, setModelSettingOpen] = useState(false);
-  const [advancedSettingOpen, setAdvancedSettingOpen] = useState(false);
+export function useRevealSubmitErrors(
+  sectionIds: readonly string[],
+  initiallyOpenSections: readonly string[] = [],
+) {
+  const [openSections, setOpenSections] = useState<string[]>([
+    ...initiallyOpenSections,
+  ]);
   const [invalidSubmitSignal, setInvalidSubmitSignal] = useState(0);
   const formContainerRef = useRef<HTMLFormElement>(null);
 
   const handleInvalidSubmit = useCallback(() => {
-    setModelSettingOpen(true);
-    setAdvancedSettingOpen(true);
+    // Every section opens, otherwise the offending control can be hidden inside
+    // a collapsed one and the error would be scrolled to but never seen.
+    setOpenSections([...sectionIds]);
     setInvalidSubmitSignal((signal) => signal + 1);
-  }, []);
+  }, [sectionIds]);
 
   useLayoutEffect(() => {
     if (invalidSubmitSignal === 0) {
@@ -40,9 +48,7 @@ export function useRevealSubmitErrors() {
   return {
     formContainerRef,
     handleInvalidSubmit,
-    modelSettingOpen,
-    onModelSettingOpenChange: setModelSettingOpen,
-    advancedSettingOpen,
-    onAdvancedSettingOpenChange: setAdvancedSettingOpen,
+    openSections,
+    onOpenSectionsChange: setOpenSections,
   };
 }

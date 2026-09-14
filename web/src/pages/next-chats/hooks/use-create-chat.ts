@@ -2,7 +2,6 @@ import { useSetModalState } from '@/hooks/common-hooks';
 import { useCreateChat } from '@/hooks/use-chat-request';
 import { useFetchDefaultModelDictionary } from '@/hooks/use-llm-request';
 import { useCallback, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 
 export const useCreateChatDialog = () => {
   const {
@@ -11,7 +10,6 @@ export const useCreateChatDialog = () => {
     showModal: showCreateChatModal,
   } = useSetModalState();
   const { createChat, loading: createLoading } = useCreateChat();
-  const { t } = useTranslation();
   const defaultModelDictionary =
     useFetchDefaultModelDictionary(createChatVisible);
 
@@ -22,13 +20,15 @@ export const useCreateChatDialog = () => {
       language: 'English',
       description: '',
       dataset_ids: [],
+      // The prompt and retrieval defaults (system prompt, opener, no-result
+      // answer, similarity threshold, vector weight, top N, rerank candidates)
+      // belong to the backend, which applies the cable vertical values in
+      // api/db/cable_defaults.py. Sending them from here would override those
+      // defaults with a second copy that has to be kept in step.
       prompt_config: {
-        empty_response: '',
-        prologue: t('chat.setAnOpenerInitial'),
         quote: true,
         keyword: false,
         tts: false,
-        system: t('chat.systemInitialValue'),
         refine_multiturn: false,
         use_kg: false,
         reasoning: false,
@@ -41,12 +41,8 @@ export const useCreateChatDialog = () => {
       llm_id: defaultModelDictionary?.llm_id,
       tenant_llm_id: defaultModelDictionary?.llm_id,
       llm_setting: {},
-      similarity_threshold: 0.2,
-      vector_similarity_weight: 0.3,
-      top_n: 8,
-      rerank_candidates_count: 64,
     }),
-    [t, defaultModelDictionary?.llm_id],
+    [defaultModelDictionary?.llm_id],
   );
 
   const onCreateChatOk = useCallback(

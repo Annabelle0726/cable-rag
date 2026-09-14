@@ -1030,10 +1030,14 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
       messagePlaceholder: 'Type your message here...',
       exit: 'Exit',
       multipleModels: 'Multiple models',
+      multipleModelsTip:
+        'Send one question to several models at once and compare their answers side by side.',
       applyModelConfigs: 'Apply model configs',
       conversations: 'Conversations',
       chatApps: 'Chat apps',
       newConversation: 'New conversation',
+      createSessionFailed:
+        'Could not create the conversation, so the message was not sent. Please try again.',
       createAssistant: 'Create an assistant',
       assistantSetting: 'Assistant settings',
       promptEngine: 'Prompt engine',
@@ -1131,9 +1135,15 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
       maxTokensTip: `The maximum context size of the model; an invalid or incorrect value will cause an error. Defaults to 512.`,
       maxTokensInvalidMessage: 'Please enter a valid number for Max tokens.',
       maxTokensMinMessage: 'Max tokens cannot be less than 0.',
-      thinking: 'Thinking',
+      thinking: '⚛️ Thinking',
       thinkingMode: 'Thinking',
-      thought: 'Thought',
+      thought: '⚛️ Thought · research and reasoning complete',
+      retrieving: '🔍 Retrieving sources',
+      agenticLog: '🔍 Agentic RAG research log · {{num}} steps',
+      expandHeader: 'Show model controls',
+      collapseHeader: 'Hide model controls',
+      summarizingTitle: 'Summarising the conversation title…',
+      showConversations: 'Show conversations',
       thinkingDefault: 'System default',
       thinkingEnabled: 'Enabled',
       thinkingDisabled: 'Disabled',
@@ -1258,6 +1268,10 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
       },
       cancel: 'Cancel',
       chatSetting: 'Chat setting',
+      retrievalSettings: 'Retrieval settings',
+      roleAndPrompt: 'Role and prompt',
+      prologueAndFallback: 'Opener and fallback',
+      modelAndDataset: 'Model and datasets',
       tocEnhance: 'PageIndex',
       tocEnhanceTip: `During the parsing of the document, table of contents information was generated (see the 'Enable Table of Contents Extraction' option in the General method). This allows the large model to return table of contents items relevant to the user's query, thereby using these items to retrieve related chunks and apply weighting to these chunks during the sorting process. This approach mimics human information-searching behavior in books.`,
       batchDeleteSessions: 'Batch delete',
@@ -1309,6 +1323,16 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
       dataSourceFieldClientSecret: 'Client Secret',
       dataSourceFieldFolderPathOptional: 'Folder Path (optional)',
       dataSourceFieldBatchSize: 'Batch Size',
+      dataSourceFieldFeishuAppId: 'Feishu app ID',
+      dataSourceFieldFeishuAppSecret: 'Feishu app secret',
+      dataSourceFieldWikiSpaceId: 'Wiki space ID',
+      dataSourceFieldRootNodeToken: 'Wiki root node token',
+      dataSourceFieldIncludeExtensions: 'Allowed file extensions',
+      dataSourceFieldIncludeKeywords: 'Required filename keywords',
+      dataSourceFieldExcludeKeywords: 'Excluded filename keywords',
+      dataSourceFieldMaxFileSizeBytes: 'Maximum file size (bytes)',
+      dataSourceValidationFeishuBatchSize:
+        'Batch size must be between 1 and 10',
       dataSourceFieldMailFolder: 'Mail Folder',
       dataSourceFieldMailboxUserIds: 'Mailbox User IDs (optional)',
       dataSourceFieldInstanceUrl: 'Instance URL',
@@ -1582,6 +1606,8 @@ Example: Virtual Hosted Style`,
         'Sync pages and databases from Notion for knowledge retrieval.',
       google_driveDescription:
         'Connect your Google Drive via OAuth and sync specific folders or drives.',
+      feishu_wikiDescription:
+        'Sync downloadable file nodes from a Feishu Wiki subtree.',
       gmailDescription: 'Connect your Gmail via OAuth to sync emails.',
       webdavDescription: 'Connect to WebDAV servers to sync files.',
       webdavRemotePathTip:
@@ -1764,6 +1790,8 @@ Example: Virtual Hosted Style`,
         'Column to use as unique document ID. If not specified, a hash of the content will be used.',
       mysqlTimestampColumnTip:
         'Datetime/timestamp column for incremental sync. Only rows modified after the last sync will be fetched.',
+      mysqlFileExtensionTip:
+        'The extension used for documents synced from this source (default: .txt). Since each row is saved as one file, when set to .html or .md, select only content columns that are purely HTML or Markdown.',
       postgresqlDescription:
         'Connect to PostgreSQL database to sync data from tables using SQL queries.',
       postgresqlQueryTip:
@@ -1776,6 +1804,8 @@ Example: Virtual Hosted Style`,
         'Column to use as unique document ID. If not specified, a hash of the content will be used.',
       postgresqlTimestampColumnTip:
         'Datetime/timestamp column for incremental sync. Only rows modified after the last sync will be fetched.',
+      postgresqlFileExtensionTip:
+        'The extension used for documents synced from this source (default: .txt). Since each row is saved as one file, when set to .html or .md, select only content columns that are purely HTML or Markdown.',
       bigqueryDescription:
         'Connect to Google BigQuery to sync rows from a table or a custom GoogleSQL query.',
       bigqueryProjectIdTip:

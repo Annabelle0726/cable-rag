@@ -131,6 +131,12 @@ module.exports = {
         },
         'cable-divider': 'var(--cable-divider)',
         'cable-muted': 'var(--cable-muted)',
+        'cable-hairline': 'var(--cable-hairline)',
+        'cable-backdrop': 'var(--cable-backdrop)',
+        'cable-avatar': {
+          DEFAULT: 'var(--cable-avatar-surface)',
+          foreground: 'var(--cable-avatar-foreground)',
+        },
         'cable-nav': {
           DEFAULT: 'var(--cable-nav-text)',
           hover: 'var(--cable-nav-text-hover)',
@@ -191,6 +197,9 @@ module.exports = {
         /* Cable surfaces: soft elevation in light mode, flat in dark mode. */
         'cable-surface': 'var(--cable-shadow)',
         'cable-surface-hover': 'var(--cable-shadow-hover)',
+        /* Slide-over drawer panel: casts leftwards, so it stays readable in both
+           themes (a "none" shadow would flatten the panel against the chat). */
+        'cable-drawer': 'var(--cable-drawer-shadow)',
       },
       borderRadius: {
         px: '1px',

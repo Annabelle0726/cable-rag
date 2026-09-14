@@ -1,6 +1,4 @@
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
-import EmbedDialog from '@/components/embed-dialog';
-import { useShowEmbedModal } from '@/components/embed-dialog/use-show-embed-dialog';
 import { MoreButton } from '@/components/more-button';
 import { RAGFlowAvatar } from '@/components/ragflow-avatar';
 import { Button } from '@/components/ui/button';
@@ -11,8 +9,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { SharedFrom } from '@/constants/chat';
-import { useSetModalState } from '@/hooks/common-hooks';
 import {
   useFetchChat,
   useGetChatSearchParams,
@@ -22,25 +18,38 @@ import {
   LucideCopyX,
   LucideListChecks,
   LucidePanelLeftClose,
+  LucidePencil,
   LucidePlus,
-  LucideSend,
+  LucideSettings,
   LucideTrash2,
   LucideUndo2,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router';
 import { useChatStreamStore } from '../chat-stream/store';
 import { useChatUrlParams } from '../hooks/use-chat-url';
 import { useHandleClickConversationCard } from '../hooks/use-click-card';
+import { useRenameSession } from '../hooks/use-rename-session';
 import { useSelectDerivedConversationList } from '../hooks/use-select-conversation-list';
 import { ConversationDropdown } from './conversation-dropdown';
+import { InlineRenameInput } from './inline-rename-input';
 
 type SessionProps = Pick<
   ReturnType<typeof useHandleClickConversationCard>,
   'handleConversationCardClick'
->;
-export function Sessions({ handleConversationCardClick }: SessionProps) {
+> & {
+  /** Owned by the chat page so the header can mirror the collapsed state. */
+  visible: boolean;
+  onVisibleChange: (visible: boolean) => void;
+  /** Opens the chat settings drawer, owned by the chat page. */
+  onOpenSettings: () => void;
+};
+export function Sessions({
+  handleConversationCardClick,
+  visible,
+  onVisibleChange,
+  onOpenSettings,
+}: SessionProps) {
   const { t } = useTranslation();
   const {
     list: conversationList,
@@ -50,12 +59,36 @@ export function Sessions({ handleConversationCardClick }: SessionProps) {
     searchString,
   } = useSelectDerivedConversationList();
   const { data } = useFetchChat();
-  const { visible, switchVisible } = useSetModalState(true);
+  const switchVisible = useCallback(() => {
+    onVisibleChange(!visible);
+  }, [onVisibleChange, visible]);
   const { removeSessions } = useRemoveSessions();
   const { setConversationBoth } = useChatUrlParams();
   const { conversationId } = useGetChatSearchParams();
   const removeStreamSessions = useChatStreamStore(
     (state) => state.removeSessions,
+  );
+
+  const { renameSession, loading: renaming } = useRenameSession();
+  // Id of the row being renamed in place; the input replaces that row's label.
+  const [renamingConversationId, setRenamingConversationId] = useState('');
+
+  const handleStartRenaming = useCallback((id: string) => {
+    setRenamingConversationId(id);
+  }, []);
+
+  const handleCancelRenaming = useCallback(() => {
+    setRenamingConversationId('');
+  }, []);
+
+  const handleRenameConversation = useCallback(
+    async (id: string, name: string) => {
+      const renamed = await renameSession({ sessionId: id, name });
+      if (renamed) {
+        setRenamingConversationId('');
+      }
+    },
+    [renameSession],
   );
 
   // Selection mode state
@@ -167,10 +200,6 @@ export function Sessions({ handleConversationCardClick }: SessionProps) {
 
   const selectedCount = visibleSelectedIds.length;
 
-  const { id } = useParams();
-  const { showEmbedModal, hideEmbedModal, embedVisible, beta } =
-    useShowEmbedModal();
-
   if (!visible) {
     return (
       <div className="p-5">
@@ -208,27 +237,23 @@ export function Sessions({ handleConversationCardClick }: SessionProps) {
           <span className="flex-1 truncate">{data.name}</span>
         </div>
 
+        {/* Settings: opens the slide-over panel. It replaces the embed-into-site
+            entry point, which this deployment does not use. */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              onClick={showEmbedModal}
+              onClick={onOpenSettings}
+              variant="transparent"
               size="icon-xs"
-              data-testid="chat-detail-embed-open"
+              className="border-0"
+              aria-label={t('chat.chatSetting')}
+              data-testid="chat-settings"
             >
-              <LucideSend />
+              <LucideSettings className="size-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t('common.embedIntoSite')}</TooltipContent>
+          <TooltipContent>{t('chat.chatSetting')}</TooltipContent>
         </Tooltip>
-
-        <EmbedDialog
-          visible={embedVisible}
-          hideModal={hideEmbedModal}
-          token={id!}
-          from={SharedFrom.Chat}
-          beta={beta}
-          isAgent={false}
-        />
 
         <Button
           variant="transparent"
@@ -358,15 +383,45 @@ export function Sessions({ handleConversationCardClick }: SessionProps) {
                     "
                   aria-selected={conversationId === x.id}
                 >
-                  <button
-                    type="button"
-                    className="focus-visible:outline-none px-3 py-2 text-left flex-1 truncate"
-                    onClick={() => handleConversationCardClick(x.id, x.is_new)}
-                    data-testid="chat-detail-session-item"
-                    data-session-id={x.id}
-                  >
-                    {x.name}
-                  </button>
+                  {renamingConversationId === x.id ? (
+                    <InlineRenameInput
+                      value={x.name}
+                      onSave={(name) => handleRenameConversation(x.id, name)}
+                      onCancel={handleCancelRenaming}
+                      saving={renaming}
+                      showActions={false}
+                      className="flex-1 px-2 py-1"
+                      inputClassName="text-sm"
+                      testId="chat-detail-session-rename-input"
+                    />
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="focus-visible:outline-none px-3 py-2 text-left flex-1 truncate"
+                        onClick={() =>
+                          handleConversationCardClick(x.id, x.is_new)
+                        }
+                        onDoubleClick={() => handleStartRenaming(x.id)}
+                        data-testid="chat-detail-session-item"
+                        data-session-id={x.id}
+                      >
+                        {x.name}
+                      </button>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 shrink-0 rounded-lg p-0 text-text-secondary opacity-0 transition-colors group-hover:opacity-100 hover:bg-cable-brand-soft hover:text-cable-brand"
+                        onClick={() => handleStartRenaming(x.id)}
+                        aria-label={t('common.rename')}
+                        data-testid="chat-detail-session-rename"
+                        data-session-id={x.id}
+                      >
+                        <LucidePencil className="size-3.5" />
+                      </Button>
+                    </>
+                  )}
 
                   <ConversationDropdown
                     conversation={x}

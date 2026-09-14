@@ -1,5 +1,6 @@
 /*
  *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,7 +19,10 @@ import {
   ChatVariableEnabledField,
   EmptyConversationId,
 } from '@/constants/chat';
-import { IMessage, Message } from '@/interfaces/database/chat';
+// Type-only: both names are used in annotations only, and a value import here
+// makes the Babel module transform fail on this file ("imported binding used in
+// a type annotation"), which breaks every suite that imports it.
+import type { IMessage, Message } from '@/interfaces/database/chat';
 import { omit } from 'lodash';
 import { v4 as uuid } from 'uuid';
 import {
@@ -47,9 +51,34 @@ export const buildMessageListWithUuid = (messages?: Message[]) => {
   );
 };
 
-export const generateConversationId = () => {
-  return uuid().replace(/-/g, '');
+/**
+ * Marker for a conversation that only exists in the browser. Clicking "+" seeds
+ * such a conversation so the chat area has something to render, but the server
+ * has no session row for it yet — the first send creates the real one. The
+ * prefix makes that state readable from the id alone, which the URL (the single
+ * source of truth for the open conversation) needs: a bare uuid cannot be told
+ * apart from a server-generated one.
+ */
+export const TEMPORARY_CONVERSATION_PREFIX = 'temp-';
+
+export const generateTemporaryConversationId = () => {
+  return `${TEMPORARY_CONVERSATION_PREFIX}${uuid().replace(/-/g, '')}`;
 };
+
+export const isTemporaryConversationId = (
+  conversationId?: string,
+): conversationId is string =>
+  !!conversationId && conversationId.startsWith(TEMPORARY_CONVERSATION_PREFIX);
+
+/**
+ * True for ids the server can answer for: a non-empty id that is not a local
+ * placeholder. Everything that talks to a session endpoint (fetch, patch,
+ * completion) must be gated on this.
+ */
+export const isPersistedConversationId = (
+  conversationId?: string,
+): conversationId is string =>
+  !!conversationId && !isTemporaryConversationId(conversationId);
 
 // When rendering each message, add a prefix to the id to ensure uniqueness.
 export const buildMessageUuidWithRole = (
@@ -94,21 +123,174 @@ export const preprocessLaTeX = (content: string) => {
   return inlineProcessedContent;
 };
 
+/**
+ * Stage banners the Agentic RAG pipeline forwards into the answer stream
+ * (`rag/advanced_rag/think_log.py` forwards every INFO record starting with
+ * `[`). Matched by prefix only, so new stages need no frontend change beyond
+ * adding the tag here.
+ */
+export const AGENTIC_LOG_PREFIXES = [
+  '[Agentic RAG]',
+  '[Formalize',
+  '[Keywords',
+  '[Direct search',
+  '[Hybrid search',
+  '[Memory',
+  '[Composing the answer]',
+] as const;
+
+/**
+ * Progress chatter the tool loop prints around a call without a stage tag
+ * ("Running the rag tool...", "Running tool..."). Anchored to the whole line so
+ * a real sentence that merely starts with those words is never swallowed.
+ */
+const AGENTIC_PREAMBLE_RE =
+  /^running\s+(?:the\s+)?(?:[\w-]+\s+)?tools?(?:\s*[.…]{1,3})?$/i;
+
+/**
+ * Anything that renders a citation, figure or image in the answer. A line like
+ * this is never treated as a log even when it carries a stage tag: silently
+ * hiding an image, a `Fig. N` reference or an `[ID:n]` citation would damage the
+ * answer, whereas leaving a log line in the body is only cosmetic.
+ */
+const ANSWER_MEDIA_RE =
+  /!\[|<img|<figure|<image|\[\s*ID:\s*\d+\s*\]|\bFig(?:ure)?\.?\s*\d/i;
+
+// Fenced code blocks must never be rewritten: a shell snippet or a log sample
+// can legitimately start a line with one of the prefixes above.
+const CODE_FENCE_RE = /^\s*(```|~~~)/;
+// Inline code spans and existing TeX must be left untouched by the caret pass.
+const CODE_OR_MATH_SEGMENT_RE = /(`[^`]*`|\$\$[\s\S]*?\$\$|\$[^$\n]*\$)/g;
+// `1.5mm^2`, `10^-6`, `m^{3}`: a unit/number exponent typed as plain text.
+const BARE_CARET_EXPONENT_RE =
+  /([0-9A-Za-z)\]])\^(\{[^}\s]{1,12}\}|[+-]?[0-9]{1,3}|[A-Za-z])/g;
+// One think line arrives as Go's `…<br>` (trailing break) or Python's
+// `<br>…\n` (leading break), so a log line can only be recognised after
+// splitting the physical line on the break tags as well.
+const BREAK_TAG_RE = /<br\s*\/?>/gi;
+// Placeholder marking where the collapsed log panel belongs; substituted once
+// the final line count is known.
+const LOG_BLOCK_SENTINEL = '@@agentic-log-block@@';
+
+/** Splits text into physical lines, then each line on `<br>` boundaries. */
+const splitLogLines = (text: string = ''): string[] =>
+  text
+    .split(/\r?\n/)
+    .flatMap((line) => line.split(BREAK_TAG_RE))
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+
+/** True when a line is untagged tool-progress chatter. */
+export function isAgenticPreambleLine(line: string = ''): boolean {
+  return AGENTIC_PREAMBLE_RE.test(line.trim());
+}
+
+/**
+ * True when a line belongs in the collapsed progress panel. Answer-bearing
+ * lines (figures, images, citations) are excluded first so extraction can never
+ * remove content the user is meant to read.
+ */
+export function isAgenticLogLine(line: string = ''): boolean {
+  const trimmed = line.trim().replace(/^[-*+]\s+/, '');
+
+  if (ANSWER_MEDIA_RE.test(trimmed)) {
+    return false;
+  }
+
+  return (
+    AGENTIC_LOG_PREFIXES.some((prefix) => trimmed.startsWith(prefix)) ||
+    isAgenticPreambleLine(trimmed)
+  );
+}
+
+/** True when the first line of a block is an Agentic RAG log line. */
+export function isAgenticLogText(text: string = ''): boolean {
+  const firstLine = splitLogLines(text)[0];
+
+  return firstLine !== undefined && isAgenticLogLine(firstLine);
+}
+
+/** Number of Agentic RAG log lines in a block of text. */
+export function countAgenticLogLines(text: string = ''): number {
+  return splitLogLines(text).filter((line) => isAgenticLogLine(line)).length;
+}
+
+const fillLogCount = (summary: string, count: number) =>
+  summary.replace(/\{\{\s*num\s*\}\}/g, String(count));
+
+// The leading stage tag is rendered as inline code: it keeps the tag visually
+// distinct (and stops markdown from reading `[Tag]` as a link reference).
+const stripTagToCode = (line: string) =>
+  line.replace(/^(\[[^\]]{1,60}\])(\S?.*)$/, '`$1`$2');
+
+/**
+ * Separates a generated `<details>` panel from the text around it.
+ *
+ * CommonMark keeps an HTML block open until a blank line, so an answer glued to
+ * a panel's closing tag — the pipeline emits `</think>` immediately before the
+ * answer, which becomes `</details>答案` — is read as raw HTML and its markdown
+ * is never parsed: `**0.0991 Ω/km**` reaches the screen with its asterisks
+ * intact. A panel is also only recognised as a block when its own tag starts a
+ * line, hence both edges.
+ */
+const detachPanels = (text: string) =>
+  text
+    .replace(/([^\n])(<details\b)/gi, '$1\n\n$2')
+    .replace(/(<\/details>)([^\n])/gi, '$1\n\n$2');
+
+const buildAgenticLogBlock = (summary: string, logs: string[]) =>
+  [
+    `<details class="agentic-log"><summary>${fillLogCount(
+      summary,
+      logs.length,
+    )}</summary>`,
+    '',
+    // The blank lines are load-bearing: markdown nested in a raw HTML block is
+    // only parsed once the block is interrupted, so the log lines below stay
+    // real markdown (bold, code fences, links) instead of one unformatted blob.
+    ...logs.map(stripTagToCode),
+    '',
+    '</details>',
+  ].join('\n');
+
+/**
+ * Removes the whitespace and empty markup that extraction leaves at the edges of
+ * the answer, so the body starts on real content instead of stray line breaks.
+ */
+export function trimExtractionResidue(text: string = '') {
+  const LEADING = /^(?:\s|&nbsp;|<br\s*\/?>|<p>\s*<\/p>|<p><\/p>)+/i;
+  const TRAILING = /(?:\s|&nbsp;|<br\s*\/?>|<p>\s*<\/p>|<p><\/p>)+$/i;
+
+  return text.replace(LEADING, '').replace(TRAILING, '');
+}
+
 export function replaceThinkToSection(
   text: string = '',
   summary: string = 'Thinking...',
+  logSummary?: string,
 ) {
-  const pattern = /<think>([\s\S]*?)<\/think>/g;
+  // The closing tag is optional on purpose: while an answer streams the block
+  // is still open, and leaving it unhandled would print the raw reasoning and
+  // pipeline logs into the answer until the closer arrives.
+  const pattern = /<think>([\s\S]*?)(?:<\/think>|$)/g;
 
-  // An empty think section (the model replied without reasoning) must not
-  // render as a bare "Thinking..." strip above the answer.
-  const result = text.replace(pattern, (_match, thinkContent: string) =>
-    thinkContent.trim().length === 0
-      ? ''
-      : `<details class="think"><summary>${summary}</summary>${thinkContent}</details>`,
-  );
+  const result = text.replace(pattern, (_match, thinkContent: string) => {
+    const body = thinkContent.trim();
+    if (body.length === 0) {
+      return '';
+    }
+    // Agentic RAG progress logs reach the UI wrapped in <think> markers. They
+    // are diagnostics, not reasoning, so they get their own summary and the
+    // monospaced log list instead of the generic "Thought" panel.
+    if (logSummary && isAgenticLogText(body)) {
+      return buildAgenticLogBlock(logSummary, splitLogLines(body));
+    }
+    // Same blank-line rule as the log panel: without it the reasoning body is
+    // treated as raw HTML and its markdown is never rendered.
+    return `<details class="think"><summary>${summary}</summary>\n\n${body}\n\n</details>`;
+  });
 
-  return result;
+  return detachPanels(result);
 }
 
 // Strip <think> reasoning blocks so only the answer text remains.
@@ -120,15 +302,153 @@ export function removeThinkSection(text: string = '') {
     .trim();
 }
 
-export function replaceRetrievingToSection(text: string = '') {
+export function replaceRetrievingToSection(
+  text: string = '',
+  summary: string = 'Retrieving...',
+) {
   const pattern = /<retrieving>([\s\S]*?)<\/retrieving>/g;
 
   const result = text.replace(
     pattern,
-    '<details class="retrieving"><summary>Retrieving...</summary>$1</details>',
+    (_match, retrievingContent: string) =>
+      `<details class="retrieving"><summary>${summary}</summary>\n\n${retrievingContent.trim()}\n\n</details>`,
   );
 
-  return result;
+  return detachPanels(result);
+}
+
+/**
+ * Collapses bare Agentic RAG progress lines into one collapsed `<details>`
+ * block, placed where the first line appeared, so the answer body only keeps
+ * the parts the user should read. Lines inside fenced code blocks are kept, and
+ * a line that mixes a log with real content keeps the content.
+ */
+export function replaceAgenticLogsToSection(
+  text: string = '',
+  summary: string = 'Agentic RAG log',
+) {
+  if (!text || !text.includes('[')) {
+    return text;
+  }
+
+  const kept: string[] = [];
+  const logs: string[] = [];
+  let inserted = false;
+  let inFence = false;
+  let detailsDepth = 0;
+
+  text.split(/\r?\n/).forEach((line) => {
+    // A collapsed panel is finished output, not source text: re-scanning its
+    // lines built a second panel out of them and left the first one empty, so a
+    // reasoning block that already became a panel is passed through untouched.
+    if (/<details\b/i.test(line)) {
+      detailsDepth += 1;
+    }
+    if (detailsDepth > 0) {
+      kept.push(line);
+      if (/<\/details>/i.test(line)) {
+        detailsDepth -= 1;
+      }
+      return;
+    }
+    if (CODE_FENCE_RE.test(line)) {
+      inFence = !inFence;
+      kept.push(line);
+      return;
+    }
+    if (inFence) {
+      kept.push(line);
+      return;
+    }
+
+    const remaining: string[] = [];
+    let sawLog = false;
+    for (const segment of line.split(BREAK_TAG_RE)) {
+      if (isAgenticLogLine(segment)) {
+        sawLog = true;
+        logs.push(segment.trim());
+        continue;
+      }
+      remaining.push(segment);
+    }
+
+    if (!sawLog) {
+      kept.push(line);
+      return;
+    }
+    if (!inserted) {
+      inserted = true;
+      kept.push(LOG_BLOCK_SENTINEL);
+    }
+    // A pure log line leaves nothing behind; a mixed line keeps its text, with
+    // the break tags that surrounded the removed segments trimmed away.
+    const rest = remaining
+      .join('<br>')
+      .replace(/^(?:<br\s*\/?>|\s)+|(?:<br\s*\/?>|\s)+$/gi, '');
+    if (rest.length > 0) {
+      kept.push(rest);
+    }
+  });
+
+  if (logs.length === 0) {
+    return text;
+  }
+
+  return detachPanels(
+    trimExtractionResidue(
+      kept
+        .join('\n')
+        .replace(LOG_BLOCK_SENTINEL, buildAgenticLogBlock(summary, logs))
+        .replace(/\n{3,}/g, '\n\n'),
+    ),
+  );
+}
+
+/**
+ * Promotes caret exponents typed as plain text (`1.5mm^2`, `10^-6`) into inline
+ * TeX so KaTeX renders real superscripts. Fenced code, inline code spans and
+ * existing `$…$` math are left alone, which keeps this safe for both user
+ * questions and model answers.
+ */
+export function promoteCaretExponentsToLaTeX(text: string = '') {
+  if (!text || !text.includes('^')) {
+    return text;
+  }
+
+  let inFence = false;
+
+  return text
+    .split('\n')
+    .map((line) => {
+      if (CODE_FENCE_RE.test(line)) {
+        inFence = !inFence;
+        return line;
+      }
+      if (inFence) {
+        return line;
+      }
+      return line
+        .split(CODE_OR_MATH_SEGMENT_RE)
+        .map((segment, index) =>
+          // Odd indices are the captured code spans / math segments.
+          index % 2 === 1
+            ? segment
+            : segment.replace(
+                BARE_CARET_EXPONENT_RE,
+                (_match, base: string, exponent: string) => {
+                  // `m^{3}` already carries its own braces; `mm^2` does not.
+                  const value =
+                    exponent.startsWith('{') && exponent.endsWith('}')
+                      ? exponent.slice(1, -1)
+                      : exponent;
+
+                  return `${base}$^{${value}}$`;
+                },
+              ),
+        )
+        .join('');
+    })
+    .join('\n');
 }
 
 // Placeholder markers used internally to protect standalone < and > from

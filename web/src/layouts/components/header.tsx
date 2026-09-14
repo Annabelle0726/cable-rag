@@ -46,7 +46,7 @@ export function Header({
   const changeLanguage = useChangeLanguage();
 
   const {
-    data: { language = 'en', avatar, nickname },
+    data: { language = 'en', avatar, nickname, email },
   } = useFetchUserInfo();
 
   const { data: tenantData } = useListTenant();
@@ -167,6 +167,7 @@ export function Header({
           >
             <RAGFlowAvatar
               name={nickname}
+              email={email}
               avatar={avatar}
               isPerson
               className="size-8"
@@ -199,6 +200,7 @@ export function Header({
           <div className="relative ms-2 flex size-8 shrink-0 items-center justify-center rounded-full">
             <RAGFlowAvatar
               name={nickname}
+              email={email}
               avatar={avatar}
               isPerson
               className="size-8"

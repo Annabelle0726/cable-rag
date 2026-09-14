@@ -1,5 +1,6 @@
 //
 //  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+//  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -73,19 +74,6 @@ const (
 	TaskStatusSchedule TaskStatus = "5"
 )
 
-// DocumentModifiableStatuses are the run statuses in which a document's
-// configuration (parser config, chunk method, pipeline id, name, enabled
-// flag, ...) may be edited via UpdateDatasetDocument. Documents that are
-// running ("1") or scheduled ("5") must not be edited — the in-flight parser
-// would race with the config change and the document can get stuck and become
-// undeletable.
-var DocumentModifiableStatuses = map[TaskStatus]bool{
-	TaskStatusUnstart: true,
-	TaskStatusCancel:  true,
-	TaskStatusDone:    true,
-	TaskStatusFail:    true,
-}
-
 // PipelineTaskType represents the type of pipeline task
 type PipelineTaskType string
 
@@ -123,7 +111,7 @@ type Knowledgebase struct {
 	DocNum                 int64      `gorm:"column:doc_num;default:0;index" json:"doc_num"`
 	TokenNum               int64      `gorm:"column:token_num;default:0;index" json:"token_num"`
 	ChunkNum               int64      `gorm:"column:chunk_num;default:0;index" json:"chunk_num"`
-	SimilarityThreshold    float64    `gorm:"column:similarity_threshold;default:0.2;index" json:"similarity_threshold"`
+	SimilarityThreshold    float64    `gorm:"column:similarity_threshold;default:0.25;index" json:"similarity_threshold"`
 	VectorSimilarityWeight float64    `gorm:"column:vector_similarity_weight;default:0.3;index" json:"vector_similarity_weight"`
 	ParserID               string     `gorm:"column:parser_id;size:32;not null;default:general;index" json:"parser_id"`
 	PipelineID             *string    `gorm:"column:pipeline_id;size:32;index" json:"pipeline_id,omitempty"`

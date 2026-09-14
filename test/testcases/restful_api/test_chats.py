@@ -1,5 +1,6 @@
 #
 #  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+#  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -27,24 +28,15 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
+from api.db.cable_defaults import EMPTY_RESPONSE as DEFAULT_CHAT_EMPTY_RESPONSE
+from api.db.cable_defaults import PROLOGUE as DEFAULT_CHAT_PROLOGUE
+from api.db.cable_defaults import SIMILARITY_THRESHOLD as DEFAULT_CHAT_SIMILARITY_THRESHOLD
+from api.db.cable_defaults import SYSTEM_PROMPT as DEFAULT_CHAT_SYSTEM_PROMPT
 from test.testcases.configs import CHAT_ASSISTANT_NAME_LIMIT, INVALID_API_TOKEN
 from test.testcases.restful_api.helpers.assertions import assert_auth_error
 from test.testcases.restful_api.helpers.client import RestClient
 from test.testcases.utils import encode_avatar
 from test.testcases.utils.file_utils import create_image_file
-
-
-DEFAULT_CHAT_EMPTY_RESPONSE = "Sorry! No relevant content was found in the knowledge base!"
-DEFAULT_CHAT_PROLOGUE = "Hi! I'm your assistant. What can I do for you?"
-DEFAULT_CHAT_SYSTEM_PROMPT = (
-    "You are an intelligent assistant. Please summarize the content of the dataset to answer the question. "
-    "Please list the data in the dataset and answer in detail. When all dataset content is irrelevant to the "
-    'question, your answer must include the sentence "The answer you are looking for is not found in the dataset!" '
-    "Answers need to consider chat history.\n"
-    "      Here is the knowledge base:\n"
-    "      {knowledge}\n"
-    "      The above is the knowledge base."
-)
 
 
 def _get_nested(data, path):
@@ -1574,7 +1566,7 @@ def test_chat_create_prompt_contract(rest_client, clear_chats):
             "default prompt config",
             {},
             {
-                ("similarity_threshold",): 0.1,
+                ("similarity_threshold",): DEFAULT_CHAT_SIMILARITY_THRESHOLD,
                 ("vector_similarity_weight",): 0.3,
                 ("top_n",): 6,
                 ("rerank_id",): "",
@@ -1862,7 +1854,7 @@ def test_chat_update_prompt_contract(rest_client, clear_chats, ensure_parsed_doc
             "default prompt config",
             {},
             {
-                ("similarity_threshold",): 0.1,
+                ("similarity_threshold",): DEFAULT_CHAT_SIMILARITY_THRESHOLD,
                 ("vector_similarity_weight",): 0.3,
                 ("top_n",): 6,
                 ("prompt_config", "parameters"): [{"key": "knowledge", "optional": False}],

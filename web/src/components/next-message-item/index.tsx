@@ -1,5 +1,6 @@
 /*
  *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -41,6 +42,7 @@ import { citationMarkerReg } from '@/utils/citation-utils';
 import { getDirAttribute } from '@/utils/text-direction';
 import { isEmpty } from 'lodash';
 import { Atom, ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { DocumentDownloadButton } from '../document-download-button';
 import { LoadingDots } from '../loading-dots';
 import MarkdownContent from '../next-markdown-content';
@@ -65,6 +67,8 @@ interface IProps
   sendLoading?: boolean;
   visibleAvatar?: boolean;
   nickname?: string;
+  /** Second source for the user's initial, used when the nickname is empty. */
+  email?: string;
   avatar?: string;
   avatarDialog?: string | null;
   agentName?: string;
@@ -97,8 +101,10 @@ function MessageItem({
   showLog,
   isShare,
   nickname,
+  email,
 }: IProps) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const isAssistant = item.role === MessageType.Assistant;
   const isUser = item.role === MessageType.User;
   const [showThinking, setShowThinking] = useState(false);
@@ -155,7 +161,6 @@ function MessageItem({
           [theme === 'dark' ? styles.messageTextDark : styles.messageText]:
             isAssistant,
           [styles.messageUserText]: !isAssistant,
-          'bg-bg-card': !isAssistant,
         })}
         dir={getDirAttribute(messageContent.replace(citationMarkerReg, ''))}
       >
@@ -206,9 +211,12 @@ function MessageItem({
         >
           {visibleAvatar &&
             (item.role === MessageType.User ? (
+              // No placeholder logo: with nothing uploaded the avatar shows the
+              // first character of the nickname (or the email) instead.
               <RAGFlowAvatar
-                avatar={avatar ?? '/logo.svg'}
+                avatar={avatar}
                 name={nickname}
+                email={email}
                 isPerson
               />
             ) : avatarDialog || agentName ? (
@@ -218,10 +226,12 @@ function MessageItem({
                 isPerson
               />
             ) : (
+              // The assistant's own icon when the agent has none: the product's
+              // brand logo, the same asset the header mark renders.
               <SvgIcon
-                name={'assistant'}
+                name={'brand-logo'}
                 width={'100%'}
-                className={cn('size-10 fill-current')}
+                className={cn('size-10')}
               ></SvgIcon>
             ))}
           <section className="flex-col gap-2 flex-1">
@@ -237,7 +247,7 @@ function MessageItem({
                         className={startedNodeList(item) ? 'animate-spin' : ''}
                       />
                     </div>
-                    Thinking
+                    {t('chat.thinking')}
                     {showThinking ? <ChevronUp /> : <ChevronDown />}
                   </div>
                 </Button>

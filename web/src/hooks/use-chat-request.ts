@@ -1,5 +1,6 @@
 /*
  *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -339,13 +340,25 @@ export function useFetchSessionManually() {
     data,
     isPending: loading,
     mutateAsync,
-  } = useMutation<IClientConversation, unknown, string>({
+  } = useMutation<IClientConversation | null, unknown, string>({
     mutationKey: [ChatApiAction.FetchSessionManually],
     mutationFn: async (sessionId) => {
       const { data } = await chatService.getSession(
-        { url: api.getSession(chatId!, sessionId) },
+        {
+          url: api.getSession(chatId!, sessionId),
+          // A conversationId can point at a session that no longer exists
+          // (deleted in another tab, or an old link). That is an expected race,
+          // not a user-facing failure, so the global "102 Session not found"
+          // toast is suppressed and the caller falls back to a blank
+          // conversation.
+          skipGlobalErrorNotification: true,
+        },
         true,
       );
+
+      if (data?.code !== 0) {
+        return null;
+      }
 
       const conversation = data?.data ?? {};
 

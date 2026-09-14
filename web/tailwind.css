@@ -133,9 +133,22 @@
     --cable-icon-foreground: #2563eb;
     --cable-divider: rgba(148, 163, 184, 0.35);
     --cable-muted: #64748b;
+    /* Translucent hairline for chat bubbles and markdown tables: a hard 1px
+       border reads as a heavy outline, a low-alpha one keeps the surface soft in
+       both themes. */
+    --cable-hairline: rgba(15, 23, 42, 0.08);
     --cable-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.06);
     --cable-shadow-hover: 0 10px 15px -3px rgba(15, 23, 42, 0.1),
       0 4px 6px -4px rgba(15, 23, 42, 0.1);
+    /* Slide-over drawer: the panel casts leftwards over the chat, and the
+       backdrop stays light enough that the conversation behind it is still
+       readable while the settings are open. */
+    --cable-drawer-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
+    --cable-backdrop: rgba(15, 23, 42, 0.3);
+    /* A person without an uploaded image shows the first character of their
+       name on the brand's dark slate blue with white text. */
+    --cable-avatar-surface: #1e3a8a;
+    --cable-avatar-foreground: #ffffff;
 
     /* Top navigation states: quiet by default, brand-blue and bold when active. */
     --cable-nav-text: #64748b;
@@ -257,8 +270,15 @@
     --cable-icon-foreground: #60a5fa;
     --cable-divider: rgba(148, 163, 184, 0.2);
     --cable-muted: #94a3b8;
+    --cable-hairline: rgba(255, 255, 255, 0.08);
     --cable-shadow: none;
     --cable-shadow-hover: none;
+    --cable-drawer-shadow: -4px 0 16px rgba(0, 0, 0, 0.45);
+    --cable-backdrop: rgba(2, 6, 23, 0.5);
+    /* Brighter than the light-mode slate so the white initial keeps its
+       contrast against a dark page. */
+    --cable-avatar-surface: #1d4ed8;
+    --cable-avatar-foreground: #ffffff;
 
     --cable-nav-text: #94a3b8;
     --cable-nav-text-hover: #f1f5f9;

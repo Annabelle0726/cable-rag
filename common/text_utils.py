@@ -1,5 +1,6 @@
 #
 #  Copyright 2025 The InfiniFlow Authors. All Rights Reserved.
+#  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -21,6 +22,40 @@ import unicodedata
 
 
 ARABIC_PRESENTATION_FORMS_RE = re.compile(r"[\uFB50-\uFDFF\uFE70-\uFEFF]")
+
+# Conversation titles are shown in a narrow chat header, so they are clamped even
+# when the model ignores the length instruction.
+CONVERSATION_TITLE_MAX_CHARS = 40
+
+_TITLE_LABEL_RE = re.compile(r"^(?:title|标题|标题[:：])\s*[:：]?\s*", re.IGNORECASE)
+_TITLE_EDGE_RE = re.compile(r"^[\s\"'“”‘’`*#>\-–—:：]+")
+_TITLE_TAIL_RE = re.compile(r"[\s\"'“”‘’`*#>.:：。!！?？~]+$")
+
+
+def normalize_conversation_title(raw: str | None, max_chars: int = CONVERSATION_TITLE_MAX_CHARS) -> str:
+    """Normalise an LLM-produced conversation title.
+
+    Models wrap titles in quotes, prefix them with ``Title:``, or answer with a
+    whole sentence. Keep the first line, strip that decoration, collapse
+    whitespace and clamp the length so the header never overflows.
+    """
+    if not raw or not isinstance(raw, str):
+        return ""
+
+    line = next((candidate.strip() for candidate in raw.splitlines() if candidate.strip()), "")
+    if not line:
+        return ""
+
+    line = _TITLE_LABEL_RE.sub("", line)
+    line = _TITLE_EDGE_RE.sub("", line)
+    line = _TITLE_TAIL_RE.sub("", line)
+    line = re.sub(r"\s+", " ", line).strip()
+
+    if len(line) > max_chars:
+        line = line[:max_chars].rstrip()
+
+    return line
+
 
 
 def normalize_arabic_digits(text: str | None) -> str | None:

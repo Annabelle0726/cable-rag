@@ -1,5 +1,6 @@
 /*
  *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -45,6 +46,8 @@ interface IProps extends Partial<IRemoveMessageById>, IRegenerateMessage {
   sendLoading?: boolean;
   visibleAvatar?: boolean;
   nickname?: string;
+  /** Second source for the user's initial, used when the nickname is empty. */
+  email?: string;
   avatar?: string;
   avatarDialog?: string | null;
   clickDocumentButton?: (documentId: string, chunk: IReferenceChunk) => void;
@@ -69,6 +72,7 @@ const MessageItem = ({
   showLoudspeaker = true,
   visibleAvatar = true,
   nickname,
+  email,
   isLast = false,
 }: IProps) => {
   const { theme } = useTheme();
@@ -113,11 +117,14 @@ const MessageItem = ({
         >
           {visibleAvatar &&
             (item.role === MessageType.User ? (
+              // No placeholder logo: with nothing uploaded the avatar shows the
+              // first character of the nickname (or the email) instead.
               <RAGFlowAvatar
                 className="size-10"
-                avatar={avatar ?? '/logo.svg'}
-                isPerson
+                avatar={avatar}
                 name={nickname}
+                email={email}
+                isPerson
               />
             ) : avatarDialog ? (
               <RAGFlowAvatar
@@ -126,10 +133,12 @@ const MessageItem = ({
                 isPerson
               />
             ) : (
+              // The assistant's own icon when the chat has none: the product's
+              // brand logo, the same asset the header mark renders.
               <SvgIcon
-                name={'assistant'}
+                name={'brand-logo'}
                 width={'100%'}
-                className={cn('size-10 fill-current')}
+                className={cn('size-10')}
               ></SvgIcon>
             ))}
 
@@ -163,7 +172,6 @@ const MessageItem = ({
                       ? styles.messageTextDark
                       : styles.messageText
                     : styles.messageUserText,
-                  { '!bg-bg-card': !isAssistant },
                 )}
               >
                 {sendLoading && isLast && isEmpty(messageContent) ? (

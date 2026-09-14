@@ -1,5 +1,6 @@
 /*
  *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *  Modifications Copyright 2026 线缆工业智搜平台. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -317,6 +318,7 @@ export default {
     `${restAPIv1}/searches/${searchId}/completions`,
   chatsMindmap: `${restAPIv1}/chat/mindmap`,
   chatsRelatedQuestions: `${restAPIv1}/chat/recommendation`,
+  chatTitle: `${restAPIv1}/chat/title`,
 
   // next chat
   fetchExternalChatInfo: (id: string) => `${restAPIv1}/chatbots/${id}/info`,

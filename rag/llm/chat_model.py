@@ -2087,6 +2087,41 @@ class SynthoraiChat(Base):
         super().__init__(key, model_name, self._BASE_URL, **kwargs)
 
 
+class AnonRouterChat(Base):
+    """AnonRouter OpenAI-compatible chat adapter.
+
+    The endpoint is fixed rather than configurable. AnonRouter is a hosted
+    gateway on one known host, so a tenant-supplied ``base_url`` would have no
+    legitimate use and would send the AnonRouter API key to whatever host was
+    configured.
+    """
+
+    _FACTORY_NAME = "AnonRouter"
+
+    _BASE_URL = "https://api.anonrouter.ai/v1"
+
+    def __init__(self, key, model_name, base_url=None, **kwargs):
+        super().__init__(key, model_name, self._BASE_URL, **kwargs)
+
+
+class ApiRouteChat(Base):
+    """API-Route OpenAI-compatible chat adapter.
+
+    The endpoint is fixed to global.api-route.com rather than configurable.
+    API-Route is a hosted aggregation platform, so a tenant-supplied
+    ``base_url`` would have no legitimate use and would send the API-Route
+    key elsewhere.
+    """
+
+    _FACTORY_NAME = "API-Route"
+
+    _BASE_URL = "https://global.api-route.com/v1"
+
+    def __init__(self, key, model_name, base_url=None, **kwargs):
+        """Initialize the API-Route chat model."""
+        super().__init__(key, model_name, self._BASE_URL, **kwargs)
+
+
 class LiteLLMBase(ABC):
     _FACTORY_NAME = [
         "Tongyi-Qianwen",
