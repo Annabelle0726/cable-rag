@@ -6,6 +6,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { DatasetMetadata } from '@/constants/chat';
 import { useSetModalState } from '@/hooks/common-hooks';
 import { useFetchChat, useUpdateChat } from '@/hooks/use-chat-request';
@@ -212,18 +217,22 @@ export function ChatSettings({ hasSingleChatBox }: ChatSettingsProps) {
     <>
       {settingVisible || (
         <div className="flex shrink-0 items-start pt-3 pr-3">
-          <Button
-            onClick={switchSettingVisible}
-            disabled={!hasSingleChatBox}
-            variant="ghost"
-            size="icon-sm"
-            className="rounded-lg text-text-secondary hover:bg-cable-brand-soft hover:text-cable-brand"
-            aria-label={t('chat.chatSetting')}
-            title={t('chat.chatSetting')}
-            data-testid="chat-settings"
-          >
-            <LucideSettings className="size-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={switchSettingVisible}
+                disabled={!hasSingleChatBox}
+                variant="ghost"
+                size="icon-sm"
+                className="rounded-lg text-text-secondary hover:bg-cable-brand-soft hover:text-cable-brand"
+                aria-label={t('chat.chatSetting')}
+                data-testid="chat-settings"
+              >
+                <LucideSettings className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t('chat.chatSetting')}</TooltipContent>
+          </Tooltip>
         </div>
       )}
 
@@ -261,9 +270,11 @@ export function ChatSettings({ hasSingleChatBox }: ChatSettingsProps) {
                   key={section.value}
                   value={section.value}
                   className="rounded-xl border border-cable-border px-4 data-[state=open]:bg-cable-surface-muted"
-                  data-testid={`chat-settings-section-${section.value}`}
                 >
-                  <AccordionTrigger className="text-sm font-medium text-text-primary hover:no-underline">
+                  <AccordionTrigger
+                    className="text-sm font-medium text-text-primary hover:no-underline"
+                    data-testid={`chat-settings-section-${section.value}`}
+                  >
                     {section.title}
                   </AccordionTrigger>
                   <AccordionContent>{section.content}</AccordionContent>

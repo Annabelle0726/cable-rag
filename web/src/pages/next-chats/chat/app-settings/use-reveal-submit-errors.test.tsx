@@ -11,20 +11,28 @@ beforeEach(() => {
   scrollIntoViewMock.mockClear();
 });
 
+const Sections = ['retrieval', 'system', 'prologue', 'model'] as const;
+
 function Harness() {
   const {
     formContainerRef,
     handleInvalidSubmit,
-    modelSettingOpen,
-    advancedSettingOpen,
-  } = useRevealSubmitErrors();
+    openSections,
+    onOpenSectionsChange,
+  } = useRevealSubmitErrors(Sections, ['retrieval']);
 
   return (
     <form ref={formContainerRef}>
-      <span data-testid="model-open">{String(modelSettingOpen)}</span>
-      <span data-testid="advanced-open">{String(advancedSettingOpen)}</span>
+      <span data-testid="open-sections">{openSections.join(',')}</span>
       <button type="button" onClick={handleInvalidSubmit}>
         save
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenSectionsChange(['model'])}
+        data-testid="open-model"
+      >
+        open model
       </button>
       <p id="name-form-item-message">Name is required</p>
     </form>
@@ -32,20 +40,20 @@ function Harness() {
 }
 
 describe('useRevealSubmitErrors', () => {
-  it('keeps both sections collapsed initially', () => {
+  it('opens only the requested section initially', () => {
     render(<Harness />);
 
-    expect(screen.getByTestId('model-open')).toHaveTextContent('false');
-    expect(screen.getByTestId('advanced-open')).toHaveTextContent('false');
+    expect(screen.getByTestId('open-sections')).toHaveTextContent('retrieval');
   });
 
-  it('expands both sections and scrolls to the first error on invalid submit', () => {
+  it('expands every section and scrolls to the first error on invalid submit', () => {
     render(<Harness />);
 
     fireEvent.click(screen.getByText('save'));
 
-    expect(screen.getByTestId('model-open')).toHaveTextContent('true');
-    expect(screen.getByTestId('advanced-open')).toHaveTextContent('true');
+    expect(screen.getByTestId('open-sections')).toHaveTextContent(
+      Sections.join(','),
+    );
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
     expect(scrollIntoViewMock).toHaveBeenCalledWith({
       behavior: 'smooth',
@@ -63,5 +71,13 @@ describe('useRevealSubmitErrors', () => {
     fireEvent.click(screen.getByText('save'));
 
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('lets the caller toggle a single section', () => {
+    render(<Harness />);
+
+    fireEvent.click(screen.getByTestId('open-model'));
+
+    expect(screen.getByTestId('open-sections')).toHaveTextContent('model');
   });
 });
