@@ -1,13 +1,19 @@
+import { ModelTreeSelect } from '@/components/model-tree-select';
 import { Button } from '@/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import {
-  LucideChevronRight,
+  LucideChevronDown,
   LucideLoader,
   LucidePanelLeftOpen,
   LucidePencil,
   LucideSettings,
 } from 'lucide-react';
-import { ReactNode, useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRenameSession } from '../hooks/use-rename-session';
 import { useSummarizeConversationTitle } from '../hooks/use-summarize-conversation-title';
@@ -18,37 +24,43 @@ type ConversationHeaderProps = {
   sessionId?: string;
   /** Conversation title: the raw first question until it is summarised or renamed. */
   title: string;
+  /** Model the conversation answers with, switchable from the name dropdown. */
   llmId?: string;
+  onModelChange?: (llmId: string) => void;
   summarizable?: boolean;
   /** Re-opens the conversation list this header only renders without. */
   onExpandSessions?: () => void;
   /** Opens the chat settings drawer, which is reachable here only because the
    * conversation list (and its own settings button) is collapsed. */
   onOpenSettings?: () => void;
-  /** Right-hand controls, e.g. the "Multiple models" entry. */
-  children?: ReactNode;
 };
 
 /**
  * Chat header for one conversation, mounted by the page only while the
  * conversation list is collapsed.
  *
- * Carries no prompt text: the first question used to be printed above the
- * message list and only consumed vertical space. What is left is the collapsed
- * row (title + rename) and, expanded, the right-hand controls.
+ * One fixed-height row, by design: the assistant/conversation name with the
+ * controls that belong to it (`chevron` opens the model dropdown, the title
+ * renames), and on the right only the settings entry and the control that
+ * re-opens the conversation list. Anything else (the multi-model view, the
+ * retrieval and prompt settings) lives in the settings drawer, so the row can
+ * never grow into the transcript.
+ *
+ * The dropdown is a popover anchored under the row rather than an expanding
+ * section: the header keeps its height, so the messages below never move.
  */
 export function ConversationHeader({
   chatId,
   sessionId,
   title,
   llmId,
+  onModelChange,
   summarizable = false,
   onExpandSessions,
   onOpenSettings,
-  children,
 }: ConversationHeaderProps) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
+  const [modelOpen, setModelOpen] = useState(false);
   const [editing, setEditing] = useState(false);
 
   const { renameSession, loading: renaming } = useRenameSession();
@@ -60,9 +72,17 @@ export function ConversationHeader({
     enabled: summarizable,
   });
 
-  const handleToggleExpanded = useCallback(() => {
-    setExpanded((previous) => !previous);
+  const handleModelOpenChange = useCallback((open: boolean) => {
+    setModelOpen(open);
   }, []);
+
+  const handleModelChange = useCallback(
+    (nextLlmId: string) => {
+      setModelOpen(false);
+      onModelChange?.(nextLlmId);
+    },
+    [onModelChange],
+  );
 
   const handleStartEditing = useCallback(() => {
     setEditing(true);
@@ -90,19 +110,35 @@ export function ConversationHeader({
   return (
     <header className="flex min-w-0 items-center justify-between gap-2">
       <div className="group flex min-w-0 items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className={iconButtonClass}
-          onClick={handleToggleExpanded}
-          aria-expanded={expanded}
-          aria-label={expanded ? t('chat.collapseHeader') : t('chat.expandHeader')}
-          data-testid="chat-detail-header-toggle"
-        >
-          <LucideChevronRight
-            className={cn('size-4 transition-transform', expanded && 'rotate-90')}
-          />
-        </Button>
+        <Popover open={modelOpen} onOpenChange={handleModelOpenChange}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={iconButtonClass}
+              aria-expanded={modelOpen}
+              aria-label={t('chat.model')}
+              title={t('chat.model')}
+              data-testid="chat-detail-header-toggle"
+            >
+              <LucideChevronDown
+                className={cn(
+                  'size-4 transition-transform',
+                  modelOpen && 'rotate-180',
+                )}
+              />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-80 space-y-2 p-3">
+            <p className="text-xs text-text-secondary">{t('chat.model')}</p>
+            <ModelTreeSelect
+              modelTypes={['chat', 'vision']}
+              value={llmId}
+              onChange={handleModelChange}
+              testId="chat-detail-header-model"
+            />
+          </PopoverContent>
+        </Popover>
 
         {editing ? (
           <InlineRenameInput
@@ -179,8 +215,6 @@ export function ConversationHeader({
             <LucidePanelLeftOpen className="size-4" />
           </Button>
         )}
-
-        {expanded && children}
       </div>
     </header>
   );

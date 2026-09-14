@@ -1,9 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
+  useFetchChat,
   useFetchSessionList,
   useFetchSessionManually,
   useGetChatSearchParams,
+  usePatchChat,
 } from '@/hooks/use-chat-request';
 import { useSetModalState } from '@/hooks/common-hooks';
 import { IClientConversation } from '@/interfaces/database/chat';
@@ -11,7 +13,7 @@ import { RootLayoutContainer } from '@/layouts/root-layout';
 import { cn } from '@/lib/utils';
 import { isPersistedConversationId } from '@/utils/chat';
 import { isEmpty } from 'lodash';
-import { LucideArrowBigLeft, LucideArrowUpRight } from 'lucide-react';
+import { LucideArrowBigLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
@@ -44,6 +46,8 @@ export default function Chat() {
   const { clearConversationParams } = useChatUrlParams();
 
   const { data: dialogList } = useFetchSessionList();
+  const { data: currentDialog } = useFetchChat();
+  const { patchChat } = usePatchChat();
 
   // Lifted out of `Sessions` so the header can mirror it: while the conversation
   // list is open the header drops its title (the list already highlights the
@@ -54,6 +58,22 @@ export default function Chat() {
     setSessionsVisible(true);
   }, []);
 
+  /**
+   * The header's model dropdown writes straight to the chat record with a
+   * partial PATCH — it resolves the paired tenant model id server-side and
+   * leaves every other field alone. The settings drawer reads the same record,
+   * so it opens on the new model.
+   */
+  const handleModelChange = useCallback(
+    (nextLlmId: string) => {
+      if (!chatId || !nextLlmId || nextLlmId === currentDialog?.llm_id) {
+        return;
+      }
+      patchChat({ chatId, params: { llm_id: nextLlmId } });
+    },
+    [chatId, currentDialog?.llm_id, patchChat],
+  );
+
   // The settings drawer is owned here: both of its triggers (the conversation
   // list header, and the chat header that only shows while the list is
   // collapsed) open the same panel.
@@ -62,6 +82,13 @@ export default function Chat() {
     showModal: showSettings,
     hideModal: hideSettings,
   } = useSetModalState();
+
+  // The multi-model comparison view is entered from the settings drawer's model
+  // section, not from the header, which keeps that row to one line.
+  const handleOpenMultiModel = useCallback(() => {
+    hideSettings();
+    switchDebugMode();
+  }, [hideSettings, switchDebugMode]);
 
   const currentConversationName = useMemo(() => {
     return (
@@ -158,29 +185,26 @@ export default function Chat() {
                     expanded list already names the active conversation, and an
                     empty header bar would still cost its own height. */}
                 {!sessionsVisible && (
+                  // A fixed-height row: the header can never grow into the
+                  // transcript, whatever it has to show.
                   <CardHeader
-                    className={cn('px-5 py-3', {
-                      'border-b-0.5 border-cable-border': hasSingleChatBox,
-                    })}
+                    className={cn(
+                      'flex h-12 shrink-0 flex-row items-center px-4 py-0',
+                      {
+                        'border-b-0.5 border-cable-border': hasSingleChatBox,
+                      },
+                    )}
                   >
                     <ConversationHeader
                       chatId={chatId}
                       sessionId={conversationId}
                       title={currentConversationName}
+                      llmId={currentDialog?.llm_id}
+                      onModelChange={handleModelChange}
                       summarizable={isPersistedConversationId(conversationId)}
                       onExpandSessions={handleExpandSessions}
                       onOpenSettings={showSettings}
-                    >
-                      <Button
-                        variant="ghost"
-                        className="h-8 shrink-0 gap-1.5 rounded-lg px-2 text-cable-brand hover:bg-cable-brand-soft"
-                        onClick={switchDebugMode}
-                        data-testid="chat-detail-multimodel-toggle"
-                      >
-                        <LucideArrowUpRight className="size-4" />
-                        {t('chat.multipleModels')}
-                      </Button>
-                    </ConversationHeader>
+                    ></ConversationHeader>
                   </CardHeader>
                 )}
                 <CardContent className="flex-1 p-0 min-h-0">
@@ -193,6 +217,7 @@ export default function Chat() {
                 onVisibleChange={(nextVisible) =>
                   nextVisible ? showSettings() : hideSettings()
                 }
+                onOpenMultiModel={handleOpenMultiModel}
               ></ChatSettings>
             </CardContent>
           </Card>

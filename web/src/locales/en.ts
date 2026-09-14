@@ -1030,6 +1030,8 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
       messagePlaceholder: 'Type your message here...',
       exit: 'Exit',
       multipleModels: 'Multiple models',
+      multipleModelsTip:
+        'Send one question to several models at once and compare their answers side by side.',
       applyModelConfigs: 'Apply model configs',
       conversations: 'Conversations',
       chatApps: 'Chat apps',

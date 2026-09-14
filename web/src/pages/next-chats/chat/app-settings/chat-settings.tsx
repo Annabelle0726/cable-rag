@@ -38,6 +38,8 @@ type ChatSettingsProps = {
   /** Open state of the drawer. The chat page owns it so every trigger shares it. */
   visible: boolean;
   onVisibleChange: (visible: boolean) => void;
+  /** Enters the multi-model comparison view from the model section. */
+  onOpenMultiModel?: () => void;
 };
 
 /** The drawer's accordion sections; the first one is open when it slides in. */
@@ -55,7 +57,11 @@ const SettingsSections = [
 
 const SettingsFormId = 'chat-settings-form';
 
-export function ChatSettings({ visible, onVisibleChange }: ChatSettingsProps) {
+export function ChatSettings({
+  visible,
+  onVisibleChange,
+  onOpenMultiModel,
+}: ChatSettingsProps) {
   const { data } = useFetchChat();
 
   const chatSettingSchema = useChatSettingSchema();
@@ -207,7 +213,7 @@ export function ChatSettings({ visible, onVisibleChange }: ChatSettingsProps) {
     {
       value: ModelSection,
       title: t('chat.modelAndDataset'),
-      content: <ModelDatasetFields />,
+      content: <ModelDatasetFields onOpenMultiModel={onOpenMultiModel} />,
     },
   ];
 
