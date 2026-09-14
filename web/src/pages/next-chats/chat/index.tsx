@@ -8,12 +8,14 @@ import {
 import { IClientConversation } from '@/interfaces/database/chat';
 import { RootLayoutContainer } from '@/layouts/root-layout';
 import { cn } from '@/lib/utils';
+import { isPersistedConversationId } from '@/utils/chat';
 import { isEmpty } from 'lodash';
 import { LucideArrowBigLeft, LucideArrowUpRight } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { useHandleClickConversationCard } from '../hooks/use-click-card';
+import { useChatUrlParams } from '../hooks/use-chat-url';
 import { ChatSettings } from './app-settings/chat-settings';
 import { MultipleChatBox } from './chat-box/next-multiple-chat-box';
 import { SingleChatBox } from './chat-box/single-chat-box';
@@ -36,8 +38,9 @@ export default function Chat() {
   const { removeChatBox, addChatBox, chatBoxIds, hasSingleChatBox } =
     useAddChatBox(isDebugMode);
 
-  const { conversationId, isNew } = useGetChatSearchParams();
+  const { conversationId } = useGetChatSearchParams();
   const { id: chatId } = useParams();
+  const { clearConversationParams } = useChatUrlParams();
 
   const { data: dialogList } = useFetchSessionList();
 
@@ -65,18 +68,32 @@ export default function Chat() {
     setCurrentConversation((previous) =>
       isEmpty(previous) ? previous : ({} as IClientConversation),
     );
-    if (!conversationId || isNew === 'true') return;
+    // A placeholder conversation has no server row to fetch, so only a persisted
+    // id is worth a request — the placeholder's messages come from the prologue
+    // seeded in the stream store.
+    if (!isPersistedConversationId(conversationId)) return;
 
     let cancelled = false;
     fetchSessionManually(conversationId).then((conversation) => {
-      if (!cancelled && !isEmpty(conversation)) {
+      if (cancelled) {
+        return;
+      }
+      if (!conversation) {
+        // The session is gone (deleted elsewhere, stale link, or a temp id that
+        // never reached the server). Drop the dead id so this page settles into a
+        // blank conversation instead of showing an empty shell; the request itself
+        // already suppressed the "102 Session not found" toast.
+        clearConversationParams();
+        return;
+      }
+      if (!isEmpty(conversation)) {
         setCurrentConversation(conversation);
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [conversationId, isNew, fetchSessionManually]);
+  }, [conversationId, fetchSessionManually, clearConversationParams]);
 
   if (isDebugMode) {
     return (
@@ -139,7 +156,7 @@ export default function Chat() {
                       chatId={chatId}
                       sessionId={conversationId}
                       title={currentConversationName}
-                      summarizable={isNew !== 'true' && !isEmpty(conversationId)}
+                      summarizable={isPersistedConversationId(conversationId)}
                       onExpandSessions={handleExpandSessions}
                     >
                       <Button
