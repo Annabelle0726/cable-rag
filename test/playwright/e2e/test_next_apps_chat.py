@@ -19,6 +19,7 @@ from test.playwright.helpers._next_apps_helpers import (
     _send_chat_and_wait_done,
     _unique_name,
     _wait_for_url_or_testid,
+    expand_settings_sections,
 )
 
 
@@ -176,12 +177,16 @@ def _mm_settings_save_request(req) -> bool:
 def _mm_open_settings_panel(page):
     settings_root = page.get_by_test_id("chat-detail-settings")
     if settings_root.count() > 0 and settings_root.is_visible():
+        expand_settings_sections(page)
         return settings_root
 
     settings_btn = page.get_by_test_id("chat-settings")
     expect(settings_btn).to_be_visible(timeout=RESULT_TIMEOUT_MS)
     settings_btn.click()
     expect(settings_root).to_be_visible(timeout=RESULT_TIMEOUT_MS)
+    # The panel's sections start collapsed, and the model / dataset controls the
+    # callers reach for live inside two of them.
+    expand_settings_sections(page)
     return settings_root
 
 

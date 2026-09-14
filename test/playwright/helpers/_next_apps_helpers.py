@@ -2,6 +2,7 @@ import re
 import time
 from urllib.parse import urljoin
 
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import expect
 
 from test.playwright.helpers.response_capture import capture_response
@@ -169,6 +170,25 @@ def _search_query_input(page):
     return page.locator("input[type='text']").first
 
 
+def expand_settings_sections(page) -> None:
+    """Open every collapsed accordion section of a settings panel.
+
+    The chat settings live in a slide-over whose sections (retrieval, prompt,
+    opener, model) start collapsed, so a test that reaches for a control inside
+    one has to open it first. The drawer is portaled next to the page body, which
+    is why the lookup starts from ``page`` rather than the panel's parent.
+    """
+    triggers = page.locator("[data-testid^='chat-settings-section-']")
+    for index in range(triggers.count()):
+        trigger = triggers.nth(index)
+        if trigger.get_attribute("data-state") == "open":
+            continue
+        try:
+            trigger.click(timeout=2000)
+        except PlaywrightTimeoutError:
+            continue
+
+
 def _select_first_dataset_and_save(
     page,
     timeout_ms: int = RESULT_TIMEOUT_MS,
@@ -232,6 +252,8 @@ def _select_first_dataset_and_save(
         settings_dialog = page.locator("[role='dialog']").filter(has_text=re.compile(r"settings", re.I))
         if settings_dialog.count() > 0 and settings_dialog.first.is_visible():
             scope_root = settings_dialog.first
+        # The dataset selector now sits inside a collapsed drawer section.
+        expand_settings_sections(page)
         combobox = _find_dataset_combobox(scope_root)
 
     combobox = combobox.first
