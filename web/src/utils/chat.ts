@@ -50,9 +50,34 @@ export const buildMessageListWithUuid = (messages?: Message[]) => {
   );
 };
 
-export const generateConversationId = () => {
-  return uuid().replace(/-/g, '');
+/**
+ * Marker for a conversation that only exists in the browser. Clicking "+" seeds
+ * such a conversation so the chat area has something to render, but the server
+ * has no session row for it yet — the first send creates the real one. The
+ * prefix makes that state readable from the id alone, which the URL (the single
+ * source of truth for the open conversation) needs: a bare uuid cannot be told
+ * apart from a server-generated one.
+ */
+export const TEMPORARY_CONVERSATION_PREFIX = 'temp-';
+
+export const generateTemporaryConversationId = () => {
+  return `${TEMPORARY_CONVERSATION_PREFIX}${uuid().replace(/-/g, '')}`;
 };
+
+export const isTemporaryConversationId = (
+  conversationId?: string,
+): conversationId is string =>
+  !!conversationId && conversationId.startsWith(TEMPORARY_CONVERSATION_PREFIX);
+
+/**
+ * True for ids the server can answer for: a non-empty id that is not a local
+ * placeholder. Everything that talks to a session endpoint (fetch, patch,
+ * completion) must be gated on this.
+ */
+export const isPersistedConversationId = (
+  conversationId?: string,
+): conversationId is string =>
+  !!conversationId && !isTemporaryConversationId(conversationId);
 
 // When rendering each message, add a prefix to the id to ensure uniqueness.
 export const buildMessageUuidWithRole = (
@@ -197,6 +222,21 @@ const fillLogCount = (summary: string, count: number) =>
 const stripTagToCode = (line: string) =>
   line.replace(/^(\[[^\]]{1,60}\])(\S?.*)$/, '`$1`$2');
 
+/**
+ * Separates a generated `<details>` panel from the text around it.
+ *
+ * CommonMark keeps an HTML block open until a blank line, so an answer glued to
+ * a panel's closing tag — the pipeline emits `</think>` immediately before the
+ * answer, which becomes `</details>答案` — is read as raw HTML and its markdown
+ * is never parsed: `**0.0991 Ω/km**` reaches the screen with its asterisks
+ * intact. A panel is also only recognised as a block when its own tag starts a
+ * line, hence both edges.
+ */
+const detachPanels = (text: string) =>
+  text
+    .replace(/([^\n])(<details\b)/gi, '$1\n\n$2')
+    .replace(/(<\/details>)([^\n])/gi, '$1\n\n$2');
+
 const buildAgenticLogBlock = (summary: string, logs: string[]) =>
   [
     `<details class="agentic-log"><summary>${fillLogCount(
@@ -249,7 +289,7 @@ export function replaceThinkToSection(
     return `<details class="think"><summary>${summary}</summary>\n\n${body}\n\n</details>`;
   });
 
-  return result;
+  return detachPanels(result);
 }
 
 // Strip <think> reasoning blocks so only the answer text remains.
@@ -273,7 +313,7 @@ export function replaceRetrievingToSection(
       `<details class="retrieving"><summary>${summary}</summary>\n\n${retrievingContent.trim()}\n\n</details>`,
   );
 
-  return result;
+  return detachPanels(result);
 }
 
 /**
@@ -294,8 +334,22 @@ export function replaceAgenticLogsToSection(
   const logs: string[] = [];
   let inserted = false;
   let inFence = false;
+  let detailsDepth = 0;
 
   text.split(/\r?\n/).forEach((line) => {
+    // A collapsed panel is finished output, not source text: re-scanning its
+    // lines built a second panel out of them and left the first one empty, so a
+    // reasoning block that already became a panel is passed through untouched.
+    if (/<details\b/i.test(line)) {
+      detailsDepth += 1;
+    }
+    if (detailsDepth > 0) {
+      kept.push(line);
+      if (/<\/details>/i.test(line)) {
+        detailsDepth -= 1;
+      }
+      return;
+    }
     if (CODE_FENCE_RE.test(line)) {
       inFence = !inFence;
       kept.push(line);
@@ -339,11 +393,13 @@ export function replaceAgenticLogsToSection(
     return text;
   }
 
-  return trimExtractionResidue(
-    kept
-      .join('\n')
-      .replace(LOG_BLOCK_SENTINEL, buildAgenticLogBlock(summary, logs))
-      .replace(/\n{3,}/g, '\n\n'),
+  return detachPanels(
+    trimExtractionResidue(
+      kept
+        .join('\n')
+        .replace(LOG_BLOCK_SENTINEL, buildAgenticLogBlock(summary, logs))
+        .replace(/\n{3,}/g, '\n\n'),
+    ),
   );
 }
 
