@@ -2087,6 +2087,23 @@ async def _naive_rag(tools, messages: list, gen_conf: dict | None = None):
         yield evidence[:4000]
 
 
+def _graph_failure_reason(exc: BaseException) -> str:
+    """A one-line reason for a failed research graph, for the user-facing fallback.
+
+    The fallback answer is the only thing the user sees, so a bare "internal
+    error" leaves no way to tell a broken knowledge base from an unreachable
+    embedding or LLM provider (the most common causes). LangGraph reports a node
+    failure either directly or wrapped in a task group, so unwrap first, and keep
+    the message short enough to read inline.
+    """
+    while isinstance(exc, BaseExceptionGroup) and exc.exceptions:
+        exc = exc.exceptions[0]
+    reason = " ".join(str(exc).split()) or type(exc).__name__
+    if len(reason) > 300:
+        reason = reason[:297] + "..."
+    return reason
+
+
 async def run_agentic_rag(tools, messages: list, max_loops: int = 3, gen_conf: dict | None = None):
     """Drive the agentic-search graph, yielding answer-token strings."""
     _LOG.info(
@@ -2143,9 +2160,10 @@ async def run_agentic_rag(tools, messages: list, max_loops: int = 3, gen_conf: d
         # the final answer stream runs until the model finishes.
         try:
             holder["state"] = await graph.ainvoke(init_state, {"recursion_limit": recursion_limit})
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
             logging.exception("run_agentic_rag: graph execution failed")  # noqa: LOG015
             holder["error"] = True
+            holder["error_reason"] = _graph_failure_reason(exc)
         finally:
             token_queue.put_nowait(_SENTINEL)
 
@@ -2184,4 +2202,11 @@ async def run_agentic_rag(tools, messages: list, max_loops: int = 3, gen_conf: d
         )
 
     if not produced and holder.get("error"):
-        yield "I couldn't complete the search due to an internal error."
+        # The reason travels with the answer: without it the user only learns
+        # that "something" failed, with no way to act on it.
+        reason = holder.get("error_reason") or ""
+        yield (
+            "检索失败：知识库检索未能完成"
+            + (f"（{reason}）" if reason else "")
+            + "。请检查嵌入模型、向量库与知识库配置后重试。"
+        )

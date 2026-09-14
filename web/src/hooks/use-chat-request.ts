@@ -339,13 +339,25 @@ export function useFetchSessionManually() {
     data,
     isPending: loading,
     mutateAsync,
-  } = useMutation<IClientConversation, unknown, string>({
+  } = useMutation<IClientConversation | null, unknown, string>({
     mutationKey: [ChatApiAction.FetchSessionManually],
     mutationFn: async (sessionId) => {
       const { data } = await chatService.getSession(
-        { url: api.getSession(chatId!, sessionId) },
+        {
+          url: api.getSession(chatId!, sessionId),
+          // A conversationId can point at a session that no longer exists
+          // (deleted in another tab, or an old link). That is an expected race,
+          // not a user-facing failure, so the global "102 Session not found"
+          // toast is suppressed and the caller falls back to a blank
+          // conversation.
+          skipGlobalErrorNotification: true,
+        },
         true,
       );
+
+      if (data?.code !== 0) {
+        return null;
+      }
 
       const conversation = data?.data ?? {};
 
