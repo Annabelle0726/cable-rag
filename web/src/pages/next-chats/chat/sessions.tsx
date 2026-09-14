@@ -16,7 +16,6 @@ import {
   useFetchChat,
   useGetChatSearchParams,
   useRemoveSessions,
-  useUpdateSession,
 } from '@/hooks/use-chat-request';
 import {
   LucideCopyX,
@@ -34,6 +33,7 @@ import { useParams } from 'react-router';
 import { useChatStreamStore } from '../chat-stream/store';
 import { useChatUrlParams } from '../hooks/use-chat-url';
 import { useHandleClickConversationCard } from '../hooks/use-click-card';
+import { useRenameSession } from '../hooks/use-rename-session';
 import { useSelectDerivedConversationList } from '../hooks/use-select-conversation-list';
 import { ConversationDropdown } from './conversation-dropdown';
 import { InlineRenameInput } from './inline-rename-input';
@@ -71,7 +71,7 @@ export function Sessions({
     (state) => state.removeSessions,
   );
 
-  const { updateSession, loading: renaming } = useUpdateSession();
+  const { renameSession, loading: renaming } = useRenameSession();
   // Id of the row being renamed in place; the input replaces that row's label.
   const [renamingConversationId, setRenamingConversationId] = useState('');
 
@@ -85,19 +85,12 @@ export function Sessions({
 
   const handleRenameConversation = useCallback(
     async (id: string, name: string) => {
-      if (!chatId) {
-        return;
-      }
-      const ret = await updateSession({
-        chatId,
-        sessionId: id,
-        params: { name },
-      });
-      if (ret?.code === 0) {
+      const renamed = await renameSession({ sessionId: id, name });
+      if (renamed) {
         setRenamingConversationId('');
       }
     },
-    [chatId, updateSession],
+    [renameSession],
   );
 
   // Selection mode state

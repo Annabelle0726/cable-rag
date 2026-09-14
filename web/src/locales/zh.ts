@@ -935,6 +935,7 @@ NER：使用 spaCy NER 和基于规则的关键词提取来抽取 Entities 和 R
       chatApps: '聊天',
       createChat: '创建聊天',
       newConversation: '新会话',
+      createSessionFailed: '新建会话失败，消息未发送，请稍后重试。',
       createAssistant: '新建助理',
       assistantSetting: '助理设置',
       promptEngine: '提示引擎',

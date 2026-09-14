@@ -1034,6 +1034,8 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
       conversations: 'Conversations',
       chatApps: 'Chat apps',
       newConversation: 'New conversation',
+      createSessionFailed:
+        'Could not create the conversation, so the message was not sent. Please try again.',
       createAssistant: 'Create an assistant',
       assistantSetting: 'Assistant settings',
       promptEngine: 'Prompt engine',
