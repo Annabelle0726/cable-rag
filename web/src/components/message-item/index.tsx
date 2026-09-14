@@ -133,10 +133,12 @@ const MessageItem = ({
                 isPerson
               />
             ) : (
+              // The assistant's own icon when the chat has none: the product's
+              // brand logo, the same asset the header mark renders.
               <SvgIcon
-                name={'assistant'}
+                name={'brand-logo'}
                 width={'100%'}
-                className={cn('size-10 fill-current')}
+                className={cn('size-10')}
               ></SvgIcon>
             ))}
 

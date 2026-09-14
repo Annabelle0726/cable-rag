@@ -226,10 +226,12 @@ function MessageItem({
                 isPerson
               />
             ) : (
+              // The assistant's own icon when the agent has none: the product's
+              // brand logo, the same asset the header mark renders.
               <SvgIcon
-                name={'assistant'}
+                name={'brand-logo'}
                 width={'100%'}
-                className={cn('size-10 fill-current')}
+                className={cn('size-10')}
               ></SvgIcon>
             ))}
           <section className="flex-col gap-2 flex-1">

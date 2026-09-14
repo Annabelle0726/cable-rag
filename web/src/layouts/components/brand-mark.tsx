@@ -1,12 +1,14 @@
+import SvgIcon from '@/components/svg-icon';
 import { cn } from '@/lib/utils';
-import { Cable } from 'lucide-react';
 
 /**
  * Brand mount point for the header and the mobile navigation sheet.
  *
- * Deliberately a fixed-size flex slot rather than an image: it keeps the header
- * grid and the nav-overflow measurement stable, so mounting the customer logo
- * later (replace the `<Cable />` mark with the asset) cannot reflow the navbar.
+ * Renders the shared brand logo asset, the same one the assistant falls back to
+ * for its avatar, so the product mark exists in exactly one file
+ * (`assets/svg/brand-logo.svg`). A fixed-size flex slot rather than a
+ * text-flowing logo keeps the header grid and the nav-overflow measurement
+ * stable when the artwork changes.
  */
 export function BrandMark({
   label,
@@ -18,11 +20,11 @@ export function BrandMark({
   return (
     <span
       className={cn(
-        'flex size-10 shrink-0 items-center justify-center rounded-xl bg-cable-brand-soft text-cable-brand',
+        'flex size-10 shrink-0 items-center justify-center rounded-xl bg-cable-brand-soft',
         className,
       )}
     >
-      <Cable className="size-5" />
+      <SvgIcon name="brand-logo" width={24} height={24} />
       <span className="sr-only">{label}</span>
     </span>
   );
