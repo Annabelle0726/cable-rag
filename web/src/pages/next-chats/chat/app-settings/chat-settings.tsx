@@ -6,13 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { DatasetMetadata } from '@/constants/chat';
-import { useSetModalState } from '@/hooks/common-hooks';
 import { useFetchChat, useUpdateChat } from '@/hooks/use-chat-request';
 import { useFindLlmByUuid } from '@/hooks/use-llm-request';
 import {
@@ -25,8 +19,7 @@ import {
 } from '@/utils/form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isEmpty, omit } from 'lodash';
-import { LucideSettings } from 'lucide-react';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
@@ -41,7 +34,11 @@ import { SettingsDrawer } from './settings-drawer';
 import { useChatSettingSchema } from './use-chat-setting-schema';
 import { useRevealSubmitErrors } from './use-reveal-submit-errors';
 
-type ChatSettingsProps = { hasSingleChatBox: boolean };
+type ChatSettingsProps = {
+  /** Open state of the drawer. The chat page owns it so every trigger shares it. */
+  visible: boolean;
+  onVisibleChange: (visible: boolean) => void;
+};
 
 /** The drawer's accordion sections; the first one is open when it slides in. */
 const RetrievalSection = 'retrieval';
@@ -58,7 +55,7 @@ const SettingsSections = [
 
 const SettingsFormId = 'chat-settings-form';
 
-export function ChatSettings({ hasSingleChatBox }: ChatSettingsProps) {
+export function ChatSettings({ visible, onVisibleChange }: ChatSettingsProps) {
   const { data } = useFetchChat();
 
   const chatSettingSchema = useChatSettingSchema();
@@ -71,8 +68,9 @@ export function ChatSettings({ hasSingleChatBox }: ChatSettingsProps) {
   const { id } = useParams();
   const { t } = useTranslation();
 
-  const { visible: settingVisible, switchVisible: switchSettingVisible } =
-    useSetModalState(false);
+  const closeSettings = useCallback(() => {
+    onVisibleChange(false);
+  }, [onVisibleChange]);
 
   const {
     formContainerRef,
@@ -214,76 +212,53 @@ export function ChatSettings({ hasSingleChatBox }: ChatSettingsProps) {
   ];
 
   return (
-    <>
-      {settingVisible || (
-        <div className="flex shrink-0 items-start pt-3 pr-3">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={switchSettingVisible}
-                disabled={!hasSingleChatBox}
-                variant="ghost"
-                size="icon-sm"
-                className="rounded-lg text-text-secondary hover:bg-cable-brand-soft hover:text-cable-brand"
-                aria-label={t('chat.chatSetting')}
-                data-testid="chat-settings"
-              >
-                <LucideSettings className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{t('chat.chatSetting')}</TooltipContent>
-          </Tooltip>
-        </div>
-      )}
-
-      <SettingsDrawer
-        open={settingVisible}
-        onOpenChange={switchSettingVisible}
-        title={t('chat.chatSetting')}
-        footer={
-          <div className="flex items-center justify-end gap-3">
-            <Button
-              variant={'outline'}
-              onClick={switchSettingVisible}
-              data-testid="chat-detail-settings-cancel"
-            >
-              {t('chat.cancel')}
-            </Button>
-            <SavingButton loading={loading} form={SettingsFormId}></SavingButton>
-          </div>
-        }
-      >
-        <Form {...form}>
-          <form
-            ref={formContainerRef}
-            id={SettingsFormId}
-            onSubmit={form.handleSubmit(onSubmit, handleInvalidSubmit)}
+    <SettingsDrawer
+      open={visible}
+      onOpenChange={onVisibleChange}
+      title={t('chat.chatSetting')}
+      footer={
+        <div className="flex items-center justify-end gap-3">
+          <Button
+            variant={'outline'}
+            onClick={closeSettings}
+            data-testid="chat-detail-settings-cancel"
           >
-            <Accordion
-              type="multiple"
-              value={openSections}
-              onValueChange={onOpenSectionsChange}
-              className="space-y-2"
-            >
-              {sections.map((section) => (
-                <AccordionItem
-                  key={section.value}
-                  value={section.value}
-                  className="rounded-xl border border-cable-border px-4 data-[state=open]:bg-cable-surface-muted"
+            {t('chat.cancel')}
+          </Button>
+          <SavingButton loading={loading} form={SettingsFormId}></SavingButton>
+        </div>
+      }
+    >
+      <Form {...form}>
+        <form
+          ref={formContainerRef}
+          id={SettingsFormId}
+          onSubmit={form.handleSubmit(onSubmit, handleInvalidSubmit)}
+        >
+          <Accordion
+            type="multiple"
+            value={openSections}
+            onValueChange={onOpenSectionsChange}
+            className="space-y-2"
+          >
+            {sections.map((section) => (
+              <AccordionItem
+                key={section.value}
+                value={section.value}
+                className="rounded-xl border border-cable-border px-4 data-[state=open]:bg-cable-surface-muted"
+              >
+                <AccordionTrigger
+                  className="text-sm font-medium text-text-primary hover:no-underline"
+                  data-testid={`chat-settings-section-${section.value}`}
                 >
-                  <AccordionTrigger
-                    className="text-sm font-medium text-text-primary hover:no-underline"
-                    data-testid={`chat-settings-section-${section.value}`}
-                  >
-                    {section.title}
-                  </AccordionTrigger>
-                  <AccordionContent>{section.content}</AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </form>
-        </Form>
-      </SettingsDrawer>
-    </>
+                  {section.title}
+                </AccordionTrigger>
+                <AccordionContent>{section.content}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </form>
+      </Form>
+    </SettingsDrawer>
   );
 }

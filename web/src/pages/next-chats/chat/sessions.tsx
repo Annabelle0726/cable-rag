@@ -1,6 +1,4 @@
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
-import EmbedDialog from '@/components/embed-dialog';
-import { useShowEmbedModal } from '@/components/embed-dialog/use-show-embed-dialog';
 import { MoreButton } from '@/components/more-button';
 import { RAGFlowAvatar } from '@/components/ragflow-avatar';
 import { Button } from '@/components/ui/button';
@@ -11,7 +9,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { SharedFrom } from '@/constants/chat';
 import {
   useFetchChat,
   useGetChatSearchParams,
@@ -23,13 +20,12 @@ import {
   LucidePanelLeftClose,
   LucidePencil,
   LucidePlus,
-  LucideSend,
+  LucideSettings,
   LucideTrash2,
   LucideUndo2,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router';
 import { useChatStreamStore } from '../chat-stream/store';
 import { useChatUrlParams } from '../hooks/use-chat-url';
 import { useHandleClickConversationCard } from '../hooks/use-click-card';
@@ -45,11 +41,14 @@ type SessionProps = Pick<
   /** Owned by the chat page so the header can mirror the collapsed state. */
   visible: boolean;
   onVisibleChange: (visible: boolean) => void;
+  /** Opens the chat settings drawer, owned by the chat page. */
+  onOpenSettings: () => void;
 };
 export function Sessions({
   handleConversationCardClick,
   visible,
   onVisibleChange,
+  onOpenSettings,
 }: SessionProps) {
   const { t } = useTranslation();
   const {
@@ -66,7 +65,6 @@ export function Sessions({
   const { removeSessions } = useRemoveSessions();
   const { setConversationBoth } = useChatUrlParams();
   const { conversationId } = useGetChatSearchParams();
-  const { id: chatId } = useParams();
   const removeStreamSessions = useChatStreamStore(
     (state) => state.removeSessions,
   );
@@ -202,9 +200,6 @@ export function Sessions({
 
   const selectedCount = visibleSelectedIds.length;
 
-  const { showEmbedModal, hideEmbedModal, embedVisible, beta } =
-    useShowEmbedModal();
-
   if (!visible) {
     return (
       <div className="p-5">
@@ -242,27 +237,23 @@ export function Sessions({
           <span className="flex-1 truncate">{data.name}</span>
         </div>
 
+        {/* Settings: opens the slide-over panel. It replaces the embed-into-site
+            entry point, which this deployment does not use. */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              onClick={showEmbedModal}
+              onClick={onOpenSettings}
+              variant="transparent"
               size="icon-xs"
-              data-testid="chat-detail-embed-open"
+              className="border-0"
+              aria-label={t('chat.chatSetting')}
+              data-testid="chat-settings"
             >
-              <LucideSend />
+              <LucideSettings className="size-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t('common.embedIntoSite')}</TooltipContent>
+          <TooltipContent>{t('chat.chatSetting')}</TooltipContent>
         </Tooltip>
-
-        <EmbedDialog
-          visible={embedVisible}
-          hideModal={hideEmbedModal}
-          token={chatId!}
-          from={SharedFrom.Chat}
-          beta={beta}
-          isAgent={false}
-        />
 
         <Button
           variant="transparent"

@@ -5,6 +5,7 @@ import {
   useFetchSessionManually,
   useGetChatSearchParams,
 } from '@/hooks/use-chat-request';
+import { useSetModalState } from '@/hooks/common-hooks';
 import { IClientConversation } from '@/interfaces/database/chat';
 import { RootLayoutContainer } from '@/layouts/root-layout';
 import { cn } from '@/lib/utils';
@@ -52,6 +53,15 @@ export default function Chat() {
   const handleExpandSessions = useCallback(() => {
     setSessionsVisible(true);
   }, []);
+
+  // The settings drawer is owned here: both of its triggers (the conversation
+  // list header, and the chat header that only shows while the list is
+  // collapsed) open the same panel.
+  const {
+    visible: settingsVisible,
+    showModal: showSettings,
+    hideModal: hideSettings,
+  } = useSetModalState();
 
   const currentConversationName = useMemo(() => {
     return (
@@ -138,6 +148,7 @@ export default function Chat() {
             handleConversationCardClick={handleConversationCardClick}
             visible={sessionsVisible}
             onVisibleChange={setSessionsVisible}
+            onOpenSettings={showSettings}
           ></Sessions>
 
           <Card className="flex-1 min-w-0 bg-transparent border-none shadow-none h-full">
@@ -158,6 +169,7 @@ export default function Chat() {
                       title={currentConversationName}
                       summarizable={isPersistedConversationId(conversationId)}
                       onExpandSessions={handleExpandSessions}
+                      onOpenSettings={showSettings}
                     >
                       <Button
                         variant="ghost"
@@ -176,7 +188,12 @@ export default function Chat() {
                 </CardContent>
               </Card>
 
-              <ChatSettings hasSingleChatBox={hasSingleChatBox}></ChatSettings>
+              <ChatSettings
+                visible={settingsVisible}
+                onVisibleChange={(nextVisible) =>
+                  nextVisible ? showSettings() : hideSettings()
+                }
+              ></ChatSettings>
             </CardContent>
           </Card>
         </article>

@@ -150,23 +150,19 @@ def _mm_is_checked(locator) -> bool:
     return (locator.get_attribute("data-state") or "") == "checked"
 
 
-def _mm_open_and_close_embed_dialog_if_available(page) -> bool:
-    page.get_by_test_id("chat-detail-embed-open").click()
-    dialog = page.locator("[role='dialog']").last
-    try:
-        expect(dialog).to_be_visible(timeout=3000)
-    except AssertionError:
-        # Embed modal is gated by token/beta availability in some environments.
-        expect(page.get_by_test_id("chat-detail")).to_be_visible(timeout=RESULT_TIMEOUT_MS)
-        return False
+def _mm_open_and_close_settings_drawer(page) -> bool:
+    """Smoke-check the settings button that replaced the embed entry point."""
+    page.get_by_test_id("chat-settings").click()
+    drawer = page.get_by_test_id("chat-detail-settings")
+    expect(drawer).to_be_visible(timeout=RESULT_TIMEOUT_MS)
 
     page.keyboard.press("Escape")
     try:
-        expect(dialog).not_to_be_visible(timeout=RESULT_TIMEOUT_MS)
+        expect(drawer).not_to_be_visible(timeout=3000)
     except AssertionError:
-        # Fallback to clicking outside if Escape is ignored by current build.
-        page.mouse.click(5, 5)
-        expect(dialog).not_to_be_visible(timeout=RESULT_TIMEOUT_MS)
+        # Fallback to clicking the drawer's own close button if Escape is ignored.
+        page.get_by_test_id("chat-detail-settings-close").click()
+        expect(drawer).not_to_be_visible(timeout=RESULT_TIMEOUT_MS)
     return True
 
 
@@ -319,18 +315,18 @@ def mm_step_03_select_dataset(ctx: FlowContext, step, snap):
     snap("chat_mm_dataset_ready")
 
 
-def mm_step_04_embed_open_close(ctx: FlowContext, step, snap):
+def mm_step_04_settings_open_close(ctx: FlowContext, step, snap):
     require(ctx.state, "mm_dataset_selected")
     page = ctx.page
-    with step("embed open and close"):
-        _mm_open_and_close_embed_dialog_if_available(page)
+    with step("settings drawer open and close"):
+        _mm_open_and_close_settings_drawer(page)
         expect(page.get_by_test_id("chat-detail")).to_be_visible(timeout=RESULT_TIMEOUT_MS)
-    ctx.state["mm_embed_checked"] = True
-    snap("chat_mm_embed_checked")
+    ctx.state["mm_settings_checked"] = True
+    snap("chat_mm_settings_checked")
 
 
 def mm_step_05_sessions_panel_row_ops(ctx: FlowContext, step, snap):
-    require(ctx.state, "mm_embed_checked")
+    require(ctx.state, "mm_settings_checked")
     page = ctx.page
     with step("sessions panel and session row operations"):
         sessions_root = page.get_by_test_id("chat-detail-sessions")
@@ -733,7 +729,7 @@ MM_STEPS = [
     ("01_ensure_authed_and_open_chat_list", mm_step_01_ensure_authed_and_open_chat_list),
     ("02_create_chat_and_open_detail", mm_step_02_create_chat_and_open_detail),
     ("03_select_dataset", mm_step_03_select_dataset),
-    ("04_embed_open_close", mm_step_04_embed_open_close),
+    ("04_settings_open_close", mm_step_04_settings_open_close),
     ("05_sessions_panel_row_ops", mm_step_05_sessions_panel_row_ops),
     ("06_selection_mode_batch_delete", mm_step_06_selection_mode_batch_delete),
     ("07_settings_open_close_cancel_save", mm_step_07_settings_open_close_cancel_save),
