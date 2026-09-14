@@ -7,7 +7,7 @@
   "scripts": {
     "build": "vite build --mode production",
     "build-storybook": "storybook build",
-    "dev": "vite --host",
+    "dev": "vite",
     "format": "oxfmt src",
     "format:check": "oxfmt --check src",
     "lint": "oxlint src",
