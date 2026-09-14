@@ -548,6 +548,11 @@ type RunResponse struct {
 	// with "produced nothing" before falling back to an internal-error message
 	// (run_agentic_rag); an empty result on its own is not a failure.
 	GraphFailed bool
+	// GraphFailureReason is the error behind GraphFailed, surfaced in the
+	// last-resort answer so an unreachable embedding or LLM provider can be told
+	// apart from a broken knowledge base. Empty when the failure carried no
+	// error (Python run_agentic_rag reports the exception text the same way).
+	GraphFailureReason string
 	// Verdict is the final sufficiency verdict ("SUFFICIENT"/"INSUFFICIENT").
 	Verdict string
 	// SCAFeedback is the body of the SCA feedback note — agentic_rag.py:902-929's

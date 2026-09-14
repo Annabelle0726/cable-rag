@@ -2859,7 +2859,7 @@ func BuildAgenticGraph(ctx context.Context, deps RAGTools, question, keywords st
 	// stop is the visit-budget backstop. Python has no graceful stop: LangGraph
 	// raises GraphRecursionError, which run_agentic_rag records as a graph failure
 	// (run_agentic_rag) and only then, when the run also produced nothing, surfaces as
-	// graphFailureFallback. Returning the state as-is instead let Go
+	// graphFailureMessage. Returning the state as-is instead let Go
 	// compose a partial answer where Python reports the internal error, so the
 	// error is raised here and the caller drops the state (see below).
 	addNode("stop", func(_ context.Context, s *AgenticState) (*AgenticState, error) {
@@ -3020,6 +3020,7 @@ func NewAgenticLoop() AgenticLoop {
 		// nothing (run_agentic_rag).
 		if runErr != nil {
 			resp.GraphFailed = true
+			resp.GraphFailureReason = runErr.Error()
 		}
 
 		// Surface the loop's outcome on the RunResponse.
@@ -3164,6 +3165,7 @@ func RunAgenticRAG(ctx context.Context, deps RAGTools, req harness.RunRequest, s
 			// "research found nothing"; the fallback below only fires when the
 			// run also produced nothing.
 			resp.GraphFailed = true
+			resp.GraphFailureReason = err.Error()
 		}
 	default:
 		// _naive_rag: no formalize node, a plain retrieve with no
@@ -3177,8 +3179,8 @@ func RunAgenticRAG(ctx context.Context, deps RAGTools, req harness.RunRequest, s
 	// itself failed. An empty result without a failure is not an error: that is
 	// EmptyResponse's job, and overwriting it here would hide the real reason.
 	if resp.GraphFailed && resp.Answer == "" && len(resp.Slots) == 0 {
-		logger.Printf("[Agentic RAG] research failed without producing anything")
-		resp.Answer = graphFailureFallback
+		logger.Printf("[Agentic RAG] research failed without producing anything: %s", resp.GraphFailureReason)
+		resp.Answer = graphFailureMessage(resp.GraphFailureReason)
 	}
 }
 
@@ -3228,9 +3230,11 @@ const (
 	naiveEvidenceCharCap = 1500
 	// answerErrorFallback mirrors Python's stream-failure message.
 	answerErrorFallback = "I'm sorry, I encountered an error while composing the answer."
-	// graphFailureFallback mirrors Python run_agentic_rag's last-resort message
-	// (run_agentic_rag), used only when the graph failed AND produced nothing.
-	graphFailureFallback = "I couldn't complete the search due to an internal error."
+	// graphFailurePrefix and graphFailureSuffix spell out Python
+	// run_agentic_rag's last-resort message (run_agentic_rag), used only when the
+	// graph failed AND produced nothing.
+	graphFailurePrefix = "检索失败：知识库检索未能完成"
+	graphFailureSuffix = "。请检查嵌入模型、向量库与知识库配置后重试。"
 	// AgenticRecursionLimit mirrors Python run_agentic_rag for the agentic
 	// graph: the maximum number of node visits before the graph aborts. Go has
 	// no graph runtime, so the loop counts its own node visits against it.
@@ -3242,6 +3246,24 @@ const (
 	// (run_agentic_rag) for the non-agentic graph.
 	lowRecursionLimitBase = 25
 )
+
+// graphFailureMessage renders Python run_agentic_rag's last-resort answer for a
+// research run that failed and produced nothing.
+//
+// The reason travels with the answer on purpose: this string is the only thing
+// the user sees, and a bare "internal error" leaves an unreachable embedding or
+// LLM provider (the common causes) indistinguishable from a broken knowledge
+// base. Python run_agentic_rag embeds the same text.
+func graphFailureMessage(reason string) string {
+	reason = strings.Join(strings.Fields(reason), " ")
+	if reason == "" {
+		return graphFailurePrefix + graphFailureSuffix
+	}
+	if runes := []rune(reason); len(runes) > 300 {
+		reason = string(runes[:297]) + "..."
+	}
+	return graphFailurePrefix + "（" + reason + "）" + graphFailureSuffix
+}
 
 // FinalAnswerSystem and PartialAnswerPreamble are defined in the harness
 // package (harness/report_prompt.go), mirroring
