@@ -151,6 +151,11 @@ func (d *DatasetService) CreateDataset(ctx context.Context, req *service.CreateD
 		EmbdID:       embdID,
 		TenantEmbdID: stringPtrIfNotEmpty(tenantEmbdID),
 		Status:       &status,
+		// The cable retrieval defaults, set explicitly: Python's model defaults
+		// (api/db/cable_defaults.py) apply on its own inserts, and the
+		// knowledgebase columns carry no SQL default (every row must supply one).
+		SimilarityThreshold:    service.CableDefaultSimilarityThreshold,
+		VectorSimilarityWeight: service.CableDefaultVectorSimilarityWeight,
 	}
 
 	if err = d.kbDAO.Create(ctx, dao.DB, kb); err != nil {

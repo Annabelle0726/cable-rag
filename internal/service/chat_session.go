@@ -146,7 +146,7 @@ func (s *ChatSessionService) SetChatSession(ctx context.Context, userID string, 
 		return nil, errors.New("dialog not found")
 	}
 
-	prologue := "Hi! I'm your assistant. What can I do for you?"
+	prologue := CableDefaultPrologue
 	if dialog.PromptConfig != nil {
 		if p, ok := dialog.PromptConfig["prologue"].(string); ok && p != "" {
 			prologue = p
@@ -1899,7 +1899,7 @@ func (s *ChatSessionService) buildDefaultCompletionDialog(tenantID string) *enti
 func (s *ChatSessionService) createSessionForCompletion(ctx context.Context, chatID string, dialog *entity.Chat, userID string, saveSession bool) (*entity.ChatSession, error) {
 	name := "New session"
 
-	prologue := "Hi! I'm your assistant. What can I do for you?"
+	prologue := CableDefaultPrologue
 	if dialog.PromptConfig != nil {
 		if p, ok := dialog.PromptConfig["prologue"].(string); ok && p != "" {
 			prologue = p

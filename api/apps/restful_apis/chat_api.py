@@ -28,6 +28,7 @@ from werkzeug.exceptions import BadRequest
 
 from api.apps import current_user, login_required
 from api.apps.restful_apis._generation_params import merge_generation_config, pop_generation_config
+from api.db import cable_defaults
 from api.db.services.llm_service import resolve_llm_setting
 from api.db.joint_services.tenant_model_service import (
     get_api_key,
@@ -94,18 +95,12 @@ def _sanitize_json_floats(obj):
 
 
 _DEFAULT_PROMPT_CONFIG = {
-    "system": (
-        "You are an intelligent assistant. Please summarize the content of the dataset to answer the question. "
-        "Please list the data in the dataset and answer in detail. When all dataset content is irrelevant to the "
-        'question, your answer must include the sentence "The answer you are looking for is not found in the dataset!" '
-        "Answers need to consider chat history.\n"
-        "      Here is the knowledge base:\n"
-        "      {knowledge}\n"
-        "      The above is the knowledge base."
-    ),
-    "prologue": "Hi! I'm your assistant. What can I do for you?",
-    "parameters": [{"key": "knowledge", "optional": False}, {"key": "date", "optional": True}],
-    "empty_response": "Sorry! No relevant content was found in the knowledge base!",
+    # Cable vertical defaults; see api/db/cable_defaults.py for the values and
+    # why the model defaults use the same source.
+    "system": cable_defaults.SYSTEM_PROMPT,
+    "prologue": cable_defaults.PROLOGUE,
+    "parameters": [dict(parameter) for parameter in cable_defaults.PROMPT_PARAMETERS],
+    "empty_response": cable_defaults.EMPTY_RESPONSE,
     "quote": True,
     "tts": False,
     "refine_multiturn": True,
@@ -200,12 +195,12 @@ def _build_default_completion_dialog():
         llm_setting={},
         prompt_config=deepcopy(_DEFAULT_DIRECT_CHAT_PROMPT_CONFIG),
         kb_ids=[],
-        top_n=6,
-        rerank_candidates_count=64,
+        top_n=cable_defaults.TOP_N,
+        rerank_candidates_count=cable_defaults.RERANK_CANDIDATES_COUNT,
         top_k=1024,
         rerank_id="",
-        similarity_threshold=0.1,
-        vector_similarity_weight=0.3,
+        similarity_threshold=cable_defaults.SIMILARITY_THRESHOLD,
+        vector_similarity_weight=cable_defaults.VECTOR_SIMILARITY_WEIGHT,
         meta_data_filter=None,
     )
 
@@ -415,6 +410,20 @@ def _apply_prompt_defaults(req):
         prompt_config.setdefault("parameters", []).append({"key": "date", "optional": True})
 
 
+def _apply_retrieval_defaults(req):
+    """Fill the retrieval settings a new chat assistant is created with.
+
+    The cable values live in api/db/cable_defaults.py so the API, the persisted
+    model defaults and the Go backend all start a chat from the same numbers.
+    """
+    req.setdefault("top_n", cable_defaults.TOP_N)
+    req.setdefault("rerank_candidates_count", cable_defaults.RERANK_CANDIDATES_COUNT)
+    req.setdefault("top_k", 1024)
+    req.setdefault("rerank_id", "")
+    req.setdefault("similarity_threshold", cable_defaults.SIMILARITY_THRESHOLD)
+    req.setdefault("vector_similarity_weight", cable_defaults.VECTOR_SIMILARITY_WEIGHT)
+
+
 @manager.route("/chats", methods=["POST"])  # noqa: F821
 @login_required
 async def create():
@@ -469,13 +478,8 @@ async def create():
             req["llm_id"] = tenant.tenant_llm_id
         req.setdefault("llm_setting", {})
         req.setdefault("description", "A helpful Assistant")
-        req.setdefault("top_n", 6)
-        req.setdefault("rerank_candidates_count", 64)
-        req.setdefault("top_k", 1024)
-        req.setdefault("rerank_id", "")
-        req.setdefault("similarity_threshold", 0.1)
-        req.setdefault("vector_similarity_weight", 0.3)
         req.setdefault("icon", "")
+        _apply_retrieval_defaults(req)
         _apply_prompt_defaults(req)
         # err = _validate_prompt_config(req["prompt_config"])
         # if err:

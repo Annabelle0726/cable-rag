@@ -33,11 +33,11 @@ type Chat struct {
 	PromptConfig   JSONMap  `gorm:"column:prompt_config;type:longtext;not null" json:"prompt_config"`
 	MetaDataFilter *JSONMap `gorm:"column:meta_data_filter;type:longtext" json:"meta_data_filter,omitempty"`
 	// NOTE: No `default:` GORM tags here. The service layer (chat.go Create)
-	// supplies sensible defaults (0.1 / 0.3 / 6 / 64 / 1024 / "1") when a field is
-	// omitted, and honors an explicitly provided zero value. A GORM `default:`
-	// tag would force GORM to overwrite an explicit zero (e.g.
-	// similarity_threshold=0) with the column default during Create, breaking
-	// the API contract that permits 0.
+	// supplies sensible defaults (0.25 / 0.3 / 6 / 64 / 1024 / "1", see
+	// cable_defaults.go) when a field is omitted, and honors an explicitly
+	// provided zero value. A GORM `default:` tag would force GORM to overwrite an
+	// explicit zero (e.g. similarity_threshold=0) with the column default during
+	// Create, breaking the API contract that permits 0.
 	SimilarityThreshold    float64   `gorm:"column:similarity_threshold" json:"similarity_threshold"`
 	VectorSimilarityWeight float64   `gorm:"column:vector_similarity_weight" json:"vector_similarity_weight"`
 	TopN                   int64     `gorm:"column:top_n" json:"top_n"`
