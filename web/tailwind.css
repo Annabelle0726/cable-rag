@@ -140,6 +140,11 @@
     --cable-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.06);
     --cable-shadow-hover: 0 10px 15px -3px rgba(15, 23, 42, 0.1),
       0 4px 6px -4px rgba(15, 23, 42, 0.1);
+    /* Slide-over drawer: the panel casts leftwards over the chat, and the
+       backdrop stays light enough that the conversation behind it is still
+       readable while the settings are open. */
+    --cable-drawer-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
+    --cable-backdrop: rgba(15, 23, 42, 0.3);
 
     /* Top navigation states: quiet by default, brand-blue and bold when active. */
     --cable-nav-text: #64748b;
@@ -264,6 +269,8 @@
     --cable-hairline: rgba(255, 255, 255, 0.08);
     --cable-shadow: none;
     --cable-shadow-hover: none;
+    --cable-drawer-shadow: -4px 0 16px rgba(0, 0, 0, 0.45);
+    --cable-backdrop: rgba(2, 6, 23, 0.5);
 
     --cable-nav-text: #94a3b8;
     --cable-nav-text-hover: #f1f5f9;
