@@ -1,7 +1,10 @@
 import {
   countAgenticLogLines,
+  generateTemporaryConversationId,
   isAgenticLogLine,
   isAgenticPreambleLine,
+  isPersistedConversationId,
+  isTemporaryConversationId,
   preprocessLaTeX,
   promoteCaretExponentsToLaTeX,
   replaceAgenticLogsToSection,
@@ -78,7 +81,7 @@ describe('replaceThinkToSection', () => {
 
   it('keeps a non-empty think section as a details block', () => {
     expect(replaceThinkToSection('<think>some reasoning</think>answer')).toBe(
-      '<details class="think"><summary>Thinking...</summary>\n\nsome reasoning\n\n</details>answer',
+      '<details class="think"><summary>Thinking...</summary>\n\nsome reasoning\n\n</details>\n\nanswer',
     );
   });
 
@@ -115,7 +118,7 @@ describe('replaceThinkToSection', () => {
     );
 
     expect(result).toBe(
-      '<details class="think"><summary>Thought</summary>\n\nStep one.\nStep two.\n\n</details>Answer',
+      '<details class="think"><summary>Thought</summary>\n\nStep one.\nStep two.\n\n</details>\n\nAnswer',
     );
   });
 
@@ -171,6 +174,37 @@ describe('replaceThinkToSection', () => {
     expect(result).toContain('\n\n</details>');
     // The emphasis is left intact for react-markdown to parse.
     expect(result).toContain('**copper** alloy');
+  });
+
+  it('detaches the panel from the answer so the answer markdown is parsed', () => {
+    // The backend joins the answer straight onto the closing tag, and CommonMark
+    // keeps an HTML block open until a blank line: glued together, react-markdown
+    // reads `**0.0991 Ω/km**` as raw HTML and prints the asterisks.
+    const result = replaceThinkToSection(
+      '<think>[Agentic RAG] Starting research...\n[Keywords] 185 mm²</think>上限值是 **0.0991 Ω/km** [ID:1]。',
+      'Thought',
+      'Log · {{num}}',
+    );
+
+    expect(result).toContain('</details>\n\n上限值是 **0.0991 Ω/km** [ID:1]。');
+  });
+
+  it('builds only one panel out of a think body that already became one', () => {
+    const result = replaceAgenticLogsToSection(
+      replaceThinkToSection(
+        '<think>[Agentic RAG] Starting research...\n[Keywords] copper</think>上限值是 **0.0991 Ω/km**。',
+        'Thought',
+        'Log · {{num}}',
+      ),
+      'Log · {{num}}',
+    );
+
+    // The panel is finished output: re-scanning it used to strip its body into a
+    // second panel and leave an empty first one behind.
+    expect(result.match(/<details class="agentic-log">/g)).toHaveLength(1);
+    expect(result.match(/<\/details>/g)).toHaveLength(1);
+    expect(result).toContain('`[Keywords]` copper');
+    expect(result.trimEnd().endsWith('上限值是 **0.0991 Ω/km**。')).toBe(true);
   });
 });
 
@@ -323,5 +357,29 @@ describe('trimExtractionResidue', () => {
 
   it('leaves real content alone', () => {
     expect(trimExtractionResidue('1.5mm^2 conductor')).toBe('1.5mm^2 conductor');
+  });
+});
+
+describe('conversation id provenance', () => {
+  it('marks generated placeholder ids as temporary', () => {
+    const conversationId = generateTemporaryConversationId();
+
+    expect(conversationId).toMatch(/^temp-[0-9a-f]{32}$/);
+    expect(isTemporaryConversationId(conversationId)).toBe(true);
+    expect(isPersistedConversationId(conversationId)).toBe(false);
+  });
+
+  it('treats server ids as persisted', () => {
+    const serverId = '014e4f2aab7911f191ac3887d563fb04';
+
+    expect(isTemporaryConversationId(serverId)).toBe(false);
+    expect(isPersistedConversationId(serverId)).toBe(true);
+  });
+
+  it('treats a missing id as neither temporary nor persisted', () => {
+    expect(isTemporaryConversationId('')).toBe(false);
+    expect(isTemporaryConversationId(undefined)).toBe(false);
+    expect(isPersistedConversationId('')).toBe(false);
+    expect(isPersistedConversationId(undefined)).toBe(false);
   });
 });
