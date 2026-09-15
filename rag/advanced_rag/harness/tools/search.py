@@ -81,6 +81,20 @@ def _resolve_rerank_candidates(tools, top_n: int) -> int:
     return max(int(_setting(tools, "rerank_candidates_count", _DEFAULT_RERANK_CANDIDATES)), top_n)
 
 
+def _resolve_target_ids(tools, kb_ids) -> list:
+    """Datasets this search is allowed to look in.
+
+    An empty target list is not an empty result: the knowledge base is never
+    queried at all, so every passage is unreachable. That is a chat assistant with
+    no dataset bound rather than an empty corpus, and without this warning the two
+    are indistinguishable in the transcript.
+    """
+    target_ids = kb_ids or list(dict.fromkeys(tools.kb_ids + [kb.id for kb in tools.sql_kbs]))
+    if not target_ids:
+        _LOG.warning("search: no dataset is bound to this assistant - the knowledge base was never queried, so no passage can match. Bind a dataset to the chat assistant (or pass kb_ids).")
+    return target_ids
+
+
 def _search_cache_key(effective_query: str, target_ids, top_n: int, doc_scope) -> tuple:
     """Key a retrieval by what actually determines its result.
 
@@ -114,7 +128,7 @@ async def hybrid_search(
     tools, query: str, kb_ids: list[str] | None = None, top_n: int | None = None, doc_scope: list[str] | None = None, keywords: str = "", retrieval_query: str = "", use_compiled: bool = False
 ) -> dict:
     top_n = _resolve_top_n(tools, top_n)
-    target_ids = kb_ids or list(dict.fromkeys(tools.kb_ids + [kb.id for kb in tools.sql_kbs]))
+    target_ids = _resolve_target_ids(tools, kb_ids)
     if not target_ids:
         return {"chunks": [], "doc_aggs": []}
     if hasattr(tools, "scoped_doc_ids"):
@@ -201,6 +215,16 @@ async def hybrid_search(
             _s[1] += len(str(_c.get("content") or _c.get("content_with_weight") or ""))
         _detail = "; ".join(f"{d}:{n}chunk({sz}chars)" for d, (n, sz) in sorted(_doc_stats.items()))
         _LOG.info(f'[Hybrid search] "{query[:80]}" -> {len(chunks_now)} chunk(s): {_detail}')
+    else:
+        # A zero-result search used to log nothing at all, so a query that missed
+        # was indistinguishable from one that never ran.
+        _LOG.warning(
+            '[Hybrid search] "%s" -> 0 chunk(s) across %d dataset(s) (threshold=%s, vector_weight=%s).',
+            query[:80],
+            len(target_ids),
+            similarity_threshold,
+            vector_weight,
+        )
     if cache is not None:
         cache[cache_key] = kbinfos
     return kbinfos

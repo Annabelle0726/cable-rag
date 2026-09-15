@@ -25,6 +25,8 @@ fields; the agentic search framework (#16859) reimplemented retrieval without th
 what those tools mean, not a default standing in for configuration.
 """
 
+import logging
+
 import pytest
 
 from rag.advanced_rag.harness.tools import search as search_tools
@@ -215,3 +217,27 @@ async def test_ragtools_retrieve_keeps_its_own_defaults_when_unconfigured(monkey
     assert rec.args[6] == 0.2
     assert rec.kwargs["vector_similarity_weight"] == 0.7
     assert rec.kwargs["knn_top_k"] == 1024
+
+
+async def test_hybrid_search_warns_when_no_dataset_is_bound(recorder, caplog):
+    """A chat assistant with no dataset bound is a misconfiguration, not an empty
+    corpus: the search never runs, so every passage is unreachable. Without this
+    warning the two look identical in the transcript (`[Direct search] Found no
+    matching passages.`)."""
+    tools = _Tools(kb_ids=[])
+
+    with caplog.at_level(logging.WARNING):
+        res = await search_tools.hybrid_search(tools, query="q")
+
+    assert res == {"chunks": [], "doc_aggs": []}
+    assert recorder.args is None, "the retriever must not be called with no dataset"
+    assert "no dataset is bound" in caplog.text
+
+
+async def test_hybrid_search_reports_a_zero_result_search(recorder, caplog):
+    """A query that matched nothing has to say so: this path used to log nothing
+    at all, which is indistinguishable from a search that never ran."""
+    with caplog.at_level(logging.WARNING):
+        await search_tools.hybrid_search(_Tools(), query="q")
+
+    assert "0 chunk(s)" in caplog.text
