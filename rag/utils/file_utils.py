@@ -140,9 +140,17 @@ def extract_embed_file(target: Union[bytes, bytearray]) -> List[Tuple[str, bytes
                         continue
                     if not data:
                         continue
-                    if "Ole10Native" in p or "ole10native" in p.lower():
-                        data = _extract_ole10native_payload(data)
-                    push(data, p)
+                    if "ole10native" in p.lower():
+                        # A real embedded object; the stream holds the original file.
+                        push(_extract_ole10native_payload(data), p)
+                        continue
+                    # Any other stream in an OLE container is internal document
+                    # structure (WordDocument, 0Table/1Table, Data,
+                    # \x05SummaryInformation, WpsCustomData, ...), not an embedded
+                    # file. Only a stream that is itself a document container
+                    # carries an embedded file.
+                    if _guess_ext(data) != ".bin":
+                        push(data, p)
         except Exception:
             pass
         return out
