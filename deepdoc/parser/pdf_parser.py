@@ -1761,7 +1761,7 @@ class VisionParser(RAGFlowPdfParser):
         end_page = min(to_page, total_pdf_pages)
 
         # Resolve the domain once per call (never per page).
-        domain, reason = resolve_domain_with_confidence(kwargs)
+        domain, reason = resolve_domain_with_confidence(kwargs, context_text=str(filename))
         logging.info(f"[VisionParser] domain_resolution domain={domain!r} reason={reason}")
 
         all_docs = []
