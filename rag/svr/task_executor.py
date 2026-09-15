@@ -26,6 +26,23 @@ import os
 
 os.environ.setdefault("LITELLM_LOCAL_MODEL_COST_MAP", "True")  # no internet, save about 10s
 
+
+def _ensure_java_utf8_env() -> None:
+    """
+    Pin the JVM that tika spawns to UTF-8 and a non-localized locale.
+
+    Legacy .doc/.ppt parsing shells out to a tika Java server, and on Windows that
+    JVM otherwise inherits the ANSI code page (GBK on Chinese installs), which
+    mangles the CJK text it returns. Must run before anything starts the server.
+    Flags already supplied by the operator are preserved.
+    """
+    flags = os.environ.get("JAVA_TOOL_OPTIONS", "").split()
+    flags += [flag for flag in ("-Dfile.encoding=UTF-8", "-Duser.language=en") if flag not in flags]
+    os.environ["JAVA_TOOL_OPTIONS"] = " ".join(flags)
+
+
+_ensure_java_utf8_env()
+
 from common.misc_utils import thread_pool_exec
 
 import asyncio
