@@ -187,6 +187,23 @@ class Excel(ExcelParser):
                 return True
         return False
 
+    def _header_depth_bound(self, ws):
+        """
+        Hard upper bound on the header row count, taken from the merged cells.
+
+        Only a merge that starts in the first row and spans several rows proves
+        that the header really is that many rows deep (e.g. a vertical "型号"
+        merge across two header levels). A purely horizontal merge states
+        nothing about the depth, so it keeps the bound at a single row.
+        """
+        depth = 1
+        if ws is None:
+            return depth
+        for rng in ws.merged_cells.ranges:
+            if rng.min_row == 1 and rng.max_row > rng.min_row:
+                depth = max(depth, rng.max_row)
+        return depth
+
     def _row_looks_like_header(self, row):
         header_like_cells = 0
         data_like_cells = 0
@@ -195,13 +212,23 @@ class Excel(ExcelParser):
             if cell.value is not None:
                 non_empty_cells += 1
                 val = str(cell.value).strip()
-                if self._looks_like_header(val):
-                    header_like_cells += 1
-                elif self._looks_like_data(val):
+                if not val:
+                    continue
+                # Classify data first. Data markers (numbers, codes, measures)
+                # are far more specific than the header markers, and
+                # _looks_like_header() treats any non-ASCII text as a header,
+                # which is true of every Chinese cell - header or data.
+                if self._looks_like_data(val):
                     data_like_cells += 1
+                elif self._looks_like_header(val):
+                    header_like_cells += 1
         if non_empty_cells == 0:
             return False
-        return header_like_cells >= data_like_cells
+        if data_like_cells:
+            # A row that carries real values is never a header row.
+            return False
+        # Strictly more header-like than data-like.
+        return header_like_cells > data_like_cells
 
     def _parse_simple_headers(self, rows):
         if not rows:
@@ -230,13 +257,13 @@ class Excel(ExcelParser):
     def _parse_multi_level_headers(self, ws, rows):
         if len(rows) < 2:
             return [], 0
-        header_rows = self._detect_header_rows(rows)
+        header_rows = self._detect_header_rows(rows, ws)
         if header_rows == 1:
             return self._parse_simple_headers(rows)
         else:
             return self._build_hierarchical_headers(ws, rows, header_rows), header_rows
 
-    def _detect_header_rows(self, rows):
+    def _detect_header_rows(self, rows, ws=None):
         if len(rows) < 2:
             return 1
         header_rows = 1
@@ -247,7 +274,12 @@ class Excel(ExcelParser):
                 header_rows = i + 1
             else:
                 break
-        return header_rows
+        # The merged-cell structure caps what the content heuristic may claim.
+        # Without a vertical merge there is no structural evidence of a deeper
+        # header, and an all-Chinese data row is indistinguishable from a
+        # sub-header row by content alone - capping there keeps the data row
+        # instead of silently consuming it as part of the header.
+        return min(header_rows, self._header_depth_bound(ws))
 
     def _looks_like_header(self, value):
         if len(value) < 1:
