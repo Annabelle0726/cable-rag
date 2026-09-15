@@ -15,6 +15,7 @@
 #
 
 import importlib.util
+import json
 import os
 import sys
 from io import BytesIO
@@ -151,11 +152,11 @@ def test_call_keeps_zero_valued_cells():
 @pytest.mark.p2
 def test_call_omits_a_blank_header_instead_of_labelling_it_none():
     # A blank header cell has no label to give. str(None) is "None", which is
-    # truthy, so it defeats the separator guard and the literal token "None" is
-    # indexed and shown alongside the value it pretends to describe.
+    # truthy, so it would land the literal token "None" in the indexed JSON.
     lines = RAGFlowExcelParser()(_make_xlsx_with_values(["name", None, "city"], ["widget", "note-1", "paris"]))
-    joined = " ".join(text for text, _ in lines)
-    assert joined == "name：widget; note-1; city：paris", lines
+    row = json.loads(lines[0][0])
+    assert row == {"name": "widget", "Column_2": "note-1", "city": "paris"}, lines
+    assert "None" not in lines[0][0], lines
 
 
 @pytest.mark.p2
@@ -163,8 +164,8 @@ def test_call_keeps_a_zero_header():
     # Guards the tempting shorter fix, str(ti[i].value or ""), which would drop
     # a numeric 0 header the same way it drops a None one. 0 is a real label.
     lines = RAGFlowExcelParser()(_make_xlsx_with_values(["name", 0], ["widget", "note-1"]))
-    joined = " ".join(text for text, _ in lines)
-    assert "0：note-1" in joined, lines
+    row = json.loads(lines[0][0])
+    assert row["0"] == "note-1", lines
 
 
 @pytest.mark.p2
@@ -189,7 +190,38 @@ def test_csv_encoding_is_detected_without_losing_unicode(encoding):
 def test_csv_accepts_gb18030_characters_not_supported_by_gbk():
     binary = "项目名称,备注\n扩展字符,𠀀\n".encode("gb18030")
     lines = RAGFlowExcelParser()(binary)
-    assert "备注：𠀀" in lines[0][0]
+    row = json.loads(lines[0][0])
+    assert row["备注"] == "𠀀", lines
+
+
+@pytest.mark.p2
+def test_call_keeps_every_value_of_repeated_headers():
+    # Cable BOM/spec sheets repeat labels (merged header cells, two 规格 or two
+    # 备注 columns). Serializing a row through a dict used to collapse them onto
+    # one key and silently drop every earlier value.
+    lines = RAGFlowExcelParser()(_make_xlsx_with_values(["型号", "规格", "规格", "备注", "备注"], ["YJV", "2.5mm2", "4mm2", "合格", "见附页"]))
+    row = json.loads(lines[0][0])
+    assert row["型号"] == "YJV", lines
+    assert row["规格"] == "2.5mm2" and row["规格_2"] == "4mm2", lines
+    assert row["备注"] == "合格" and row["备注_2"] == "见附页", lines
+
+
+@pytest.mark.p2
+def test_call_does_not_let_the_sheet_name_overwrite_a_real_column():
+    # The sheet name is injected as a "sheet_name" property; it must not clobber
+    # a column that is genuinely called sheet_name.
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Data"
+    ws.append(["a", "sheet_name"])
+    ws.append(["1", "REAL-VALUE"])
+    buf = BytesIO()
+    wb.save(buf)
+
+    row = json.loads(RAGFlowExcelParser()(buf.getvalue())[0][0])
+    assert row == {"a": "1", "sheet_name": "REAL-VALUE"}, row
 
 
 @pytest.mark.p2
