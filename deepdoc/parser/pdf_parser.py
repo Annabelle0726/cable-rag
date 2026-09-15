@@ -43,15 +43,12 @@ from deepdoc.vision import OCR, AscendLayoutRecognizer, LayoutRecognizer, Recogn
 from rag.nlp import rag_tokenizer
 from rag.prompts.generator import vision_llm_describe_prompt
 from deepdoc.parser.utils import extract_pdf_outlines
+from deepdoc.parser.domain_prompts import (
+    inject_domain_instruction,
+    resolve_domain_with_confidence,
+)
 from common import settings
 from common.misc_utils import thread_pool_exec
-
-# 尝试引入领域判定与 Prompt 注入辅助方法（如 Cable 增强）
-try:
-    from rag.app.figure_parser import _resolve_domain_with_confidence, _inject_domain_instruction
-except ImportError:
-    _resolve_domain_with_confidence = None
-    _inject_domain_instruction = None
 
 LOCK_KEY_pdfplumber = "global_shared_lock_pdfplumber"
 if LOCK_KEY_pdfplumber not in sys.modules:
@@ -1763,11 +1760,9 @@ class VisionParser(RAGFlowPdfParser):
         start_page = max(0, from_page)
         end_page = min(to_page, total_pdf_pages)
 
-        # 解析传输的 domain 参数（若启用了领域识别）
-        domain, reason = "", "none"
-        if _resolve_domain_with_confidence:
-            domain, reason = _resolve_domain_with_confidence(kwargs)
-            logging.info(f"[VisionParser] resolved domain={domain!r} reason={reason}")
+        # Resolve the domain once per call (never per page).
+        domain, reason = resolve_domain_with_confidence(kwargs)
+        logging.info(f"[VisionParser] domain_resolution domain={domain!r} reason={reason}")
 
         all_docs = []
 
@@ -1780,9 +1775,11 @@ class VisionParser(RAGFlowPdfParser):
 
             prompt = vision_llm_describe_prompt(page=pdf_page_num + 1)
 
-            # 若判定为特定领域且导入了注入方法，则在此注入领域 Prompt 增强指令
-            if domain and _inject_domain_instruction:
-                prompt = _inject_domain_instruction(prompt, domain, figure_idx=idx, reason=reason)
+            # Inject the domain instruction before the vision LLM call.
+            if not isinstance(prompt, str):
+                logging.warning("[VisionParser] prompt is not str; skipping domain injection")
+            else:
+                prompt = inject_domain_instruction(prompt, domain, figure_idx=idx, reason=reason)
 
             text = picture_vision_llm_chunk(
                 binary=img_binary,

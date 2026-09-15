@@ -15,7 +15,6 @@
 #
 import logging
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED, as_completed
-from typing import Dict, Any, Tuple
 
 from PIL import Image
 
@@ -31,115 +30,18 @@ from rag.prompts.generator import (
 )
 from rag.nlp import append_context2table_image4pdf
 from rag.utils.lazy_image import ensure_pil_image, open_image_for_processing, is_image_like
+from deepdoc.parser.domain_prompts import (
+    inject_domain_instruction as _inject_domain_instruction,
+    resolve_domain_with_confidence as _resolve_domain_with_confidence,
+)
 
 
 # ============================================================
 # 1. Domain Auto-Inference & Prompt Injection (Conservative)
 # ============================================================
-
-# High-confidence keywords: nearly exclusive to cable docs; 1 hit is enough.
-CABLE_STRONG_KEYWORDS = {
-    "电缆",
-    "cable",
-    "线缆",
-    "myjv",
-    "yjv",
-    "bvr",
-    "rvv",
-    "kvv",
-    "铠装",
-    "交联聚乙烯",
-    "xlpe",
-    "pvc绝缘",
-    "铜芯",
-    "铝芯",
-}
-
-# Low-confidence keywords: common power/engineering terms; require >=3 hits.
-CABLE_WEAK_KEYWORDS = {
-    "导体",
-    "绝缘",
-    "护套",
-    "屏蔽",
-    "芯数",
-    "截面积",
-    "conductor",
-    "insulation",
-    "sheath",
-    "armor",
-}
-
-STRONG_HIT_THRESHOLD = 1
-WEAK_HIT_THRESHOLD = 3
-
-DOMAIN_VISION_INSTRUCTIONS = {
-    "cable": (
-        "\n\nSpecial Instruction: This image is from a cable industry standard or catalog. "
-        "Please carefully identify and explicitly describe cable structures (e.g., conductor, insulation, armor, sheath), "
-        "cross-section diagrams, wiring schematics, cable models (e.g., MYJV22), and electrical specifications. "
-        "Transcribe any visible tabular data related to cable dimensions precisely."
-    ),
-    # Future verticals (fiber, semiconductor, ...) can be added here without
-    # touching the rest of the parsing pipeline (Open/Closed Principle).
-}
-
-
-def _resolve_domain_with_confidence(
-    kwargs: Dict[str, Any],
-    context_text: str = "",
-) -> Tuple[str, str]:
-    """
-    Conservative 3-tier domain resolution.
-
-    Tier 1: explicit `domain` kwarg (never overridden).
-    Tier 2: `parser_config.domain` (dataset/UI configuration).
-    Tier 3: keyword auto-inference (high-precision only; may return "").
-
-    Returns:
-        (domain, reason) where reason ∈ {"explicit", "parser_config",
-        "auto_strong(N)", "auto_weak(N)", "none"}.
-    """
-    # Tier 1: explicit code-level
-    domain = kwargs.get("domain")
-    if domain:
-        return str(domain).lower(), "explicit"
-
-    # Tier 2: dataset-level parser_config
-    pc = kwargs.get("parser_config") or {}
-    if isinstance(pc, dict) and pc.get("domain"):
-        return str(pc["domain"]).lower(), "parser_config"
-
-    # Tier 3: conservative auto-inference
-    text = (context_text + " " + str(kwargs.get("filename", ""))).lower()
-    if not text.strip():
-        return "", "none"
-
-    strong_hits = sum(1 for kw in CABLE_STRONG_KEYWORDS if kw in text)
-    weak_hits = sum(1 for kw in CABLE_WEAK_KEYWORDS if kw in text)
-
-    if strong_hits >= STRONG_HIT_THRESHOLD:
-        return "cable", f"auto_strong({strong_hits})"
-    if weak_hits >= WEAK_HIT_THRESHOLD:
-        return "cable", f"auto_weak({weak_hits})"
-
-    return "", "none"
-
-
-def _inject_domain_instruction(
-    prompt: str,
-    domain: str,
-    figure_idx: int = -1,
-    reason: str = "",
-) -> str:
-    """
-    Append domain-specific instruction only if a domain is resolved.
-    No-op when domain is empty, preserving upstream generic behavior.
-    """
-    instruction = DOMAIN_VISION_INSTRUCTIONS.get((domain or "").lower(), "")
-    if instruction:
-        logging.info(f"[VisionFigureParser] figure={figure_idx} domain={domain} " f"reason={reason} injected_instruction")
-        return prompt + instruction
-    return prompt
+# Keyword tables and helpers live in deepdoc/parser/domain_prompts.py
+# (dependency-free) and are imported above as _resolve_domain_with_confidence /
+# _inject_domain_instruction.
 
 
 # ============================================================
