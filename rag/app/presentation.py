@@ -170,7 +170,14 @@ def chunk(filename, binary=None, from_page=0, to_page=MAXIMUM_PAGE_NUMBER, lang=
             else:
                 with open(filename, "rb") as f:
                     binary_data = f.read()
-            doc_parsed = tika_parser.from_buffer(BytesIO(binary_data))
+            try:
+                doc_parsed = tika_parser.from_buffer(BytesIO(binary_data))
+            except Exception as e:
+                error_msg = f"tika failed to parse {filename}: {e} (a Java runtime is required for the tika fallback)"
+                if callback:
+                    callback(0.8, error_msg)
+                logging.warning(f"{error_msg} for {filename}.")
+                raise NotImplementedError(error_msg) from e
 
             if doc_parsed.get("content", None) is not None:
                 sections = doc_parsed["content"].split("\n")
