@@ -308,6 +308,14 @@ class RAGFlowExcelParser:
                     key = str(ti[i].value).strip() if i < len(ti) and ti[i].value is not None else f"Column_{i + 1}"
                     if not key:
                         key = f"Column_{i + 1}"
+                    # Repeated header labels (and merged header cells) are common in
+                    # cable BOM/spec sheets. A dict collapses them onto one key and
+                    # silently drops every earlier value, so disambiguate instead.
+                    if key in row_data:
+                        suffix = 2
+                        while f"{key}_{suffix}" in row_data:
+                            suffix += 1
+                        key = f"{key}_{suffix}"
 
                     # 【改造点】提取单元格的值作为 JSON 的 Value
                     row_data[key] = str(c.value).strip()
@@ -316,7 +324,9 @@ class RAGFlowExcelParser:
                     continue
 
                 # 【改造点】补充 sheet 名称作为附加属性
-                if sheetname.lower().find("sheet") < 0:  # [cite: 2]
+                # Never let the injected sheet name overwrite a real column that
+                # happens to be called "sheet_name".
+                if sheetname.lower().find("sheet") < 0 and "sheet_name" not in row_data:  # [cite: 2]
                     row_data["sheet_name"] = sheetname
 
                 # 【核心改造点】将整行数据打包成一个标准的 JSON 字符串块，防止被切碎
