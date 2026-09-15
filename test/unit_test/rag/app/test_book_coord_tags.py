@@ -117,6 +117,11 @@ def _env(monkeypatch):
     )
     dp.utils = mk("deepdoc.parser.utils", get_text=lambda *a, **k: "")
     dp.pdf_parser = mk("deepdoc.parser.pdf_parser", PlainParser=object, VisionParser=object)
+    dp.domain_prompts = mk(
+        "deepdoc.parser.domain_prompts",
+        resolve_domain_with_confidence=lambda *a, **k: ("", "none"),
+        inject_domain_instruction=lambda prompt, *a, **k: prompt,
+    )
     dp.figure_parser = mk(
         "deepdoc.parser.figure_parser",
         VisionFigureParser=object,

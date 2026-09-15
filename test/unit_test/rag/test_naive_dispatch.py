@@ -204,6 +204,13 @@ def naive_module():
         _stub("deepdoc.parser.monkeyocrv2_parser", MonkeyOCRv2Parser=_Parser)
         _stub("deepdoc.parser.tcadp_parser", TCADPParser=_Parser)
         _stub("deepdoc.parser.utils", extract_pdf_outlines=lambda *a, **k: [])
+        # rag.app.figure_parser imports the domain helpers. Stub them as a no-op
+        # domain resolution so the dispatch tests stay independent of prompting.
+        _stub(
+            "deepdoc.parser.domain_prompts",
+            resolve_domain_with_confidence=lambda *a, **k: ("", "none"),
+            inject_domain_instruction=lambda prompt, *a, **k: prompt,
+        )
 
         _stub("common.parser_config_utils", normalize_layout_recognizer=normalize_layout_recognizer, MINERU_OPTION_KEYS=MINERU_OPTION_KEYS, has_mineru_options=has_mineru_options)
         _stub("common.float_utils", normalize_overlapped_percent=lambda x: x)
