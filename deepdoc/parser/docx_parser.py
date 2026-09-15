@@ -32,6 +32,7 @@ from rag.utils.lazy_image import LazyImage
 
 class RAGFlowDocxParser:
     def get_picture(self, document, paragraph):
+        #
         imgs = paragraph._element.xpath(".//pic:pic")
         if not imgs:
             return None
@@ -71,14 +72,25 @@ class RAGFlowDocxParser:
         return LazyImage(image_blobs)
 
     def __extract_table_content(self, tb):
+        #
         df = []
         for row in tb.rows:
             df.append([c.text for c in row.cells])
         return self.__compose_table_content(pd.DataFrame(df))
 
     def __compose_table_content(self, df):
+        #
         def blockType(b):
             pattern = [
+                # --- Cable Domain Specific Patterns Added ---
+                # Match cable models (e.g., MYJV22, YJV-10KV, BVR)
+                (r"^[A-Za-z]{2,6}[0-9]{0,2}(\-[A-Za-z0-9]+)*$", "CbMd"),
+                # Match cable cross-section specs (e.g., 3x50+1x16, 4*25, 2x1.5)
+                (r"^[0-9]+[xX*][0-9.]+(\+[0-9]+[xX*][0-9.]+)*$", "CbSp"),
+                # Match values with typical electrical/physical units (e.g., 50mm2, 10kV, 0.5Ω/km)
+                (r"^[0-9.]+\s*(mm²|mm2|kV|V|A|Ω/km|MΩ|kg/km)$", "CbUn"),
+                # --------------------------------------------
+                # Original patterns
                 ("^(20|19)[0-9]{2}[年/-][0-9]{1,2}[月/-][0-9]{1,2}日*$", "Dt"),
                 (r"^(20|19)[0-9]{2}年$", "Dt"),
                 (r"^(20|19)[0-9]{2}[年/-][0-9]{1,2}月*$", "Dt"),
@@ -109,16 +121,22 @@ class RAGFlowDocxParser:
 
         if len(df) < 2:
             return []
+
+        # Determine the dominant data type of the table to identify headers
         max_type = Counter([blockType(str(df.iloc[i, j])) for i in range(1, len(df)) for j in range(len(df.iloc[i, :]))])
         max_type = max(max_type.items(), key=lambda x: x[1])[0]
 
         colnm = len(df.iloc[0, :])
         hdrows = [0]  # header is not necessarily appear in the first line
-        if max_type == "Nu":
+
+        # Expanded header detection logic for Cable Documents:
+        # Treat Number (Nu), Cable Spec (CbSp), and Cable Unit (CbUn) as data body indicators.
+        if max_type in ["Nu", "CbSp", "CbUn"]:
             for r in range(1, len(df)):
                 tys = Counter([blockType(str(df.iloc[r, j])) for j in range(len(df.iloc[r, :]))])
                 tys = max(tys.items(), key=lambda x: x[1])[0]
-                if tys != max_type:
+                # If the row type differs from the dominant data type, it might be a sub-header
+                if tys != max_type and tys not in ["Nu", "CbSp", "CbUn"]:
                     hdrows.append(r)
 
         lines = []
@@ -157,6 +175,7 @@ class RAGFlowDocxParser:
         return ["\n".join(lines)]
 
     def __call__(self, fnm, from_page=0, to_page=MAXIMUM_PAGE_NUMBER):
+        # [cite: 3]
         self.doc = Document(fnm) if isinstance(fnm, str) else Document(BytesIO(fnm))
         pn = 0  # parsed page
         secs = []  # parsed contents
