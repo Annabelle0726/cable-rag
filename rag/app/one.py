@@ -22,7 +22,7 @@ from deepdoc.parser.utils import get_text
 from rag.app import naive
 from rag.nlp import rag_tokenizer, tokenize, DEFAULT_DELIMITER
 from deepdoc.parser import PdfParser, ExcelParser, HtmlParser
-from deepdoc.parser.figure_parser import vision_figure_parser_docx_wrapper_naive
+from rag.app.figure_parser import vision_figure_parser_docx_wrapper_naive
 from rag.app.naive import by_plaintext, PARSERS
 from api.db.joint_services.tenant_model_service import get_composite_model_name_by_id
 from common.constants import MAXIMUM_PAGE_NUMBER, MAXIMUM_TASK_PAGE_NUMBER

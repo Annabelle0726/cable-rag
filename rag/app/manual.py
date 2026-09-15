@@ -24,7 +24,7 @@ from deepdoc.parser.utils import extract_pdf_outlines
 from rag.nlp import rag_tokenizer, tokenize, tokenize_table, bullets_category, title_frequency, tokenize_chunks, docx_question_level, attach_media_context, concat_img, DEFAULT_DELIMITER
 from common.token_utils import num_tokens_from_string
 from deepdoc.parser import PdfParser, DocxParser
-from deepdoc.parser.figure_parser import vision_figure_parser_pdf_wrapper, vision_figure_parser_docx_wrapper
+from rag.app.figure_parser import vision_figure_parser_pdf_wrapper, vision_figure_parser_docx_wrapper
 from docx import Document
 from api.db.joint_services.tenant_model_service import get_composite_model_name_by_id
 from rag.app.naive import by_plaintext, PARSERS

@@ -18,7 +18,7 @@ import logging
 import copy
 import re
 
-from deepdoc.parser.figure_parser import vision_figure_parser_pdf_wrapper
+from rag.app.figure_parser import vision_figure_parser_pdf_wrapper
 from common.constants import ParserType, MAXIMUM_PAGE_NUMBER
 from common.token_utils import num_tokens_from_string
 from rag.nlp import rag_tokenizer, tokenize, tokenize_table, add_positions, bullets_category, title_frequency, tokenize_chunks, attach_media_context, DEFAULT_DELIMITER

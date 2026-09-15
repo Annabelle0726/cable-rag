@@ -30,7 +30,7 @@ from collections import Counter
 from dateutil.parser import parse as datetime_parse
 
 from api.db.services.knowledgebase_service import KnowledgebaseService
-from deepdoc.parser.figure_parser import vision_figure_parser_figure_xlsx_wrapper
+from rag.app.figure_parser import vision_figure_parser_figure_xlsx_wrapper
 from common.constants import MAXIMUM_TASK_PAGE_NUMBER
 from deepdoc.parser.utils import get_text
 from rag.nlp import rag_tokenizer, tokenize, tokenize_table

@@ -24,7 +24,7 @@ from api.db.joint_services.tenant_model_service import (
     resolve_model_config,
 )
 from common.constants import LLMType
-from deepdoc.parser.figure_parser import VisionFigureParser
+from rag.app.figure_parser import VisionFigureParser
 from rag.nlp import is_english, random_choices, remove_contents_table
 
 

@@ -15,7 +15,7 @@
 #
 import logging
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED, as_completed
-from typing import Dict, Any, Tuple, List
+from typing import Dict, Any, Tuple
 
 from PIL import Image
 
@@ -39,14 +39,34 @@ from rag.utils.lazy_image import ensure_pil_image, open_image_for_processing, is
 
 # High-confidence keywords: nearly exclusive to cable docs; 1 hit is enough.
 CABLE_STRONG_KEYWORDS = {
-    "电缆", "cable", "线缆", "myjv", "yjv", "bvr", "rvv", "kvv",
-    "铠装", "交联聚乙烯", "xlpe", "pvc绝缘", "铜芯", "铝芯",
+    "电缆",
+    "cable",
+    "线缆",
+    "myjv",
+    "yjv",
+    "bvr",
+    "rvv",
+    "kvv",
+    "铠装",
+    "交联聚乙烯",
+    "xlpe",
+    "pvc绝缘",
+    "铜芯",
+    "铝芯",
 }
 
 # Low-confidence keywords: common power/engineering terms; require >=3 hits.
 CABLE_WEAK_KEYWORDS = {
-    "导体", "绝缘", "护套", "屏蔽", "芯数", "截面积",
-    "conductor", "insulation", "sheath", "armor",
+    "导体",
+    "绝缘",
+    "护套",
+    "屏蔽",
+    "芯数",
+    "截面积",
+    "conductor",
+    "insulation",
+    "sheath",
+    "armor",
 }
 
 STRONG_HIT_THRESHOLD = 1
@@ -117,10 +137,7 @@ def _inject_domain_instruction(
     """
     instruction = DOMAIN_VISION_INSTRUCTIONS.get((domain or "").lower(), "")
     if instruction:
-        logging.info(
-            f"[VisionFigureParser] figure={figure_idx} domain={domain} "
-            f"reason={reason} injected_instruction"
-        )
+        logging.info(f"[VisionFigureParser] figure={figure_idx} domain={domain} " f"reason={reason} injected_instruction")
         return prompt + instruction
     return prompt
 
@@ -128,6 +145,7 @@ def _inject_domain_instruction(
 # ============================================================
 # 2. Shared Helpers
 # ============================================================
+
 
 def _normalize_vision_language(lang):
     return lang or "English"
@@ -153,6 +171,7 @@ def vision_figure_parser_figure_data_wrapper(figures_data_without_positions):
 # ============================================================
 # 3. XLSX Wrapper
 # ============================================================
+
 
 def vision_figure_parser_figure_xlsx_wrapper(images, callback=None, lang="English", **kwargs):
     lang = _normalize_vision_language(lang)
@@ -200,6 +219,7 @@ def vision_figure_parser_figure_xlsx_wrapper(images, callback=None, lang="Englis
 # ============================================================
 # 4. PDF Wrapper
 # ============================================================
+
 
 def vision_figure_parser_pdf_wrapper(tbls, callback=None, lang="English", **kwargs):
     lang = _normalize_vision_language(lang)
@@ -255,20 +275,16 @@ def vision_figure_parser_pdf_wrapper(tbls, callback=None, lang="English", **kwar
 # 5. DOCX Naive Wrapper (MERGED — single definition)
 # ============================================================
 
+
 def vision_figure_parser_docx_wrapper_naive(chunks, idx_lst, callback=None, lang="English", **kwargs):
     lang = _normalize_vision_language(lang)
     if not chunks:
         return []
 
     # Single-pass domain resolution across all target chunks
-    all_context = " ".join(
-        (chunks[i].get("context_above", "") + " " + chunks[i].get("context_below", ""))
-        for i in idx_lst
-    )
+    all_context = " ".join((chunks[i].get("context_above", "") + " " + chunks[i].get("context_below", "")) for i in idx_lst)
     domain, reason = _resolve_domain_with_confidence(kwargs, context_text=all_context)
-    logging.info(
-        f"[VisionFigureParser] docx wrapper resolved domain={domain!r} reason={reason}"
-    )
+    logging.info(f"[VisionFigureParser] docx wrapper resolved domain={domain!r} reason={reason}")
 
     try:
         vision_model_config = get_tenant_default_model_by_type(kwargs["tenant_id"], LLMType.VISION)
@@ -294,10 +310,7 @@ def vision_figure_parser_docx_wrapper_naive(chunks, idx_lst, callback=None, lang
                     context_below=ck.get("context_below"),
                     language=lang,
                 )
-                logging.info(
-                    f"[VisionFigureParser] figure={idx} context_above_len={len(context_above)} "
-                    f"context_below_len={len(context_below)} prompt=with_context"
-                )
+                logging.info(f"[VisionFigureParser] figure={idx} context_above_len={len(context_above)} " f"context_below_len={len(context_below)} prompt=with_context")
             else:
                 prompt = vision_llm_figure_describe_prompt(language=lang)
                 logging.info(f"[VisionFigureParser] figure={idx} context_len=0 prompt=default")
@@ -346,6 +359,7 @@ shared_executor = ThreadPoolExecutor(max_workers=10)
 # 6. VisionFigureParser (full class, completed)
 # ============================================================
 
+
 class VisionFigureParser:
     def __init__(self, vision_model, figures_data, *args, lang="English", **kwargs):
         self.vision_model = vision_model
@@ -356,19 +370,10 @@ class VisionFigureParser:
         # Single-pass domain resolution (uses figure_contexts as text source)
         combined_context = ""
         if self.figure_contexts:
-            combined_context = " ".join(
-                (ctx[0] or "") + " " + (ctx[1] or "")
-                for ctx in self.figure_contexts
-                if isinstance(ctx, (tuple, list)) and len(ctx) >= 2
-            )
+            combined_context = " ".join((ctx[0] or "") + " " + (ctx[1] or "") for ctx in self.figure_contexts if isinstance(ctx, (tuple, list)) and len(ctx) >= 2)
 
-        self.domain, self.domain_reason = _resolve_domain_with_confidence(
-            kwargs, context_text=combined_context
-        )
-        logging.info(
-            f"[VisionFigureParser] Class initialized with domain={self.domain!r} "
-            f"reason={self.domain_reason}"
-        )
+        self.domain, self.domain_reason = _resolve_domain_with_confidence(kwargs, context_text=combined_context)
+        logging.info(f"[VisionFigureParser] Class initialized with domain={self.domain!r} " f"reason={self.domain_reason}")
 
         self._extract_figures_info(figures_data)
         assert len(self.figures) == len(self.descriptions)
@@ -382,20 +387,12 @@ class VisionFigureParser:
 
         for item in figures_data:
             # With position: ((img, [desc]), [(x, y, w, h, page), ...])
-            if (
-                len(item) == 2
-                and isinstance(item[0], tuple)
-                and len(item[0]) == 2
-                and isinstance(item[1], list)
-                and isinstance(item[1][0], tuple)
-                and len(item[1][0]) == 5
-            ):
+            if len(item) == 2 and isinstance(item[0], tuple) and len(item[0]) == 2 and isinstance(item[1], list) and isinstance(item[1][0], tuple) and len(item[1][0]) == 5:
                 img_desc = item[0]
                 img = ensure_pil_image(img_desc[0])
                 if img is None:
                     continue
-                assert len(img_desc) == 2 and isinstance(img_desc[1], list), \
-                    "Should be (figure, [description])"
+                assert len(img_desc) == 2 and isinstance(img_desc[1], list), "Should be (figure, [description])"
                 self.figures.append(img)
                 self.descriptions.append(img_desc[1])
                 self.positions.append(item[1])
@@ -403,8 +400,7 @@ class VisionFigureParser:
                 img = ensure_pil_image(item[0])
                 if img is None:
                     continue
-                assert len(item) == 2 and isinstance(item[1], list), \
-                    f"Unexpected form of figure data: get {len(item)=}, {item=}"
+                assert len(item) == 2 and isinstance(item[1], list), f"Unexpected form of figure data: get {len(item)=}, {item=}"
                 self.figures.append(img)
                 self.descriptions.append(item[1])
 
@@ -449,15 +445,10 @@ class VisionFigureParser:
                 )
             else:
                 prompt = vision_llm_figure_describe_prompt(language=self.language)
-                logging.info(
-                    f"[VisionFigureParser] figure={figure_idx} context_size={self.context_size} "
-                    f"context_len=0 prompt=default"
-                )
+                logging.info(f"[VisionFigureParser] figure={figure_idx} context_size={self.context_size} " f"context_len=0 prompt=default")
 
             # Reuse pre-resolved domain/reason
-            prompt = _inject_domain_instruction(
-                prompt, self.domain, figure_idx=figure_idx, reason=self.domain_reason
-            )
+            prompt = _inject_domain_instruction(prompt, self.domain, figure_idx=figure_idx, reason=self.domain_reason)
 
             description_text = picture_vision_llm_chunk(
                 binary=figure_binary,
@@ -478,10 +469,7 @@ class VisionFigureParser:
 
         max_workers = min(len(self.figures), 10) or 1
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_idx = {
-                executor.submit(process, i, fig): i
-                for i, fig in enumerate(self.figures)
-            }
+            future_to_idx = {executor.submit(process, i, fig): i for i, fig in enumerate(self.figures)}
 
             for future in as_completed(future_to_idx):
                 idx = future_to_idx[future]
@@ -496,9 +484,7 @@ class VisionFigureParser:
                 except TaskCanceledException:
                     raise
                 except Exception as e:
-                    logging.warning(
-                        f"[VisionFigureParser] figure={idx} processing failed: {e}"
-                    )
+                    logging.warning(f"[VisionFigureParser] figure={idx} processing failed: {e}")
 
         self._assemble()
         return self.assembled

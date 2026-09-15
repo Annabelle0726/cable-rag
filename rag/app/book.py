@@ -27,7 +27,7 @@ from common.parser_config_utils import normalize_layout_recognizer
 from rag.nlp import bullets_category, is_english, remove_contents_table, hierarchical_merge, make_colon_as_title, naive_merge, random_choices, tokenize_table, tokenize_chunks, attach_media_context
 from rag.nlp import rag_tokenizer
 from deepdoc.parser import PdfParser, HtmlParser
-from deepdoc.parser.figure_parser import vision_figure_parser_docx_wrapper
+from rag.app.figure_parser import vision_figure_parser_docx_wrapper
 from PIL import Image
 from rag.utils.lazy_image import LazyImage
 
