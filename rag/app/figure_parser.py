@@ -71,7 +71,51 @@ def vision_figure_parser_figure_data_wrapper(figures_data_without_positions):
 
 
 # ============================================================
-# 3. XLSX Wrapper
+# 3. DOCX Wrapper (sections/tbls)
+# ============================================================
+
+
+def vision_figure_parser_docx_wrapper(sections, tbls, callback=None, lang="English", **kwargs):
+    """
+    Enhance DOCX figures for the section/table based chunkers (Manual, Book).
+
+    `sections` is the `(text, image)` list produced by the DOCX parser and
+    `tbls` the already accumulated table chunks, returned with the vision
+    enhanced figures appended. Domain resolution happens once inside
+    VisionFigureParser.
+    """
+    lang = _normalize_vision_language(lang)
+    if not sections:
+        return tbls
+    try:
+        vision_model_config = get_tenant_default_model_by_type(kwargs["tenant_id"], LLMType.VISION)
+        vision_model = LLMBundle(kwargs["tenant_id"], vision_model_config, lang=lang)
+        if callback:
+            callback(0.7, "Visual model detected. Attempting to enhance figure extraction...")
+    except Exception:
+        vision_model = None
+
+    if vision_model:
+        figures_data = vision_figure_parser_figure_data_wrapper(sections)
+        try:
+            docx_vision_parser = VisionFigureParser(
+                vision_model=vision_model,
+                figures_data=figures_data,
+                lang=lang,
+                **kwargs,
+            )
+            boosted_figures = docx_vision_parser(callback=callback)
+            tbls.extend(boosted_figures)
+        except TaskCanceledException:
+            raise
+        except Exception as e:
+            if callback:
+                callback(0.8, f"Visual model error: {e}. Skipping figure parsing enhancement.")
+    return tbls
+
+
+# ============================================================
+# 4. XLSX Wrapper
 # ============================================================
 
 
@@ -119,7 +163,7 @@ def vision_figure_parser_figure_xlsx_wrapper(images, callback=None, lang="Englis
 
 
 # ============================================================
-# 4. PDF Wrapper
+# 5. PDF Wrapper
 # ============================================================
 
 
@@ -174,7 +218,7 @@ def vision_figure_parser_pdf_wrapper(tbls, callback=None, lang="English", **kwar
 
 
 # ============================================================
-# 5. DOCX Naive Wrapper (MERGED — single definition)
+# 6. DOCX Naive Wrapper (chunks/idx_lst)
 # ============================================================
 
 
@@ -258,7 +302,7 @@ shared_executor = ThreadPoolExecutor(max_workers=10)
 
 
 # ============================================================
-# 6. VisionFigureParser (full class, completed)
+# 7. VisionFigureParser (full class, completed)
 # ============================================================
 
 
