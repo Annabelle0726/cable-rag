@@ -13,26 +13,45 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 import logging
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED, as_completed
+from typing import Dict, Any, Tuple, List
 
 from PIL import Image
 
 from common.exceptions import TaskCanceledException
-
 from common.constants import LLMType
 from api.db.services.llm_service import LLMBundle
 from api.db.joint_services.tenant_model_service import get_tenant_default_model_by_type
 from common.connection_utils import timeout
 from rag.app.picture import vision_llm_chunk as picture_vision_llm_chunk
-from rag.prompts.generator import vision_llm_figure_describe_prompt, vision_llm_figure_describe_prompt_with_context
+from rag.prompts.generator import (
+    vision_llm_figure_describe_prompt,
+    vision_llm_figure_describe_prompt_with_context,
+)
 from rag.nlp import append_context2table_image4pdf
 from rag.utils.lazy_image import ensure_pil_image, open_image_for_processing, is_image_like
 
 
-# ==========================================
-# Domain-Specific Vision Prompt Injection
-# ==========================================
+# ============================================================
+# 1. Domain Auto-Inference & Prompt Injection (Conservative)
+# ============================================================
+
+# High-confidence keywords: nearly exclusive to cable docs; 1 hit is enough.
+CABLE_STRONG_KEYWORDS = {
+    "电缆", "cable", "线缆", "myjv", "yjv", "bvr", "rvv", "kvv",
+    "铠装", "交联聚乙烯", "xlpe", "pvc绝缘", "铜芯", "铝芯",
+}
+
+# Low-confidence keywords: common power/engineering terms; require >=3 hits.
+CABLE_WEAK_KEYWORDS = {
+    "导体", "绝缘", "护套", "屏蔽", "芯数", "截面积",
+    "conductor", "insulation", "sheath", "armor",
+}
+
+STRONG_HIT_THRESHOLD = 1
+WEAK_HIT_THRESHOLD = 3
+
 DOMAIN_VISION_INSTRUCTIONS = {
     "cable": (
         "\n\nSpecial Instruction: This image is from a cable industry standard or catalog. "
@@ -40,22 +59,75 @@ DOMAIN_VISION_INSTRUCTIONS = {
         "cross-section diagrams, wiring schematics, cable models (e.g., MYJV22), and electrical specifications. "
         "Transcribe any visible tabular data related to cable dimensions precisely."
     ),
-    # Future domains (e.g., 'fiber', 'semiconductor') can be easily added here.
+    # Future verticals (fiber, semiconductor, ...) can be added here without
+    # touching the rest of the parsing pipeline (Open/Closed Principle).
 }
 
 
-def _inject_domain_instruction(prompt: str, domain: str, figure_idx: int = -1) -> str:
+def _resolve_domain_with_confidence(
+    kwargs: Dict[str, Any],
+    context_text: str = "",
+) -> Tuple[str, str]:
     """
-    Append domain-specific instruction to the vision prompt to enhance vertical extraction.
+    Conservative 3-tier domain resolution.
+
+    Tier 1: explicit `domain` kwarg (never overridden).
+    Tier 2: `parser_config.domain` (dataset/UI configuration).
+    Tier 3: keyword auto-inference (high-precision only; may return "").
+
+    Returns:
+        (domain, reason) where reason ∈ {"explicit", "parser_config",
+        "auto_strong(N)", "auto_weak(N)", "none"}.
+    """
+    # Tier 1: explicit code-level
+    domain = kwargs.get("domain")
+    if domain:
+        return str(domain).lower(), "explicit"
+
+    # Tier 2: dataset-level parser_config
+    pc = kwargs.get("parser_config") or {}
+    if isinstance(pc, dict) and pc.get("domain"):
+        return str(pc["domain"]).lower(), "parser_config"
+
+    # Tier 3: conservative auto-inference
+    text = (context_text + " " + str(kwargs.get("filename", ""))).lower()
+    if not text.strip():
+        return "", "none"
+
+    strong_hits = sum(1 for kw in CABLE_STRONG_KEYWORDS if kw in text)
+    weak_hits = sum(1 for kw in CABLE_WEAK_KEYWORDS if kw in text)
+
+    if strong_hits >= STRONG_HIT_THRESHOLD:
+        return "cable", f"auto_strong({strong_hits})"
+    if weak_hits >= WEAK_HIT_THRESHOLD:
+        return "cable", f"auto_weak({weak_hits})"
+
+    return "", "none"
+
+
+def _inject_domain_instruction(
+    prompt: str,
+    domain: str,
+    figure_idx: int = -1,
+    reason: str = "",
+) -> str:
+    """
+    Append domain-specific instruction only if a domain is resolved.
+    No-op when domain is empty, preserving upstream generic behavior.
     """
     instruction = DOMAIN_VISION_INSTRUCTIONS.get((domain or "").lower(), "")
     if instruction:
         logging.info(
-            f"[VisionFigureParser] figure={figure_idx} domain={domain} injected_domain_instruction"
+            f"[VisionFigureParser] figure={figure_idx} domain={domain} "
+            f"reason={reason} injected_instruction"
         )
         return prompt + instruction
     return prompt
 
+
+# ============================================================
+# 2. Shared Helpers
+# ============================================================
 
 def _normalize_vision_language(lang):
     return lang or "English"
@@ -78,6 +150,10 @@ def vision_figure_parser_figure_data_wrapper(figures_data_without_positions):
     return res
 
 
+# ============================================================
+# 3. XLSX Wrapper
+# ============================================================
+
 def vision_figure_parser_figure_xlsx_wrapper(images, callback=None, lang="English", **kwargs):
     lang = _normalize_vision_language(lang)
     tbls = []
@@ -86,19 +162,19 @@ def vision_figure_parser_figure_xlsx_wrapper(images, callback=None, lang="Englis
     try:
         vision_model_config = get_tenant_default_model_by_type(kwargs["tenant_id"], LLMType.VISION)
         vision_model = LLMBundle(kwargs["tenant_id"], vision_model_config, lang=lang)
-        callback(0.2, "Visual model detected. Attempting to enhance Excel image extraction...")
+        if callback:
+            callback(0.2, "Visual model detected. Attempting to enhance Excel image extraction...")
     except Exception:
         vision_model = None
+
     if vision_model:
         figures_data = [
             (
                 (
-                    img["image"],  # Image.Image or LazyImage (converted by ensure_pil_image)
-                    [img["image_description"]],  # description list (must be list)
+                    img["image"],
+                    [img["image_description"]],
                 ),
-                [
-                    (0, 0, 0, 0, 0)  # dummy position
-                ],
+                [(0, 0, 0, 0, 0)],
             )
             for img in images
         ]
@@ -109,15 +185,21 @@ def vision_figure_parser_figure_xlsx_wrapper(images, callback=None, lang="Englis
                 lang=lang,
                 **kwargs,
             )
-            callback(0.22, "Parsing images...")
+            if callback:
+                callback(0.22, "Parsing images...")
             boosted_figures = parser(callback=callback)
             tbls.extend(boosted_figures)
         except TaskCanceledException:
             raise
         except Exception as e:
-            callback(0.25, f"Excel visual model error: {e}. Skipping vision enhancement.")
+            if callback:
+                callback(0.25, f"Excel visual model error: {e}. Skipping vision enhancement.")
     return tbls
 
+
+# ============================================================
+# 4. PDF Wrapper
+# ============================================================
 
 def vision_figure_parser_pdf_wrapper(tbls, callback=None, lang="English", **kwargs):
     lang = _normalize_vision_language(lang)
@@ -126,12 +208,15 @@ def vision_figure_parser_pdf_wrapper(tbls, callback=None, lang="English", **kwar
     sections = kwargs.get("sections")
     parser_config = kwargs.get("parser_config", {})
     context_size = max(0, int(parser_config.get("image_context_size", 0) or 0))
+
     try:
         vision_model_config = get_tenant_default_model_by_type(kwargs["tenant_id"], LLMType.VISION)
         vision_model = LLMBundle(kwargs["tenant_id"], vision_model_config, lang=lang)
-        callback(0.7, "Visual model detected. Attempting to enhance figure extraction...")
+        if callback:
+            callback(0.7, "Visual model detected. Attempting to enhance figure extraction...")
     except Exception:
         vision_model = None
+
     if vision_model:
 
         def is_figure_item(item):
@@ -161,25 +246,35 @@ def vision_figure_parser_pdf_wrapper(tbls, callback=None, lang="English", **kwar
         except TaskCanceledException:
             raise
         except Exception as e:
-            callback(0.8, f"Visual model error: {e}. Skipping figure parsing enhancement.")
+            if callback:
+                callback(0.8, f"Visual model error: {e}. Skipping figure parsing enhancement.")
     return tbls
 
 
-# ==========================================
-# ONLY ONE vision_figure_parser_docx_wrapper_naive (Replaces the duplicate/broken ones)
-# ==========================================
+# ============================================================
+# 5. DOCX Naive Wrapper (MERGED — single definition)
+# ============================================================
+
 def vision_figure_parser_docx_wrapper_naive(chunks, idx_lst, callback=None, lang="English", **kwargs):
     lang = _normalize_vision_language(lang)
     if not chunks:
         return []
 
-    # Extract domain from kwargs to inject specific vision instructions
-    domain = kwargs.get("domain", "").lower()
+    # Single-pass domain resolution across all target chunks
+    all_context = " ".join(
+        (chunks[i].get("context_above", "") + " " + chunks[i].get("context_below", ""))
+        for i in idx_lst
+    )
+    domain, reason = _resolve_domain_with_confidence(kwargs, context_text=all_context)
+    logging.info(
+        f"[VisionFigureParser] docx wrapper resolved domain={domain!r} reason={reason}"
+    )
 
     try:
         vision_model_config = get_tenant_default_model_by_type(kwargs["tenant_id"], LLMType.VISION)
         vision_model = LLMBundle(kwargs["tenant_id"], vision_model_config, lang=lang)
-        callback(0.7, "Visual model detected. Attempting to enhance figure extraction...")
+        if callback:
+            callback(0.7, "Visual model detected. Attempting to enhance figure extraction...")
     except Exception:
         vision_model = None
 
@@ -192,22 +287,23 @@ def vision_figure_parser_docx_wrapper_naive(chunks, idx_lst, callback=None, lang
                 return idx, ""
             context_above = ck.get("context_above", "")
             context_below = ck.get("context_below", "")
+
             if context_above or context_below:
                 prompt = vision_llm_figure_describe_prompt_with_context(
-                    # context_above + caption if any
                     context_above=ck.get("context_above") + ck.get("text", ""),
                     context_below=ck.get("context_below"),
                     language=lang,
                 )
                 logging.info(
-                    f"[VisionFigureParser] figure={idx} context_above_len={len(context_above)} context_below_len={len(context_below)} prompt=with_context"
+                    f"[VisionFigureParser] figure={idx} context_above_len={len(context_above)} "
+                    f"context_below_len={len(context_below)} prompt=with_context"
                 )
             else:
                 prompt = vision_llm_figure_describe_prompt(language=lang)
                 logging.info(f"[VisionFigureParser] figure={idx} context_len=0 prompt=default")
 
-            # --- Domain Specific Prompt Injection ---
-            prompt = _inject_domain_instruction(prompt, domain, figure_idx=idx)
+            # Reuse pre-resolved domain/reason (zero per-image overhead)
+            prompt = _inject_domain_instruction(prompt, domain, figure_idx=idx, reason=reason)
 
             try:
                 description_text = picture_vision_llm_chunk(
@@ -246,9 +342,10 @@ def vision_figure_parser_docx_wrapper_naive(chunks, idx_lst, callback=None, lang
 shared_executor = ThreadPoolExecutor(max_workers=10)
 
 
-# ==========================================
-# Modified VisionFigureParser class
-# ==========================================
+# ============================================================
+# 6. VisionFigureParser (full class, completed)
+# ============================================================
+
 class VisionFigureParser:
     def __init__(self, vision_model, figures_data, *args, lang="English", **kwargs):
         self.vision_model = vision_model
@@ -256,26 +353,49 @@ class VisionFigureParser:
         self.figure_contexts = kwargs.get("figure_contexts") or []
         self.context_size = max(0, int(kwargs.get("context_size", 0) or 0))
 
-        # Capture domain from kwargs for domain-specific parsing
-        self.domain = kwargs.get("domain", "").lower()
+        # Single-pass domain resolution (uses figure_contexts as text source)
+        combined_context = ""
+        if self.figure_contexts:
+            combined_context = " ".join(
+                (ctx[0] or "") + " " + (ctx[1] or "")
+                for ctx in self.figure_contexts
+                if isinstance(ctx, (tuple, list)) and len(ctx) >= 2
+            )
+
+        self.domain, self.domain_reason = _resolve_domain_with_confidence(
+            kwargs, context_text=combined_context
+        )
+        logging.info(
+            f"[VisionFigureParser] Class initialized with domain={self.domain!r} "
+            f"reason={self.domain_reason}"
+        )
 
         self._extract_figures_info(figures_data)
         assert len(self.figures) == len(self.descriptions)
         assert not self.positions or (len(self.figures) == len(self.positions))
 
+    # --------------------------------------------------------
     def _extract_figures_info(self, figures_data):
         self.figures = []
         self.descriptions = []
         self.positions = []
 
         for item in figures_data:
-            # position
-            if len(item) == 2 and isinstance(item[0], tuple) and len(item[0]) == 2 and isinstance(item[1], list) and isinstance(item[1][0], tuple) and len(item[1][0]) == 5:
+            # With position: ((img, [desc]), [(x, y, w, h, page), ...])
+            if (
+                len(item) == 2
+                and isinstance(item[0], tuple)
+                and len(item[0]) == 2
+                and isinstance(item[1], list)
+                and isinstance(item[1][0], tuple)
+                and len(item[1][0]) == 5
+            ):
                 img_desc = item[0]
                 img = ensure_pil_image(img_desc[0])
                 if img is None:
                     continue
-                assert len(img_desc) == 2 and isinstance(img_desc[1], list), "Should be (figure, [description])"
+                assert len(img_desc) == 2 and isinstance(img_desc[1], list), \
+                    "Should be (figure, [description])"
                 self.figures.append(img)
                 self.descriptions.append(img_desc[1])
                 self.positions.append(item[1])
@@ -283,10 +403,12 @@ class VisionFigureParser:
                 img = ensure_pil_image(item[0])
                 if img is None:
                     continue
-                assert len(item) == 2 and isinstance(item[1], list), f"Unexpected form of figure data: get {len(item)=}, {item=}"
+                assert len(item) == 2 and isinstance(item[1], list), \
+                    f"Unexpected form of figure data: get {len(item)=}, {item=}"
                 self.figures.append(img)
                 self.descriptions.append(item[1])
 
+    # --------------------------------------------------------
     def _assemble(self):
         self.assembled = []
         self.has_positions = len(self.positions) != 0
@@ -296,7 +418,6 @@ class VisionFigureParser:
             pos = self.positions[i] if self.has_positions else None
 
             figure_desc = (figure, desc)
-
             if pos is not None:
                 self.assembled.append((figure_desc, pos))
             else:
@@ -304,6 +425,7 @@ class VisionFigureParser:
 
         return self.assembled
 
+    # --------------------------------------------------------
     def __call__(self, **kwargs):
         callback = kwargs.get("callback") or (lambda prog, msg: None)
 
@@ -313,6 +435,7 @@ class VisionFigureParser:
             context_below = ""
             if figure_idx < len(self.figure_contexts):
                 context_above, context_below = self.figure_contexts[figure_idx]
+
             if context_above or context_below:
                 prompt = vision_llm_figure_describe_prompt_with_context(
                     context_above=context_above,
@@ -320,14 +443,21 @@ class VisionFigureParser:
                     language=self.language,
                 )
                 logging.info(
-                    f"[VisionFigureParser] figure={figure_idx} context_size={self.context_size} context_above_len={len(context_above)} context_below_len={len(context_below)} prompt=with_context"
+                    f"[VisionFigureParser] figure={figure_idx} context_size={self.context_size} "
+                    f"context_above_len={len(context_above)} "
+                    f"context_below_len={len(context_below)} prompt=with_context"
                 )
             else:
                 prompt = vision_llm_figure_describe_prompt(language=self.language)
-                logging.info(f"[VisionFigureParser] figure={figure_idx} context_size={self.context_size} context_len=0 prompt=default")
+                logging.info(
+                    f"[VisionFigureParser] figure={figure_idx} context_size={self.context_size} "
+                    f"context_len=0 prompt=default"
+                )
 
-            # --- Domain Specific Prompt Injection ---
-            prompt = _inject_domain_instruction(prompt, self.domain, figure_idx=figure_idx)
+            # Reuse pre-resolved domain/reason
+            prompt = _inject_domain_instruction(
+                prompt, self.domain, figure_idx=figure_idx, reason=self.domain_reason
+            )
 
             description_text = picture_vision_llm_chunk(
                 binary=figure_binary,
@@ -337,19 +467,38 @@ class VisionFigureParser:
             )
             return figure_idx, description_text
 
-        # The rest of the ThreadPoolExecutor block (unchanged)
-        pending = {}
-        with ThreadPoolExecutor(max_workers=len(self.figures) or 1) as executor:
-            for i, figure in enumerate(self.figures):
-                pending[executor.submit(process, i, figure)] = i
+        # ----------------------------------------------------
+        # Original upstream left this section empty. We complete
+        # it by submitting all figures in parallel and merging
+        # the resulting descriptions back into self.descriptions.
+        # ----------------------------------------------------
+        if not self.figures:
+            self._assemble()
+            return self.assembled
 
-            try:
-                for future in wait(pending, return_when=FIRST_COMPLETED).done:
-                    future.result()
-            except Exception:
-                for f in pending:
-                    f.cancel()
-                raise
+        max_workers = min(len(self.figures), 10) or 1
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_idx = {
+                executor.submit(process, i, fig): i
+                for i, fig in enumerate(self.figures)
+            }
+
+            for future in as_completed(future_to_idx):
+                idx = future_to_idx[future]
+                try:
+                    _, description = future.result()
+                    if description:
+                        # Append the vision-generated description to the list
+                        if isinstance(self.descriptions[idx], list):
+                            self.descriptions[idx].append(description)
+                        else:
+                            self.descriptions[idx] = [self.descriptions[idx], description]
+                except TaskCanceledException:
+                    raise
+                except Exception as e:
+                    logging.warning(
+                        f"[VisionFigureParser] figure={idx} processing failed: {e}"
+                    )
 
         self._assemble()
         return self.assembled
