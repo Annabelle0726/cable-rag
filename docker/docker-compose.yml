@@ -2,11 +2,18 @@ include:
   - ./docker-compose-base.yml
 
 services:
-  ragflow-cpu:
+  cablerag-cpu:
     build:
       context: ..
       dockerfile: Dockerfile
-    image: my-ragflow:latest
+      # WEB_DIST_MODE=prebuilt ships a locally built web/dist instead of
+      # building it in-container; WEB_BUILD_HEAP_MB caps the V8 heap used by
+      # that build. Both can be set in docker/.env.
+      args:
+        WEB_DIST_MODE: ${WEB_DIST_MODE:-build}
+        WEB_BUILD_HEAP_MB: ${WEB_BUILD_HEAP_MB:-4096}
+    image: ${RAGFLOW_IMAGE:-my-cablerag:latest}
+    container_name: cablerag-cpu
     depends_on:
       mysql:
         condition: service_healthy
@@ -47,11 +54,15 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  ragflow-gpu:
+  cablerag-gpu:
     build:
       context: ..
       dockerfile: Dockerfile
-    image: my-ragflow:latest
+      args:
+        WEB_DIST_MODE: ${WEB_DIST_MODE:-build}
+        WEB_BUILD_HEAP_MB: ${WEB_BUILD_HEAP_MB:-4096}
+    image: ${RAGFLOW_IMAGE:-my-cablerag:latest}
+    container_name: cablerag-gpu
     depends_on:
       mysql:
         condition: service_healthy

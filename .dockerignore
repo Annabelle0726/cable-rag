@@ -13,8 +13,10 @@ __pycache__/
 .pytest_cache/
 
 # ── Frontend dependencies and build outputs ─────────────────────────────────
+# web/dist/ is deliberately NOT ignored: with WEB_DIST_MODE=prebuilt the
+# Dockerfile ships a locally built dist from the build context instead of
+# running the vite build inside the container.
 web/node_modules/
-web/dist/
 
 # ── Runtime logs ────────────────────────────────────────────────────────────
 logs/

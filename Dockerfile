@@ -233,17 +233,45 @@ RUN --mount=type=cache,id=ragflow_uv,target=/root/.cache/uv,sharing=locked \
     # Ensure pip is available in the venv for runtime package installation (fixes #12651)
     .venv/bin/python3 -m ensurepip --upgrade
 
+# Frontend build knobs.
+#
+# WEB_BUILD_HEAP_MB caps V8's old space for npm/rollup. It has to stay well
+# below what the Docker VM can back with real RAM, minus the memory the
+# dependency containers keep resident (Elasticsearch reserves ~4 GB, MySQL
+# ~2.4 GB). A ceiling above that budget makes V8 grow into swap, and rollup's
+# "rendering chunks" phase then crawls for tens of minutes instead of failing
+# fast. Roughly half of the VM's memory is a safe value.
+#
+# WEB_DIST_MODE=prebuilt skips the in-container frontend build entirely and
+# ships the `web/dist/` directory already present in the build context, i.e.
+# produced by a local `npm run build` in web/. Use it where the containerized
+# build is slow (small WSL2 VM, few CPUs).
+ARG WEB_BUILD_HEAP_MB=4096
+ARG WEB_DIST_MODE=build
+
 # Install frontend dependencies — depends only on package manifests so
 # web source / docs changes don't invalidate this layer.
 COPY web/package.json web/package-lock.json web/.npmrc ./web/
 RUN --mount=type=cache,id=ragflow_npm,target=/root/.npm,sharing=locked \
-    cd web && NODE_OPTIONS="--max-old-space-size=8192" npm install
+    if [ "$WEB_DIST_MODE" = "prebuilt" ]; then \
+        echo "WEB_DIST_MODE=prebuilt: skipping npm install, web/dist comes from the build context"; \
+    else \
+        cd web && NODE_OPTIONS="--max-old-space-size=${WEB_BUILD_HEAP_MB}" npm install; \
+    fi
 
 # Copy full web source and docs for the frontend build.
 COPY web web
 COPY docs docs
 RUN --mount=type=cache,id=ragflow_npm,target=/root/.npm,sharing=locked \
-    cd web && NODE_OPTIONS="--max-old-space-size=8192" VITE_BUILD_SOURCEMAP=false VITE_MINIFY=esbuild npm run build
+    if [ "$WEB_DIST_MODE" = "prebuilt" ]; then \
+        test -f web/dist/index.html || { \
+            echo "WEB_DIST_MODE=prebuilt needs a local build first: run 'cd web && npm install && npm run build' — web/dist/index.html is missing from the build context"; \
+            exit 1; \
+        }; \
+        echo "WEB_DIST_MODE=prebuilt: shipping web/dist from the build context, vite build skipped"; \
+    else \
+        cd web && NODE_OPTIONS="--max-old-space-size=${WEB_BUILD_HEAP_MB}" VITE_BUILD_SOURCEMAP=false VITE_MINIFY=esbuild npm run build; \
+    fi
 
 RUN --mount=type=bind,source=.git,target=/ragflow/.git \
     version_info=$(git describe --tags --match=v* --first-parent --always) && \
