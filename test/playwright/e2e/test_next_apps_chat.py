@@ -524,9 +524,7 @@ def mm_step_08_enter_multimodel_view(ctx: FlowContext, step, snap):
             page.get_by_test_id("chat-detail-sessions-open").click()
         expect(settings_btn).to_be_visible(timeout=RESULT_TIMEOUT_MS)
         settings_btn.click()
-        expect(page.get_by_test_id("chat-detail-settings")).to_be_visible(
-            timeout=RESULT_TIMEOUT_MS
-        )
+        expect(page.get_by_test_id("chat-detail-settings")).to_be_visible(timeout=RESULT_TIMEOUT_MS)
         expand_settings_sections(page)
         page.get_by_test_id("chat-detail-multimodel-toggle").click()
         mm_root = page.get_by_test_id("chat-detail-multimodel-root")

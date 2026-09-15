@@ -57,7 +57,6 @@ def normalize_conversation_title(raw: str | None, max_chars: int = CONVERSATION_
     return line
 
 
-
 def normalize_arabic_digits(text: str | None) -> str | None:
     if text is None or not isinstance(text, str):
         return text

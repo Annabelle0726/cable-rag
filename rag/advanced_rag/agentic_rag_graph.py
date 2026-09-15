@@ -2217,8 +2217,4 @@ async def run_agentic_rag(tools, messages: list, max_loops: int = 3, gen_conf: d
         # The reason travels with the answer: without it the user only learns
         # that "something" failed, with no way to act on it.
         reason = holder.get("error_reason") or ""
-        yield (
-            "检索失败：知识库检索未能完成"
-            + (f"（{reason}）" if reason else "")
-            + "。请检查嵌入模型、向量库与知识库配置后重试。"
-        )
+        yield ("检索失败：知识库检索未能完成" + (f"（{reason}）" if reason else "") + "。请检查嵌入模型、向量库与知识库配置后重试。")

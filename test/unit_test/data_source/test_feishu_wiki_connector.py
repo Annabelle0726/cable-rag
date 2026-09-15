@@ -346,10 +346,7 @@ def test_validate_surfaces_feishu_error_body_for_http_400_without_secrets():
 
     with pytest.raises(
         ConnectorValidationError,
-        match=(
-            r"Feishu API error 131006 \(HTTP 400\) while attempting to "
-            r"list Wiki nodes: the parent node does not belong to the space"
-        ),
+        match=(r"Feishu API error 131006 \(HTTP 400\) while attempting to " r"list Wiki nodes: the parent node does not belong to the space"),
     ) as error:
         connector.validate_connector_settings()
 
