@@ -137,6 +137,22 @@ module.exports = {
           DEFAULT: 'var(--cable-avatar-surface)',
           foreground: 'var(--cable-avatar-foreground)',
         },
+        /* Tech accent and glass surfaces. Every value resolves from a CSS
+           variable, so no component hard-codes a colour and the dark switch is a
+           token swap. */
+        'accent-color': {
+          DEFAULT: 'var(--accent-color)',
+          strong: 'var(--accent-color-strong)',
+          soft: 'var(--accent-color-soft)',
+        },
+        glass: {
+          DEFAULT: 'var(--glass-bg)',
+          border: 'var(--glass-border)',
+        },
+        'surface-hover': {
+          DEFAULT: 'var(--surface-hover-bg)',
+          border: 'var(--surface-hover-border)',
+        },
         'cable-nav': {
           DEFAULT: 'var(--cable-nav-text)',
           hover: 'var(--cable-nav-text-hover)',
@@ -200,6 +216,9 @@ module.exports = {
         /* Slide-over drawer panel: casts leftwards, so it stays readable in both
            themes (a "none" shadow would flatten the panel against the chat). */
         'cable-drawer': 'var(--cable-drawer-shadow)',
+        /* Single-colour accent glow, for the few surfaces that should read as
+           "energised" (primary actions, the active nav item). */
+        'accent-glow': '0 4px 20px -2px var(--shadow-accent)',
       },
       borderRadius: {
         px: '1px',

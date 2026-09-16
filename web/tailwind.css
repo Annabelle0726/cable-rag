@@ -150,6 +150,19 @@
     --cable-avatar-surface: #1e3a8a;
     --cable-avatar-foreground: #ffffff;
 
+    /* Tech accent + glassmorphism. One accent drives focus rings, hover borders
+       and the glow; every value lives here so no component hard-codes a colour
+       and the light/dark switch stays a pure token swap. */
+    --accent-color: #0284c7;
+    --accent-color-strong: #0369a1;
+    --accent-color-soft: rgba(2, 132, 199, 0.1);
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(2, 132, 199, 0.18);
+    --glass-blur: 8px;
+    --shadow-accent: rgba(2, 132, 199, 0.22);
+    --surface-hover-bg: rgba(2, 132, 199, 0.06);
+    --surface-hover-border: rgba(2, 132, 199, 0.45);
+
     /* Top navigation states: quiet by default, brand-blue and bold when active. */
     --cable-nav-text: #64748b;
     --cable-nav-text-hover: #0f172a;
@@ -280,6 +293,18 @@
     --cable-avatar-surface: #1d4ed8;
     --cable-avatar-foreground: #ffffff;
 
+    /* Same accent, lifted for a dark page: the light value would read as a
+       smudge on near-black, and the glass turns into a dark pane. */
+    --accent-color: #38bdf8;
+    --accent-color-strong: #0ea5e9;
+    --accent-color-soft: rgba(56, 189, 248, 0.14);
+    --glass-bg: rgba(15, 23, 42, 0.75);
+    --glass-border: rgba(56, 189, 248, 0.22);
+    --glass-blur: 8px;
+    --shadow-accent: rgba(2, 132, 199, 0.35);
+    --surface-hover-bg: rgba(56, 189, 248, 0.1);
+    --surface-hover-border: rgba(56, 189, 248, 0.5);
+
     --cable-nav-text: #94a3b8;
     --cable-nav-text-hover: #f1f5f9;
     --cable-nav-active-text: #38bdf8;
@@ -338,6 +363,56 @@
     width: 100%;
     max-width: 1280px;
     padding-inline: 1rem;
+  }
+
+  /* Glassmorphism shell: a translucent pane over the page gradient with a
+     hairline accent border. Applied to the top bar, the side panels and the
+     login card, so the blurred surface is defined once. */
+  .glass-panel {
+    background-color: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+
+  /* The top bar keeps a translucent surface but only a bottom hairline, so it
+     reads as a bar rather than a floating card. */
+  .glass-header {
+    background-color: var(--glass-bg);
+    border-bottom: 1px solid var(--glass-border);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+
+  /* Interactive card: pointer cursor plus a colour-only hover. Deliberately no
+     transform or scale — the cards sit in `overflow: hidden` grids, where any
+     scaling clips the border and can spawn a stray scrollbar. */
+  .card-interactive {
+    cursor: pointer;
+    transition:
+      background-color 200ms ease-in-out,
+      border-color 200ms ease-in-out,
+      box-shadow 200ms ease-in-out,
+      opacity 200ms ease-in-out;
+  }
+
+  .card-interactive:hover {
+    background-color: var(--surface-hover-bg);
+    border-color: var(--surface-hover-border);
+  }
+
+  /* Single-colour, low-alpha accent glow. No multi-colour gradients: the
+     industrial look comes from restraint. */
+  .glow-accent {
+    box-shadow: 0 4px 20px -2px var(--shadow-accent);
+  }
+
+  /* Electric-blue focus ring for text inputs and editable surfaces. */
+  .focus-glow:focus-visible,
+  .focus-glow:focus-within {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-color-soft);
   }
 }
 

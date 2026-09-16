@@ -222,7 +222,7 @@ export function Sessions({
 
   return (
     <aside
-      className="p-5 w-[296px] flex flex-col"
+      className="glass-panel m-3 w-[296px] shrink-0 rounded-2xl p-5 flex flex-col"
       role="complementary"
       data-testid="chat-detail-sessions"
     >

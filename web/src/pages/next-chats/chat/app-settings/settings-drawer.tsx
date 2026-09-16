@@ -50,8 +50,8 @@ export function SettingsDrawer({
           // everything this panel needs to.
           aria-describedby={undefined}
           className="
-            fixed inset-y-0 right-0 z-50 flex w-full max-w-[80vw] flex-col
-            border-l border-cable-border bg-cable-surface shadow-cable-drawer outline-none
+            glass-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-[80vw] flex-col
+            shadow-cable-drawer outline-none
             transition ease-in-out
             data-[state=open]:animate-in data-[state=open]:slide-in-from-right data-[state=open]:duration-300
             data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=closed]:duration-200
