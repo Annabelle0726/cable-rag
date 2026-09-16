@@ -152,7 +152,9 @@ function SystemSetting() {
         </p>
       </header>
 
-      <div className="px-10 py-6 space-y-6 max-h-[70vh] overflow-y-auto ">
+      {/* The panel's own scroll container does the scrolling; a second, capped
+          scroller here produced two nested scrollbars for one list. */}
+      <div className="px-10 py-6 space-y-6">
         {llmList.map((item) => (
           <ModelFieldItem
             key={item.id}

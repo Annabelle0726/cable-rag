@@ -93,9 +93,13 @@ export function SideBar() {
   const { logout } = useLogout();
 
   return (
-    <aside className="shrink-0 w-16 md:w-[303px] bg-bg-base flex flex-col overflow-hidden">
-      <header>
-        <h1 className="px-2 md:px-6 flex gap-2.5 items-center justify-center md:justify-start font-normal">
+    // `h-full min-h-0` matches the settings panel next to it: the rail is the
+    // same height as the content area, and the menu list is the only part that
+    // scrolls. `shrink-0` used to be here to protect the width in a flex parent;
+    // the parent is a grid now, where it does nothing.
+    <aside className="flex h-full min-h-0 w-16 flex-col overflow-hidden bg-bg-base md:w-[303px]">
+      <header className="px-2 pt-5 md:px-6 md:pt-6">
+        <h1 className="flex gap-2.5 items-center justify-center md:justify-start font-normal">
           <RAGFlowAvatar
             avatar={userInfo?.avatar}
             name={userInfo?.nickname}
@@ -109,7 +113,7 @@ export function SideBar() {
         </h1>
       </header>
 
-      <nav className="flex-1 overflow-auto mt-4 py-1">
+      <nav className="min-h-0 flex-1 overflow-auto mt-4 py-1">
         <ul className="px-2 md:px-6 flex flex-col gap-2 md:gap-5 items-center md:items-stretch">
           {menuItems(t).map((item) => {
             const { key, icon, label, ...rest } = item;

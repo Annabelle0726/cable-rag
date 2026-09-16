@@ -233,9 +233,14 @@ const SourceDetailPage = () => {
   }, [defaultValues, fields]);
 
   return (
-    <div className="px-10 py-5">
+    // The page fills the height the shell leaves and scrolls inside the form
+    // panel. The panel body used to cap itself at `100vh - 230px`, a fixed
+    // guess at the header and the panel header that stopped matching as soon as
+    // either changed, which is what pushed the form past the bottom of the
+    // viewport.
+    <div className="flex h-full min-h-0 flex-col px-10 py-5">
       {/* <BackButton /> */}
-      <Card className="bg-transparent border border-border-button px-5 pt-[10px] pb-5 rounded-md mt-5">
+      <Card className="flex min-h-0 flex-1 flex-col bg-transparent border border-border-button px-5 pt-[10px] pb-5 rounded-md">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-3">
           {/* <Users className="mr-2 h-5 w-5 text-[#1677ff]" /> */}
           <CardTitle className="text-2xl text-text-primary flex gap-1 items-center font-normal pb-3">
@@ -244,7 +249,7 @@ const SourceDetailPage = () => {
           </CardTitle>
         </CardHeader>
         <Separator className="border-border-button bg-border-button w-[calc(100%+2rem)] -translate-x-4 -translate-y-4" />
-        <CardContent className="p-2 flex flex-col gap-10 max-h-[calc(100vh-230px)] overflow-y-auto scrollbar-auto">
+        <CardContent className="p-2 flex min-h-0 flex-1 flex-col gap-10 overflow-y-auto scrollbar-auto">
           <div className="max-w-[1200px]">
             <DynamicForm.Root
               ref={formRef}

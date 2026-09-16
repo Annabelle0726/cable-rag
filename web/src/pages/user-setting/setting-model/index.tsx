@@ -282,14 +282,16 @@ const SettingModelV2: FC = () => {
   );
 
   return (
-    <div className="flex w-full h-full border-[0.5px] border-border-button rounded-lg relative overflow-hidden">
+    // `min-h-0` at every level of the column is what lets the two scroll areas
+    // below actually scroll instead of stretching this panel past the viewport.
+    <div className="flex w-full h-full min-h-0 border-[0.5px] border-border-button rounded-lg relative overflow-hidden">
       <Spotlight />
       <section className="flex flex-col gap-4 w-[320px] shrink-0 px-5 border-r-[0.5px] border-border-button overflow-auto scrollbar-auto">
         <Sidebar selection={selection} onSelect={setSelection} />
       </section>
-      <section className="flex-1 flex flex-col overflow-hidden">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {selection === 'default' ? (
-          <div className="flex-1 overflow-auto scrollbar-auto">
+          <div className="min-h-0 flex-1 overflow-auto scrollbar-auto">
             <SystemSetting />
           </div>
         ) : (
@@ -303,7 +305,7 @@ const SettingModelV2: FC = () => {
             />
 
             {/* Scrollable middle: instance cards + optional draft cards */}
-            <div className="flex-1 overflow-auto scrollbar-auto p-4 flex flex-col gap-4">
+            <div className="flex-1 min-h-0 overflow-auto scrollbar-auto p-4 flex flex-col gap-4">
               {instances.length === 0 && draftIds.length === 0 && (
                 <div className="text-text-secondary text-sm py-6 text-center">
                   {tSetting('noInstancesConfigured')}
