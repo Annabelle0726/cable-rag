@@ -225,7 +225,7 @@ export function Sessions({
       // Flush against the chat box: the two panes meet at one hairline instead
       // of a rounded floating card with a 24px gutter around it. One column
       // with a single gap value, so the rail reads as evenly spaced blocks.
-      className="glass-surface flex h-full w-[296px] shrink-0 flex-col gap-4 border-r border-cable-hairline p-5"
+      className="glass-surface flex h-full w-[296px] shrink-0 flex-col gap-2 border-r border-cable-hairline p-5"
       role="complementary"
       data-testid="chat-detail-sessions"
     >
@@ -350,14 +350,13 @@ export function Sessions({
         ></SearchInput>
       </div>
 
-      {/* The list is centred in whatever space the rail has left, so a short
-          list sits in the middle of the panel instead of stacking under the
-          search box with a void beneath it. Centring uses auto margins rather
-          than `justify-content: center`, because a centred flex container
-          clips its first items as soon as the list has to scroll. */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+      {/* The list starts directly under the search box and grows downwards, so
+          the first conversation — and the "new conversation" entry above it —
+          stay where the eye expects them. Centring this block left the list
+          floating in the middle of the rail with a void under the search box. */}
+      <div className="flex min-h-0 flex-1 flex-col justify-start overflow-y-auto">
         {selectionMode ? (
-          <ul className="my-auto space-y-2" role="listbox" aria-multiselectable>
+          <ul className="space-y-2" role="listbox" aria-multiselectable>
             {conversationList.map((x) => (
               <li
                 key={x.id}
@@ -380,7 +379,7 @@ export function Sessions({
             ))}
           </ul>
         ) : (
-          <nav className="my-auto" aria-label={t('chat.conversations')}>
+          <nav aria-label={t('chat.conversations')}>
             <ul className="space-y-2">
               {conversationList.map((x) => (
                 <li
