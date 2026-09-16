@@ -71,10 +71,13 @@ export function Header({
         ref={headerRef}
         key="app-navbar"
         className={cn(
-          // The glass surface belongs to the full-width bar rendered by the
-          // layout; this row only aligns the controls with the page columns and
-          // fixes the 52px height, so the content below never shifts.
-          'page-gutter flex h-[52px] min-w-0 items-center gap-2 sm:gap-4',
+          // The bar takes its height from its own vertical padding instead of a
+          // fixed value: 16px above and below the 32px-tall pill is what gives
+          // the row its breathing room. The glass surface belongs to the
+          // full-width bar in the layout, so `page-gutter` only aligns these
+          // controls with the page columns, and `items-center` keeps the nav
+          // pill's contents on the bar's centre line.
+          'page-gutter flex min-w-0 items-center gap-2 py-4 sm:gap-4',
           className,
         )}
         {...props}

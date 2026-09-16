@@ -104,8 +104,8 @@ const DesktopNavbarWithAnchor = () => {
 
   return (
     <nav>
-      {/* The nav is a pill inside the 52px bar: the extra padding on all four
-          sides keeps the items from pressing against the pill's own border. */}
+      {/* The nav is a pill inside the bar: the extra padding on all four sides
+          keeps the items from pressing against the pill's own border. */}
       <ul className="relative flex items-center gap-1 rounded-xl border border-cable-border bg-cable-surface-muted p-1.5">
         {menuItems.map(({ path, name, icon: Icon, ...props }) => {
           const isActive = path === activePath;
@@ -117,9 +117,9 @@ const DesktopNavbarWithAnchor = () => {
                 {...props}
                 to={path}
                 className={cn(
-                  // Icon and label sit on one line, vertically centred, with a
-                  // 8px gap; the row stays 32px tall so the 52px header keeps its
-                  // breathing room above the content.
+                  // Icon and label sit on one line, vertically centred, with an
+                  // 8px gap; the row stays 32px tall so the bar's own vertical
+                  // padding is what sets the header height.
                   'inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm',
                   'transition-colors duration-200 ease-in-out',
                   isActive
