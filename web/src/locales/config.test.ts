@@ -1,4 +1,4 @@
-import {
+import i18n, {
   DEFAULT_LANGUAGE_CODE,
   changeLanguageAsync,
   initLanguage,
@@ -41,4 +41,23 @@ describe('language configuration', () => {
       expect(window.localStorage.getItem(LanguageStorageKey)).toBe('zh-Hans');
     },
   );
+
+  describe('a key that no bundle defines', () => {
+    beforeEach(async () => {
+      await changeLanguageAsync('en');
+    });
+
+    it('never reaches the screen as module.keyName', () => {
+      expect(i18n.t('search.searchAppsThatDoNotExist')).toBe(
+        'Search apps that do not exist',
+      );
+      expect(i18n.t('module.keyName')).not.toBe('module.keyName');
+    });
+
+    it('still yields to an inline default value', () => {
+      expect(i18n.t('module.keyName', 'Something concrete')).toBe(
+        'Something concrete',
+      );
+    });
+  });
 });

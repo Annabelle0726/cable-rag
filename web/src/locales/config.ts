@@ -58,6 +58,35 @@ const resources = {
   [LanguageAbbreviation.En]: translation_en,
 };
 
+/**
+ * Last-resort wording for a key that neither bundle defines: `search.searchApps`
+ * must never reach the screen as-is, so the last segment is humanised
+ * ("Search apps") and the gap is reported in development.
+ *
+ * i18next hands the call site's own inline default to this handler when there is
+ * one, and that wording always wins — a key called with a default was never at
+ * risk of exposing itself.
+ */
+const humaniseMissingKey = (key: string, inlineDefault?: string): string => {
+  if (inlineDefault) {
+    return inlineDefault;
+  }
+
+  if (import.meta.env.DEV) {
+    console.warn(`[i18n] missing translation for "${key}"`);
+  }
+
+  const segment = key.split('.').pop() ?? key;
+  const words = segment
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+  return words ? upperFirst(words) : key;
+};
+
 const updateDocumentLocale = (lng: string) => {
   document.documentElement.lang = lng;
   document.documentElement.dir = 'ltr';
@@ -80,6 +109,7 @@ i18n
     // bundle that has not finished loading degrades to English instead of
     // showing raw keys.
     fallbackLng: [DEFAULT_LANGUAGE_CODE, LanguageAbbreviation.En],
+    parseMissingKeyHandler: humaniseMissingKey,
     interpolation: {
       escapeValue: false,
     },
