@@ -15,60 +15,21 @@
  */
 
 import SvgIcon from '@/components/svg-icon';
-import { useFetchTokenListBeforeOtherStep } from '@/components/embed-dialog/use-show-embed-dialog';
-import { Button } from '@/components/ui/button';
-import { SharedFrom } from '@/constants/chat';
 import { cn } from '@/lib/utils';
-import { Routes } from '@/routes';
-import { Send } from 'lucide-react';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useFetchSearchDetail } from '../next-searches/hooks';
-import EmbedAppModal from './embed-app-modal';
-
-function EmbedIcon() {
-  const [openEmbed, setOpenEmbed] = useState(false);
-  const { beta, handleOperate } = useFetchTokenListBeforeOtherStep();
-
-  const { data: SearchData } = useFetchSearchDetail();
-
-  return (
-    <>
-      <Button
-        variant={'outline'}
-        onClick={() => {
-          handleOperate().then((res) => {
-            if (res) {
-              setOpenEmbed(!openEmbed);
-            }
-          });
-        }}
-      >
-        <Send />
-      </Button>
-      <EmbedAppModal
-        open={openEmbed}
-        setOpen={setOpenEmbed}
-        url={Routes.SearchShare}
-        token={SearchData?.id as string}
-        from={SharedFrom.Search}
-        beta={beta}
-      />
-    </>
-  );
-}
 
 /**
  * The search surfaces' brand mark: the same logo file and the same name the app
  * bar and the assistant avatar use, so the search hero cannot drift into showing
- * the upstream wordmark (or a hard-coded teal-to-indigo gradient) again.
+ * the upstream wordmark (or a hard-coded teal-to-indigo gradient) again. The
+ * embed button that used to sit beside it is gone — this deployment does not
+ * publish search apps for embedding, so it was a paper plane pointing at a
+ * feature nobody uses.
  */
 export function SearchBrandMark({
   onClick,
-  showEmbedIcon = true,
 }: {
   onClick?: React.MouseEventHandler<HTMLHeadingElement>;
-  showEmbedIcon?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -83,7 +44,6 @@ export function SearchBrandMark({
         <SvgIcon name="brand-logo" width={40} height={40} />
         <span>{t('header.brandShort')}</span>
       </h1>
-      {showEmbedIcon && <EmbedIcon></EmbedIcon>}
     </div>
   );
 }

@@ -80,11 +80,9 @@ export default function SearchingView({
   handleSearch,
   pageSize,
   handleTopChange,
-  showEmbedLogo,
 }: ISearchReturnProps & {
   setIsSearching?: Dispatch<SetStateAction<boolean>>;
   searchData: ISearchAppDetailProps;
-  showEmbedLogo?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -113,7 +111,6 @@ export default function SearchingView({
           onClick={() => {
             setIsSearching?.(false);
           }}
-          showEmbedIcon={showEmbedLogo}
         ></SearchBrandMark>
         <div
           className={cn(
