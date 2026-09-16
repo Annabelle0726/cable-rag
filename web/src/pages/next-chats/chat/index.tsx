@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   useFetchChat,
   useFetchSessionList,
@@ -170,7 +169,11 @@ export default function Chat() {
   return (
     <RootLayoutContainer>
       <section className="h-full flex flex-col" data-testid="chat-detail">
-        <article className="flex flex-1 min-h-0 pb-9">
+        {/* One row filling the viewport: the conversation list and the chat box
+            are two panes of the same surface, split by a single hairline. The
+            chat box used to sit inside a bordered, rounded card above a 36px
+            strip, which read as a picture frame floating in the page. */}
+        <article className="flex flex-1 min-h-0">
           <Sessions
             handleConversationCardClick={handleConversationCardClick}
             visible={sessionsVisible}
@@ -178,49 +181,46 @@ export default function Chat() {
             onOpenSettings={showSettings}
           ></Sessions>
 
-          <Card className="flex-1 min-w-0 bg-transparent border-none shadow-none h-full">
-            <CardContent className="flex p-0 h-full">
-              <Card className="flex flex-col flex-1 bg-transparent min-w-0 overflow-hidden">
-                {/* Rendered only while the conversation list is collapsed: an
-                    expanded list already names the active conversation, and an
-                    empty header bar would still cost its own height. */}
-                {!sessionsVisible && (
-                  // A fixed-height row: the header can never grow into the
-                  // transcript, whatever it has to show.
-                  <CardHeader
-                    className={cn(
-                      'flex h-12 shrink-0 flex-row items-center px-4 py-0',
-                      {
-                        'border-b-0.5 border-cable-border': hasSingleChatBox,
-                      },
-                    )}
-                  >
-                    <ConversationHeader
-                      chatId={chatId}
-                      sessionId={conversationId}
-                      title={currentConversationName}
-                      llmId={currentDialog?.llm_id}
-                      onModelChange={handleModelChange}
-                      summarizable={isPersistedConversationId(conversationId)}
-                      onExpandSessions={handleExpandSessions}
-                      onOpenSettings={showSettings}
-                    ></ConversationHeader>
-                  </CardHeader>
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            {/* Rendered only while the conversation list is collapsed: an
+                expanded list already names the active conversation, and an
+                empty header bar would still cost its own height. */}
+            {!sessionsVisible && (
+              // A fixed-height row: the header can never grow into the
+              // transcript, whatever it has to show.
+              <header
+                className={cn(
+                  'flex h-12 shrink-0 flex-row items-center px-4',
+                  {
+                    'border-b border-cable-hairline': hasSingleChatBox,
+                  },
                 )}
-                <CardContent className="flex-1 p-0 min-h-0">
-                  <SingleChatBox conversation={currentConversation} />
-                </CardContent>
-              </Card>
+              >
+                <ConversationHeader
+                  chatId={chatId}
+                  sessionId={conversationId}
+                  title={currentConversationName}
+                  llmId={currentDialog?.llm_id}
+                  onModelChange={handleModelChange}
+                  summarizable={isPersistedConversationId(conversationId)}
+                  onExpandSessions={handleExpandSessions}
+                  onOpenSettings={showSettings}
+                ></ConversationHeader>
+              </header>
+            )}
 
-              <ChatSettings
-                visible={settingsVisible}
-                onVisibleChange={(nextVisible) =>
-                  nextVisible ? showSettings() : hideSettings()
-                }
-                onOpenMultiModel={handleOpenMultiModel}
-              ></ChatSettings>
-            </CardContent>
-          </Card>
+            <div className="min-h-0 flex-1">
+              <SingleChatBox conversation={currentConversation} />
+            </div>
+          </div>
+
+          <ChatSettings
+            visible={settingsVisible}
+            onVisibleChange={(nextVisible) =>
+              nextVisible ? showSettings() : hideSettings()
+            }
+            onOpenMultiModel={handleOpenMultiModel}
+          ></ChatSettings>
         </article>
       </section>
     </RootLayoutContainer>

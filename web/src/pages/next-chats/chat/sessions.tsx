@@ -202,7 +202,7 @@ export function Sessions({
 
   if (!visible) {
     return (
-      <div className="p-5">
+      <div className="flex w-14 shrink-0 justify-center border-r border-cable-hairline p-3">
         <Button
           variant="transparent"
           size="icon-sm"
@@ -222,7 +222,9 @@ export function Sessions({
 
   return (
     <aside
-      className="glass-panel m-3 w-[296px] shrink-0 rounded-2xl p-5 flex flex-col"
+      // Flush against the chat box: the two panes meet at one hairline instead
+      // of a rounded floating card with a 24px gutter around it.
+      className="glass-panel flex h-full w-[296px] shrink-0 flex-col border-r border-cable-hairline p-5"
       role="complementary"
       data-testid="chat-detail-sessions"
     >
