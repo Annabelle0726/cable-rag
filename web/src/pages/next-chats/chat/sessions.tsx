@@ -223,8 +223,9 @@ export function Sessions({
   return (
     <aside
       // Flush against the chat box: the two panes meet at one hairline instead
-      // of a rounded floating card with a 24px gutter around it.
-      className="glass-panel flex h-full w-[296px] shrink-0 flex-col border-r border-cable-hairline p-5"
+      // of a rounded floating card with a 24px gutter around it. One column
+      // with a single gap value, so the rail reads as evenly spaced blocks.
+      className="glass-panel flex h-full w-[296px] shrink-0 flex-col gap-4 border-r border-cable-hairline p-5"
       role="complementary"
       data-testid="chat-detail-sessions"
     >
@@ -268,7 +269,7 @@ export function Sessions({
         </Button>
       </header>
 
-      <div className="flex justify-between items-center mb-4 pt-10">
+      <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
           <span className="text-base font-bold">{t('chat.conversations')}</span>
           <data
@@ -341,7 +342,7 @@ export function Sessions({
         </div>
       </div>
 
-      <div className="pb-4" role="search">
+      <div role="search">
         <SearchInput
           onChange={handleInputChange}
           value={searchString}
@@ -349,9 +350,14 @@ export function Sessions({
         ></SearchInput>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      {/* The list is centred in whatever space the rail has left, so a short
+          list sits in the middle of the panel instead of stacking under the
+          search box with a void beneath it. Centring uses auto margins rather
+          than `justify-content: center`, because a centred flex container
+          clips its first items as soon as the list has to scroll. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-auto">
         {selectionMode ? (
-          <ul className="space-y-2" role="listbox" aria-multiselectable>
+          <ul className="my-auto space-y-2" role="listbox" aria-multiselectable>
             {conversationList.map((x) => (
               <li
                 key={x.id}
@@ -374,7 +380,7 @@ export function Sessions({
             ))}
           </ul>
         ) : (
-          <nav aria-label={t('chat.conversations')}>
+          <nav className="my-auto" aria-label={t('chat.conversations')}>
             <ul className="space-y-2">
               {conversationList.map((x) => (
                 <li
