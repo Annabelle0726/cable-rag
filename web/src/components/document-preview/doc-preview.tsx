@@ -26,18 +26,24 @@ import {
 } from '@extend-ai/react-docx';
 import classNames from 'classnames';
 import { ZoomIn, ZoomOut } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-import {
-  isZipLikeBlob,
-  useDocumentResizeObserver,
-  useDocxPreviewZoom,
-} from './hooks';
+import { ExcelCsvPreviewer } from './excel-preview';
+import { useDocumentResizeObserver, useDocxPreviewZoom } from './hooks';
+import { detectOfficeFormat } from './office-format';
+import { PptPreviewer } from './ppt-preview';
 
 interface DocPreviewerProps {
   className?: string;
   url: string;
 }
+
+/**
+ * Why the preview stopped. The text is resolved at render time so the notice
+ * can be translated instead of leaking the library's own wording.
+ */
+type PreviewFailure = 'legacy-office' | 'unsupported' | 'fetch' | 'parse';
 
 // @extend-ai/react-docx renders paragraphs without explicit line spacing at
 // 0.88x the font size, which makes CJK glyph lines overlap. Word renders such
@@ -155,11 +161,14 @@ const normalizeDocxLineSpacing = async (blob: Blob): Promise<Blob> => {
 
 // Word document preview component.
 // Uses @extend-ai/react-docx for canvas-based page-level rendering.
-// Falls back to an unsupported notice for legacy .doc (non-ZIP) payloads.
+// A payload that turns out to be a spreadsheet or a deck is handed to the
+// previewer that can render it, and a legacy 97-2003 Word file gets a notice the
+// user can act on instead of the library's own error string.
 export const DocPreviewer: React.FC<DocPreviewerProps> = ({
   className,
   url,
 }) => {
+  const { t } = useTranslation();
   const editor = useDocxEditor({ initialFileName: 'document.docx' });
   const { importDocxFile, status, totalPages } = editor;
   // importDocxFile is recreated whenever the library's internal state changes
@@ -169,8 +178,11 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
   const { layout } = useDocxPageLayout(editor);
   const { containerWidth, setContainerRef } = useDocumentResizeObserver();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const showContent = !loading && !error;
+  const [failure, setFailure] = useState<PreviewFailure | null>(null);
+  // Set when the fetched bytes are a package this component cannot render but a
+  // sibling previewer can.
+  const [delegate, setDelegate] = useState<'xlsx' | 'pptx' | null>(null);
+  const showContent = !loading && !failure;
   const { zoomScale, minZoom, maxZoom, handleZoomIn, handleZoomOut } =
     useDocxPreviewZoom({
       url,
@@ -181,13 +193,28 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
     });
   const cancelledRef = useRef(false);
 
+  const failureMessage = useMemo(() => {
+    if (failure === 'legacy-office') {
+      return t(
+        'document.legacyWordPreview',
+        'This is a Word 97-2003 (.doc) file, which a browser cannot render. Download the original from the document row to read it.',
+      );
+    }
+
+    return t(
+      'document.previewUnsupported',
+      'This file cannot be previewed in the browser.',
+    );
+  }, [failure, t]);
+
   // Fetch the document blob and load it into the editor
   const fetchDocument = useCallback(async () => {
     if (!url) return;
 
     cancelledRef.current = false;
     setLoading(true);
-    setError(null);
+    setFailure(null);
+    setDelegate(null);
 
     let res;
     try {
@@ -203,7 +230,7 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
       });
     } catch {
       if (!cancelledRef.current) {
-        setError('Failed to fetch document.');
+        setFailure('fetch');
         setLoading(false);
       }
       return;
@@ -213,12 +240,20 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
 
     try {
       const blob: Blob = res.data;
-      const looksLikeZip = await isZipLikeBlob(blob);
+      const format = await detectOfficeFormat(await blob.arrayBuffer());
 
-      if (!looksLikeZip) {
-        setError(
-          'This file header does not indicate a .docx ZIP archive. Only .docx files are supported.',
-        );
+      if (cancelledRef.current) return;
+
+      // The record's type said Word; the bytes say otherwise. Either the sibling
+      // previewer can render it, or no browser renderer can.
+      if (format === 'xlsx' || format === 'pptx') {
+        setDelegate(format);
+        setLoading(false);
+        return;
+      }
+
+      if (format !== 'docx') {
+        setFailure(format === 'legacy-office' ? 'legacy-office' : 'unsupported');
         setLoading(false);
         return;
       }
@@ -240,6 +275,7 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
       if (!cancelledRef.current) {
         message.error('Failed to parse document.');
         console.error('Error parsing document:', err);
+        setFailure('parse');
         setLoading(false);
       }
     }
@@ -255,10 +291,18 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
   // Monitor editor status for library-level errors
   useEffect(() => {
     if (status === 'Only .docx files are supported') {
-      setError(status);
+      setFailure('unsupported');
       setLoading(false);
     }
   }, [status]);
+
+  if (delegate === 'xlsx') {
+    return <ExcelCsvPreviewer className={className} url={url} />;
+  }
+
+  if (delegate === 'pptx') {
+    return <PptPreviewer className={className} url={url} />;
+  }
 
   const pageCount = showContent && totalPages > 0 ? totalPages : 0;
 
@@ -272,12 +316,12 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
       {/* Toolbar */}
       <div className="flex items-center justify-between shrink-0 px-4 py-2 border-b border-border-normal bg-background-paper">
         <span className="text-sm text-muted-foreground">
-          {loading ? 'Loading...' : error ? '' : `Page ${pageCount || '-'}`}
+          {loading ? 'Loading...' : failure ? '' : `Page ${pageCount || '-'}`}
         </span>
         <div className="flex items-center gap-1">
           <button
             type="button"
-            disabled={loading || !!error || zoomScale <= minZoom}
+            disabled={loading || !!failure || zoomScale <= minZoom}
             className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-opacity"
             onClick={handleZoomOut}
             aria-label="Zoom out"
@@ -289,7 +333,7 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
           </span>
           <button
             type="button"
-            disabled={loading || !!error || zoomScale >= maxZoom}
+            disabled={loading || !!failure || zoomScale >= maxZoom}
             className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-opacity"
             onClick={handleZoomIn}
             aria-label="Zoom in"
@@ -299,7 +343,7 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
         </div>
       </div>
 
-      {/* Viewer / Error area */}
+      {/* Viewer / Notice area */}
       <div
         ref={setContainerRef}
         className="relative flex-1 overflow-auto bg-background-paper"
@@ -310,17 +354,20 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
           </div>
         )}
 
-        {error && !loading && (
+        {failure && !loading && (
           <div className="flex items-center justify-center h-full p-8">
             <div className="border border-dashed border-border-normal rounded-xl p-8 max-w-2xl text-center">
-              <p className="text-2xl font-bold mb-4">
-                Preview is not available for this Word document
+              <p
+                className="text-base font-semibold mb-3 text-text-primary"
+                data-testid="doc-preview-notice-title"
+              >
+                {t('document.previewUnavailable', 'Preview is not available')}
               </p>
-              <p className="italic text-sm text-muted-foreground leading-relaxed">
-                @extend-ai/react-docx supports modern <code>.docx</code> files
-                only.
-                <br />
-                {error}
+              <p
+                className="text-sm text-muted-foreground leading-relaxed"
+                data-testid="doc-preview-notice-message"
+              >
+                {failureMessage}
               </p>
             </div>
           </div>

@@ -20,6 +20,9 @@ import { DocPreviewer } from './doc-preview';
 
 const mockImportDocxFile = jest.fn().mockResolvedValue(undefined);
 let mockEditorImportDocxFile = mockImportDocxFile;
+// Kept as a plain string: the suite's transformer rejects an imported type that
+// is also used in a type annotation.
+let mockDetectedFormat = 'docx';
 
 jest.mock('@/utils/request', () => ({
   __esModule: true,
@@ -35,8 +38,19 @@ jest.mock('@/components/ui/spin', () => ({
   Spin: () => <div data-testid="spin" />,
 }));
 
+jest.mock('./office-format', () => ({
+  detectOfficeFormat: jest.fn(() => Promise.resolve(mockDetectedFormat)),
+}));
+
+jest.mock('./excel-preview', () => ({
+  ExcelCsvPreviewer: () => <div data-testid="excel-previewer" />,
+}));
+
+jest.mock('./ppt-preview', () => ({
+  PptPreviewer: () => <div data-testid="ppt-previewer" />,
+}));
+
 jest.mock('./hooks', () => ({
-  isZipLikeBlob: jest.fn().mockResolvedValue(true),
   useDocumentResizeObserver: () => ({
     containerWidth: 800,
     setContainerRef: jest.fn(),
@@ -74,6 +88,21 @@ jest.mock('@extend-ai/react-docx', () => ({
 const MockRequest = jest.mocked(request);
 const OriginalResizeObserver = globalThis.ResizeObserver;
 
+// jsdom's Blob has no arrayBuffer(), which the previewer uses to inspect the
+// payload's header. The shim keeps the value a real Blob so the code can still
+// wrap it in a File.
+const mockFetchedBlob = (bytes: number[]): Blob => {
+  const blob = new Blob([new Uint8Array(bytes)]);
+
+  if (typeof blob.arrayBuffer !== 'function') {
+    Object.defineProperty(blob, 'arrayBuffer', {
+      value: async () => new Uint8Array(bytes).buffer,
+    });
+  }
+
+  return blob;
+};
+
 beforeAll(() => {
   globalThis.ResizeObserver = jest.fn().mockImplementation(() => ({
     observe: jest.fn(),
@@ -94,10 +123,9 @@ describe('DocPreviewer', () => {
       // Mimic @extend-ai/react-docx returning a new callback after import.
       mockEditorImportDocxFile = jest.fn().mockResolvedValue(undefined);
     });
+    mockDetectedFormat = 'docx';
     MockRequest.mockResolvedValue({
-      data: new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      }),
+      data: mockFetchedBlob([0x50, 0x4b, 0x03, 0x04]),
     } as never);
   });
 
@@ -129,5 +157,51 @@ describe('DocPreviewer', () => {
       'data-page-virtualization',
       JSON.stringify({ enabled: false }),
     );
+  });
+
+  // A .doc in the dataset can be a Word 97-2003 file, which no browser renderer
+  // can read: the user gets a sentence they can act on, not a library error.
+  it('explains a legacy Word file instead of leaking the library error', async () => {
+    mockDetectedFormat = 'legacy-office';
+
+    render(<DocPreviewer url="http://example.com/document.doc" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doc-preview-notice-message')).toHaveTextContent(
+        /Word 97-2003/,
+      );
+    });
+    expect(mockImportDocxFile).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('docx-viewer')).not.toBeInTheDocument();
+  });
+
+  it('keeps a generic notice for a payload no renderer understands', async () => {
+    mockDetectedFormat = 'unknown';
+
+    render(<DocPreviewer url="http://example.com/document.doc" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doc-preview-notice-message')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('doc-preview-notice-title')).toBeInTheDocument();
+    expect(screen.getByTestId('doc-preview-notice-message')).not.toHaveTextContent(
+      /Word 97-2003/,
+    );
+  });
+
+  // The stored record said Word, but the payload is a spreadsheet: route it to
+  // the previewer that can render it rather than reporting a broken .docx.
+  it('hands a spreadsheet payload to the Excel previewer', async () => {
+    mockDetectedFormat = 'xlsx';
+
+    render(<DocPreviewer url="http://example.com/cable_test_spec.xlsx" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('excel-previewer')).toBeInTheDocument();
+    });
+    expect(mockImportDocxFile).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId('doc-preview-notice-message'),
+    ).not.toBeInTheDocument();
   });
 });

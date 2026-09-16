@@ -26,26 +26,6 @@ import JSZip from 'jszip';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 
-// ZIP file header bytes "PK"
-const ZIP_HEADER_0 = 0x50;
-const ZIP_HEADER_1 = 0x4b;
-
-export const isZipLikeBlob = async (blob: Blob): Promise<boolean> => {
-  try {
-    const headerSlice = blob.slice(0, 4);
-    const buf = await headerSlice.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    return (
-      bytes.length >= 2 &&
-      bytes[0] === ZIP_HEADER_0 &&
-      bytes[1] === ZIP_HEADER_1
-    );
-  } catch (e) {
-    console.error('Failed to inspect blob header', e);
-    return false;
-  }
-};
-
 export const useDocumentResizeObserver = () => {
   const [containerWidth, setContainerWidth] = useState<number>();
   const [containerRef, setContainerRef] = useState<HTMLElement | null>(null);
