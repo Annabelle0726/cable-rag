@@ -37,6 +37,12 @@ export type MultiSelectOptionType = {
   label: React.ReactNode;
   value: string;
   disabled?: boolean;
+  /**
+   * When true, the option is always selected and cannot be deselected.
+   * Unlike `disabled`, locked options are included in "Select All" and
+   * preserved when clearing.
+   */
+  locked?: boolean;
   suffix?: React.ReactNode;
   icon?: React.ComponentType<{ className?: string }>;
 };
@@ -290,9 +296,17 @@ export const MultiSelect = React.forwardRef<
       );
     }, [flatOptions]);
 
+    const lockedValueSet = React.useMemo(() => {
+      return new Set(
+        flatOptions
+          .filter((option) => option.locked)
+          .map((option) => option.value),
+      );
+    }, [flatOptions]);
+
     const selectableValues = React.useMemo(() => {
       return flatOptions
-        .filter((option) => !option.disabled)
+        .filter((option) => !option.disabled || option.locked)
         .map((option) => option.value);
     }, [flatOptions]);
 
@@ -303,7 +317,11 @@ export const MultiSelect = React.forwardRef<
     // A disabled option can't be picked in the dropdown, but a value that is
     // already selected must stay removable — e.g. a knowledge base that had
     // chunks when it was picked may have been emptied since.
+    // Locked options cannot be removed.
     const removeValue = (value: string) => {
+      if (lockedValueSet.has(value)) {
+        return;
+      }
       const newSelectedValues = selectedValues.filter((v) => v !== value);
       setSelectedValues(newSelectedValues);
       onValueChange(newSelectedValues);
@@ -326,6 +344,10 @@ export const MultiSelect = React.forwardRef<
       if (disabledValueSet.has(option)) {
         return;
       }
+      // Locked options cannot be deselected
+      if (lockedValueSet.has(option) && selectedValues.includes(option)) {
+        return;
+      }
 
       const newSelectedValues = selectedValues.includes(option)
         ? selectedValues.filter((value) => value !== option)
@@ -335,8 +357,12 @@ export const MultiSelect = React.forwardRef<
     };
 
     const handleClear = () => {
-      setSelectedValues([]);
-      onValueChange([]);
+      // Keep locked options that are currently selected
+      const lockedSelectedValues = selectedValues.filter((value) =>
+        lockedValueSet.has(value),
+      );
+      setSelectedValues(lockedSelectedValues);
+      onValueChange(lockedSelectedValues);
     };
 
     const handleTogglePopover = () => {
