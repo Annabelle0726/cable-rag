@@ -14,10 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { TenantRole } from '@/pages/user-setting/constants';
 import { Routes } from '@/routes';
-import {
-  LucideCircleHelp,
-  LucideLanguages,
-} from 'lucide-react';
+import { LucideLanguages } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router';
@@ -141,23 +138,11 @@ export function Header({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {!isCompact && (
-            <>
-              <Button
-                asLink
-                variant="ghost"
-                className={headerControlClass}
-                to="https://ragflow.io/docs/dev/category/user-guides"
-                target="_blank"
-                rel="noreferrer noopener"
-                aria-label={t('header.help')}
-                title={t('header.help')}
-              >
-                <LucideCircleHelp className="size-[1.05rem]" />
-              </Button>
-
-              {hasNotification && <BellButton className={headerControlClass} />}
-            </>
+          {/* The documentation link that used to sit here is gone: this
+              deployment ships its own docs, so a question mark pointing at
+              upstream was more of a distraction than a help. */}
+          {!isCompact && hasNotification && (
+            <BellButton className={headerControlClass} />
           )}
 
           <ThemeButton className={headerControlClass} />
@@ -197,9 +182,6 @@ export function Header({
         >
           <Button variant="ghost" className={headerControlClass}>
             <LucideLanguages className="size-[1.05rem]" />
-          </Button>
-          <Button variant="ghost" className={headerControlClass}>
-            <LucideCircleHelp className="size-[1.05rem]" />
           </Button>
           <ThemeButton className={headerControlClass} />
           {hasNotification && <BellButton className={headerControlClass} />}
