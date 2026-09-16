@@ -1,13 +1,15 @@
 import { EmptyCardType } from '@/components/empty/constant';
 import { EmptyAppCard } from '@/components/empty/empty';
-import '@/locales/config';
+import i18n from '@/locales/config';
 import { render, screen } from '@testing-library/react';
 
 const classList = (element: HTMLElement) => element.className.split(/\s+/);
 
-// The create tiles lost their placeholder sentence, so the tile and its content
-// have to hold the centring on their own — no text left to give the layout a
-// width to lean on.
+/**
+ * The create tiles are the page's only call to action, so they have to hold
+ * their own centring: an icon, a plus and a one-line prompt, stacked in the
+ * middle of a tile that keeps a standard size.
+ */
 describe('empty create card', () => {
   it('centres the tile and its content at every breakpoint', () => {
     render(
@@ -26,13 +28,25 @@ describe('empty create card', () => {
       ]),
     );
     // The md-and-up left-aligned, width-to-fit layout collapsed the tile to the
-    // width of its icon once the placeholder text was removed.
+    // width of its icon.
     expect(card.className).not.toMatch(
       /md:(items-start|justify-start|text-left|w-fit)/,
     );
   });
 
-  it('groups the icon and the plus so they stay centred together', () => {
+  it('reads as a button on hover', () => {
+    render(
+      <EmptyAppCard type={EmptyCardType.Dataset} testId="empty-hover" />,
+    );
+
+    const card = screen.getByTestId('empty-hover');
+
+    expect(card.className).toMatch(/hover:border-accent-color/);
+    expect(card.className).toMatch(/hover:shadow-accent-glow/);
+    expect(card.className).toMatch(/duration-200/);
+  });
+
+  it('stacks the icons and the prompt as one centred group', () => {
     const { unmount } = render(
       <EmptyAppCard
         type={EmptyCardType.Dataset}
@@ -50,32 +64,40 @@ describe('empty create card', () => {
         'flex-col',
         'items-center',
         'justify-center',
-        'gap-2',
+        'gap-3',
       ]),
     );
-    // The business icon plus the plus sign.
+
+    // The business icon and the plus, then the prompt: two blocks, and the icons
+    // are spaced apart inside their own stack.
     expect(group.children).toHaveLength(2);
+
+    const icons = group.firstElementChild as HTMLElement;
+
+    expect(classList(icons)).toEqual(
+      expect.arrayContaining(['flex', 'flex-col', 'items-center', 'gap-2']),
+    );
+    expect(icons.children).toHaveLength(2);
 
     unmount();
 
     render(<EmptyAppCard type={EmptyCardType.Chat} testId="empty-create-bare" />);
 
-    const bareGroup = screen.getByTestId('empty-create-bare')
-      .firstElementChild as HTMLElement;
+    const bareIcons = screen.getByTestId('empty-create-bare')
+      .firstElementChild?.firstElementChild as HTMLElement;
 
     // Without the business icon the plus is the only child, still centred.
-    expect(bareGroup.children).toHaveLength(1);
-    expect(classList(bareGroup)).toEqual(
-      expect.arrayContaining(['items-center', 'justify-center']),
-    );
+    expect(bareIcons.children).toHaveLength(1);
   });
 
-  it('renders no placeholder text, while the nothing-matched card keeps its message', () => {
+  it('states the action, and reports the empty result on the search card', () => {
     const { unmount } = render(
       <EmptyAppCard type={EmptyCardType.Chat} testId="empty-create-text" />,
     );
 
-    expect(screen.getByTestId('empty-create-text').textContent?.trim()).toBe('');
+    expect(screen.getByTestId('empty-create-text')).toHaveTextContent(
+      i18n.t('empty.chatTitle'),
+    );
 
     unmount();
 
@@ -88,8 +110,8 @@ describe('empty create card', () => {
       />,
     );
 
-    expect(
-      screen.getByTestId('empty-not-found').textContent?.trim().length,
-    ).toBeGreaterThan(0);
+    expect(screen.getByTestId('empty-not-found')).toHaveTextContent(
+      i18n.t('empty.notFoundChat'),
+    );
   });
 });

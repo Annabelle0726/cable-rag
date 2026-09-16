@@ -34,7 +34,10 @@ export default function ChatList() {
   } = useFetchChatList();
   const { t } = useTranslation();
   const { t: tc } = useTranslation('common');
-  const owners = [buildOwnersFilter(data?.chats ?? [], undefined, tc('owner'))];
+  // The list is read through one local name: the page renders its frame and then
+  // either the grid or the empty card, and both branches need the same array.
+  const chats = data?.chats ?? [];
+  const owners = [buildOwnersFilter(chats, undefined, tc('owner'))];
   const {
     initialChatName,
     chatRenameVisible,
@@ -114,16 +117,21 @@ export default function ChatList() {
 
   return (
     <>
-      {loading && !data.chats?.length ? (
+      {loading && !chats.length ? (
         <article
           className="size-full flex items-center justify-center"
           data-testid="chats-list"
         >
           <Spin size="large" />
         </article>
-      ) : data.chats?.length || searchString ? (
+      ) : (
+        // One full-height column under the header: the filter bar keeps the page
+        // framed and the grid or the empty card fills the rest of the region, so
+        // an empty list reads as a page with nothing in it rather than a lone box
+        // floating in the window. `h-full` is the header-relative remainder of
+        // the viewport, because this article sits in the layout's `1fr` row.
         <article
-          className="size-full min-w-0 flex flex-col"
+          className="flex h-full w-full min-w-0 flex-col"
           data-testid="chats-list"
         >
           <header className="page-gutter mb-4 min-w-0 pt-8">
@@ -143,10 +151,10 @@ export default function ChatList() {
             </ListFilterBar>
           </header>
 
-          {data.chats?.length ? (
+          {chats.length ? (
             <>
               <CardContainer className="page-gutter flex-1 overflow-auto">
-                {data.chats.map((x) => (
+                {chats.map((x) => (
                   <ChatCard
                     key={x.id}
                     data={x}
@@ -164,31 +172,18 @@ export default function ChatList() {
               </footer>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex min-h-0 flex-1 items-center justify-center pb-8">
               <EmptyAppCard
                 showIcon
                 size="large"
                 className="w-[480px] p-14"
-                isSearch
+                isSearch={Boolean(searchString)}
                 type={EmptyCardType.Chat}
+                onClick={() => handleShowCreateModal()}
                 testId="chats-empty-create"
               />
             </div>
           )}
-        </article>
-      ) : (
-        <article
-          className="size-full flex items-center justify-center"
-          data-testid="chats-list"
-        >
-          <EmptyAppCard
-            showIcon
-            size="large"
-            className="w-[480px] p-14"
-            type={EmptyCardType.Chat}
-            onClick={() => handleShowCreateModal()}
-            testId="chats-empty-create"
-          />
         </article>
       )}
 

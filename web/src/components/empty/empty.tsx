@@ -105,9 +105,9 @@ export const EmptyAppCard = (props: {
   const { t } = useTranslation();
   let style: React.CSSProperties | undefined;
   const cardData = EmptyCardData[type];
-  // The create card is a plain tile — an icon and a plus — so it carries no
-  // placeholder sentence above them; only the "nothing matched" state keeps a
-  // message, and that message is the one worth reading.
+  // The create tile states what the click does, and the "nothing matched" state
+  // says what came back empty — one line either way, under the icons.
+  const title = t(cardData.titleKey);
   const notFound = t(cardData.notFoundKey);
 
   if (props.size === 'small') {
@@ -123,7 +123,11 @@ export const EmptyAppCard = (props: {
         icon={isSearch && showIcon ? cardData.icon : undefined}
         title={isSearch ? notFound : undefined}
         className={cn(
-          !isSearch && 'cursor-pointer',
+          // The tile is a button: the pointer cursor, a theme-blue hairline and
+          // one soft accent glow on hover. No lift and no scale, so the
+          // surrounding grid never clips it.
+          !isSearch &&
+            'card-interactive transition-[background-color,border-color,box-shadow] duration-200 ease-in-out hover:border-accent-color hover:shadow-accent-glow',
           props.size === 'large' && 'p-14',
           className,
           'w-full max-w-[480px] md:max-w-none',
@@ -133,11 +137,14 @@ export const EmptyAppCard = (props: {
         style={style}
       >
         {!isSearch && !children && (
-          // The icon and the plus are one vertical group, so the tile stays
-          // centred whatever its own width works out to be.
-          <div className="flex flex-col items-center justify-center gap-2">
-            {showIcon && cardData.icon}
-            <Plus size={24} />
+          // Icon, plus and prompt read as one group in the middle of the tile.
+          <div className="flex flex-col items-center justify-center gap-3">
+            <span className="flex flex-col items-center justify-center gap-2">
+              {showIcon && cardData.icon}
+              <Plus size={24} />
+            </span>
+
+            <span className="text-sm text-text-secondary">{title}</span>
           </div>
         )}
         {children}
