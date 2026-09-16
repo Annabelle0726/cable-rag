@@ -77,6 +77,7 @@ export default {
       owner: '所有者',
       running: '运行中...',
       automatic: '自动',
+      imageLoadFailed: '图片加载失败',
       description: '描述',
       optional: '选填',
       refresh: '刷新',

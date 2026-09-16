@@ -18,7 +18,10 @@ import { Authorization } from '@/constants/authorization';
 import { restAPIv1 } from '@/utils/api';
 import { getAuthorization } from '@/utils/authorization-util';
 import classNames from 'classnames';
+import { ImageOff } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 interface IImage extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -62,10 +65,17 @@ const fetchDocumentImage = (url: string, authorization: string) => {
   item.count += 1;
 
   if (!item.promise) {
-    item.promise = fetch(url, { headers: { [Authorization]: authorization } })
+    item.promise = fetch(url, {
+      // Same-origin so the session cookie travels with the request. This app
+      // logs in with a session, and an Authorization header — even an empty one
+      // — stops the backend from falling back to that session, which is exactly
+      // how every reference image ended up as a blank box.
+      credentials: 'same-origin',
+      headers: authorization ? { [Authorization]: authorization } : undefined,
+    })
       .then((response) => {
         if (!response.ok) {
-          throw new Error(response.statusText);
+          throw new Error(`${response.status} ${response.statusText}`);
         }
         return response.blob();
       })
@@ -74,6 +84,9 @@ const fetchDocumentImage = (url: string, authorization: string) => {
         return item.objectUrl;
       })
       .catch((error) => {
+        // The previous version swallowed this, so a rejected image request was
+        // indistinguishable from an image that had not loaded yet.
+        console.warn(`[image] failed to load ${url}: ${error}`);
         imageCache.delete(cacheKey);
         throw error;
       });
@@ -114,32 +127,49 @@ const isAuthRequiredUrl = (url: string): boolean => {
   }
 };
 
-export const useDocumentImageUrl = (id: string, t?: string | number) => {
+export type DocumentImageState = {
+  src: string;
+  failed: boolean;
+  retry: () => void;
+};
+
+/**
+ * Resolves a document image to a displayable URL and reports whether the
+ * request failed, so a caller can say so instead of rendering an empty frame.
+ */
+export const useDocumentImage = (
+  id: string,
+  t?: string | number,
+): DocumentImageState => {
   const directUrl = useMemo(() => buildDocumentImageUrl(id, t), [id, t]);
-  const [imageUrl, setImageUrl] = useState<string>('');
+  const [attempt, setAttempt] = useState(0);
+  const [state, setState] = useState<{ src: string; failed: boolean }>({
+    src: '',
+    failed: false,
+  });
 
   useEffect(() => {
     // For non-API URLs (e.g., base64, external URLs), use directly
     if (!isAuthRequiredUrl(directUrl)) {
-      setImageUrl(directUrl);
+      setState({ src: directUrl, failed: false });
       return;
     }
 
     // For API URLs that require authentication, always fetch with auth headers
     const authorization = getAuthorization();
     let ignore = false;
-    setImageUrl('');
+    setState({ src: '', failed: false });
     const { promise, release } = fetchDocumentImage(directUrl, authorization);
     promise
       .then((url) => {
         if (ignore) {
           return;
         }
-        setImageUrl(url);
+        setState({ src: url, failed: false });
       })
       .catch(() => {
         if (!ignore) {
-          setImageUrl('');
+          setState({ src: '', failed: true });
         }
       });
 
@@ -147,9 +177,16 @@ export const useDocumentImageUrl = (id: string, t?: string | number) => {
       ignore = true;
       release();
     };
-  }, [directUrl]);
+  }, [directUrl, attempt]);
 
-  return imageUrl;
+  return {
+    ...state,
+    retry: () => setAttempt((previous) => previous + 1),
+  };
+};
+
+export const useDocumentImageUrl = (id: string, t?: string | number) => {
+  return useDocumentImage(id, t).src;
 };
 
 /**
@@ -217,7 +254,35 @@ const Image = React.forwardRef<HTMLImageElement, IImage>(function Image(
   { id, t, label, className, ...props },
   ref,
 ) {
-  const src = useDocumentImageUrl(id, t);
+  const { t: translate } = useTranslation();
+  const { src, failed, retry } = useDocumentImage(id, t);
+
+  const labelBadge = label ? (
+    <div className="absolute bottom-2 right-2 bg-accent-primary text-white px-2 py-0.5 rounded-xl text-xs font-normal backdrop-blur-sm">
+      {label}
+    </div>
+  ) : null;
+
+  // A failed request used to render an <img> with no src: an empty frame that
+  // gave the reader no idea whether the picture was missing or still loading.
+  if (failed) {
+    return (
+      <div
+        className={classNames('relative inline-block w-full', className)}
+        data-testid="image-load-failed"
+      >
+        <div className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border-button bg-bg-card text-xs text-text-secondary">
+          <ImageOff className="size-5" />
+          <span>{translate('common.imageLoadFailed', 'Failed to load image')}</span>
+          <Button variant="outline" size="sm" onClick={retry}>
+            {translate('common.refresh', 'Refresh')}
+          </Button>
+        </div>
+        {labelBadge}
+      </div>
+    );
+  }
+
   const imageElement = (
     <img
       {...props}
@@ -234,9 +299,7 @@ const Image = React.forwardRef<HTMLImageElement, IImage>(function Image(
   return (
     <div className="relative inline-block w-full">
       {imageElement}
-      <div className="absolute bottom-2 right-2 bg-accent-primary text-white px-2 py-0.5 rounded-xl text-xs font-normal backdrop-blur-sm">
-        {label}
-      </div>
+      {labelBadge}
     </div>
   );
 });

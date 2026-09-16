@@ -94,6 +94,7 @@ export default {
       owner: 'Owner',
       running: 'Running...',
       automatic: 'Automatic',
+      imageLoadFailed: 'Failed to load image',
       description: 'Description',
       optional: 'Optional',
       refresh: 'Refresh',
