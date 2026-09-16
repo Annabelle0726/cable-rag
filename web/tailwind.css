@@ -529,6 +529,14 @@
 }
 
 @layer utilities {
+  /* Reserve the scrollbar's own width whether or not one is currently needed.
+     Without it, a switch to a tab whose content is shorter removes the
+     scrollbar, the content box grows by that width, and the whole layout jumps
+     sideways. Inert on boxes that do not scroll. */
+  .scrollbar-gutter-stable {
+    scrollbar-gutter: stable;
+  }
+
   /* Cable industry page canvas. One class, both modes: the gradient stops come
      from the page tokens above, so no component repeats a `dark:` variant. */
   .bg-cable-page {

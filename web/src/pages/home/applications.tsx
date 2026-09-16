@@ -62,6 +62,9 @@ export function Applications() {
 
   return (
     <section className="mt-12 border-t border-cable-divider pt-10">
+      {/* The heading and the tab control live outside the panel below, so a tab
+          switch only swaps the panel's contents: the nav never unmounts and its
+          highlight never flickers. */}
       <SectionHeading
         iconName={IconMap[val as keyof typeof IconMap]}
         label={options.find((x) => x.value === val)?.label ?? ''}
@@ -74,7 +77,13 @@ export function Applications() {
         />
       </SectionHeading>
 
-      <HomeCardGrid>
+      {/* Keyed on the active tab so the new panel fades in, and floored at one
+          card's height so a tab that is still loading cannot collapse the section
+          and take the page's scrollbar with it. */}
+      <HomeCardGrid
+        key={val}
+        className="min-h-[104px] animate-in fade-in-0 duration-200"
+      >
         {val === Routes.Agents && (
           <Agents
             setListLength={(length: number) => setListLength(length)}

@@ -3,13 +3,23 @@ import { cn } from '@/lib/utils';
 /**
  * Page scroll container. Full bleed, so the themed page canvas reaches the
  * window edges; the readable column is provided by `PageContent`.
+ *
+ * The scrollbar's width is reserved whether or not it is in use: this container
+ * wraps the whole page, so a section that grows past the window would otherwise
+ * take the width the scrollbar needs and shift every column sideways.
  */
 export function PageContainer({
   className,
   ...props
 }: React.PropsWithChildren<React.HTMLAttributes<HTMLDivElement>>) {
   return (
-    <div className={cn('size-full overflow-auto py-8', className)} {...props} />
+    <div
+      className={cn(
+        'scrollbar-gutter-stable size-full overflow-auto py-8',
+        className,
+      )}
+      {...props}
+    />
   );
 }
 

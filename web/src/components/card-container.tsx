@@ -24,6 +24,10 @@ export function CardContainer({ children, className }: CardContainerProps) {
     <div
       className={cn(
         'grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 auto-rows-auto content-start',
+        // The list pages scroll this grid, and paginating from a full page to a
+        // short one removes the scrollbar: reserving its width keeps the columns
+        // from jumping sideways between pages.
+        'scrollbar-gutter-stable',
         className,
       )}
     >
