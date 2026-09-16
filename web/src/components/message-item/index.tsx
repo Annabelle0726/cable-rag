@@ -182,7 +182,6 @@ const MessageItem = ({
                     content={messageContent}
                     reference={reference}
                     clickDocumentButton={clickDocumentButton}
-                    disableMath={isUser}
                   ></MarkdownContent>
                 )}
               </div>

@@ -587,13 +587,22 @@ export const useScrollToBottom = (
   return { scrollRef: ref, isAtBottom, scrollToBottom };
 };
 
+/**
+ * The chat input stores exactly what the user typed.
+ *
+ * It used to translate the literal escapes `\n` and `\t` into a line break and a
+ * tab, which silently destroyed TeX: every command starting with those letters —
+ * `\text`, `\times`, `\tan`, `\top`, `\nu`, `\neq` — lost its backslash and
+ * reached both the transcript and the model with a control character in its
+ * place, so `$1.5 \text{mm}^2$` arrived as `$1.5 <tab>ext{mm}^2$` and stopped
+ * rendering. A textarea inserts a real newline on Enter, so there is nothing to
+ * interpret.
+ */
 export const useHandleMessageInputChange = () => {
   const [value, setValue] = useState('');
 
   const handleInputChange: ChangeEventHandler<HTMLTextAreaElement> = (e) => {
-    const value = e.target.value;
-    const nextValue = value.replaceAll('\\n', '\n').replaceAll('\\t', '\t');
-    setValue(nextValue);
+    setValue(e.target.value);
   };
 
   return {
