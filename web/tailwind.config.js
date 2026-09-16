@@ -235,7 +235,10 @@ module.exports = {
         '3xs': '0.125' /* 2px */,
       },
       fontFamily: {
+        /* Both stacks are declared once in global.less: a native CJK UI stack
+           and a monospace fallback for identifiers, units and logs. */
         sans: ['var(--font-sans)', ...fontFamily.sans],
+        mono: ['var(--font-mono)', ...fontFamily.mono],
       },
       keyframes: {
         'accordion-down': {

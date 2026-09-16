@@ -352,6 +352,12 @@
     scrollbar-width: thin;
     scrollbar-color: var(--border-default) var(--bg-card);
   }
+
+  /* The whole app inherits the native stack declared in global.less; Tailwind's
+     preflight would otherwise leave its own system list in place. */
+  html {
+    font-family: var(--font-sans);
+  }
 }
 
 @layer components {

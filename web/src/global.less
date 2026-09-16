@@ -15,16 +15,19 @@
  *  limitations under the License.
  */
 
-@import url(./inter.less);
-
+/*
+ * Font stacks.
+ *
+ * Deliberately native: no webfont request, so the UI paints immediately and the
+ * Chinese glyphs come from the platform's own UI font. `--font-mono` is used for
+ * anything that is read character by character — model names, units, timestamps,
+ * log lines — where a proportional font misaligns the columns.
+ */
 :root {
-  --font-sans: 'Inter';
-}
-
-@supports (font-variation-settings: normal) {
-  :root {
-    --font-sans: 'InterVariable';
-  }
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Source Han Sans SC', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Monaco, Consolas, monospace;
 }
 
 html,
@@ -156,7 +159,7 @@ details.agentic-log {
    letting them stretch the message bubble. The panel body is real markdown, so
    the target is every child after the summary. */
 details.agentic-log > :not(summary) {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   white-space: pre-wrap;
   word-break: break-word;
