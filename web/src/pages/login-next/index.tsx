@@ -66,13 +66,15 @@ function LoginFormContent({
   return (
     <div className="flex w-full flex-col items-center justify-center">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-semibold text-text-primary">
+        {/* The title carries the theme blue so it echoes the submit button
+            rather than reading as plain black body copy. */}
+        <h2 className="text-xl font-semibold text-accent-color">
           {title === 'login' ? t('loginTitle') : t('signUpTitle')}
         </h2>
       </div>
       {/* Glass card: a translucent pane over the page gradient with a hairline
-          accent border, and 8px blur — the same surface the app shell uses. */}
-      <div className="glass-panel w-full max-w-[440px] rounded-2xl p-6 sm:p-8">
+          accent border, which lights up while a field inside it has focus. */}
+      <div className="glass-panel w-full max-w-[440px] rounded-2xl p-6 transition-colors duration-200 ease-in-out focus-within:border-accent-color sm:p-8">
         {!disablePasswordLogin && (
           <Form {...form}>
             <form
@@ -288,6 +290,19 @@ const Login = () => {
     }
   }, [isLogin, navigate]);
 
+  // The login route renders without the app shell (`layout: false`), so this
+  // page owns the viewport: one screen, no scrollbars. The document is locked
+  // while it is mounted, because the register face is taller than the login
+  // face and must never turn the page itself into a scroll container.
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   const handleLoginWithChannel = async (channel: string) => {
     await loginWithChannel(channel);
   };
@@ -376,23 +391,21 @@ const Login = () => {
       <Spotlight opcity={0.4} coverage={60} />
       <Spotlight opcity={0.3} coverage={12} X={'10%'} Y={'-10%'} />
       <Spotlight opcity={0.3} coverage={12} X={'90%'} Y={'-10%'} />
-      <div className="bg-cable-page relative h-[inherit] overflow-auto">
+      <div className="bg-cable-page relative flex h-screen w-screen flex-col items-center justify-center overflow-hidden">
         <BgSvg isPaused />
 
-        {/* One centred column: brand, page title, then the card. The old layout
-            pinned the brand block absolutely and reserved 1050px for the card,
-            which is what pushed it off screen on a normal display. */}
-        <div className="relative z-10 mx-auto flex min-h-full w-full max-w-[1100px] flex-col items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-          <header className="mb-8 flex flex-col items-center gap-3 text-center">
-            <span className="glass-panel flex size-14 items-center justify-center rounded-2xl">
-              <SvgIcon name="brand-logo" width={32} height={32} />
+        {/* Brand, then the card, centred as one block on a single screen. The
+            column may scroll on its own if a viewport is shorter than the
+            register face, which keeps the submit button reachable; on a normal
+            screen it never overflows and no scrollbar appears. */}
+        <div className="relative z-10 flex max-h-full w-full max-w-[440px] flex-col items-center overflow-y-auto px-4 py-6">
+          <header className="mb-6 flex flex-col items-center gap-2 text-center">
+            <span className="glass-panel flex size-12 items-center justify-center rounded-2xl">
+              <SvgIcon name="brand-logo" width={28} height={28} />
             </span>
             <p className="text-lg font-semibold tracking-tight text-text-primary">
               {tHeader('brandShort')}
             </p>
-            <h1 className="text-3xl font-medium text-text-primary sm:text-4xl">
-              {t('title')}
-            </h1>
           </header>
 
           {/* Login Form */}
