@@ -1,4 +1,4 @@
-import { LanguageAbbreviation } from '@/constants/common';
+import { LanguageAbbreviation, LanguageAbbreviationMap } from '@/constants/common';
 import storage from '@/utils/authorization-util';
 import dayjs from 'dayjs';
 import i18n from 'i18next';
@@ -11,10 +11,27 @@ import translation_en from './en';
 // The language stored in the database is for agent template resources, as these resources reside on the server.
 // When a user logs in from a different machine, the login page language is the language configured by VITE_DEFAULT_LANGUAGE_CODE.
 
+// Insertion order is the dropdown order, so Simplified Chinese comes first.
 const languageImports: Record<string, () => Promise<{ default: any }>> = {
-  [LanguageAbbreviation.En]: () => import('./en'),
   [LanguageAbbreviation.Zh]: () => import('./zh'),
+  [LanguageAbbreviation.En]: () => import('./en'),
 };
+
+// A stored tag, a DATABASE setting or the env default can arrive as 'zh',
+// 'zh_CN', 'zh-CN' or 'en-US', but only 'zh-Hans' and 'en' are bundled:
+// normalize every spelling before it reaches a lookup, otherwise the regional
+// tag misses the resource and the UI silently falls back.
+const languageAliases: Record<string, string> = {
+  zh: LanguageAbbreviation.Zh,
+  'zh-cn': LanguageAbbreviation.Zh,
+  'zh-hans': LanguageAbbreviation.Zh,
+  en: LanguageAbbreviation.En,
+  'en-us': LanguageAbbreviation.En,
+  'en-gb': LanguageAbbreviation.En,
+};
+
+const normalizeLanguage = (lng: string): string =>
+  languageAliases[lng.replace(/_/g, '-').toLowerCase()] ?? lng;
 
 const supportedLanguageCodes: Intl.UnicodeBCP47LocaleIdentifier[] =
   Object.keys(languageImports);
@@ -25,14 +42,17 @@ export const supportedLanguages = supportedLanguageCodes.map((code) => {
   return {
     code,
     locale,
-    displayName: upperFirst(
-      new Intl.DisplayNames(locale, { type: 'language' }).of(code)!,
-    ),
+    // The switcher names each language in its own script, so it does not read
+    // the generic Intl name (which follows the *browser* locale).
+    displayName:
+      LanguageAbbreviationMap[code as LanguageAbbreviation] ??
+      upperFirst(new Intl.DisplayNames(locale, { type: 'language' }).of(code)!),
   };
 });
 
-export const DEFAULT_LANGUAGE_CODE =
-  import.meta.env.VITE_DEFAULT_LANGUAGE_CODE || LanguageAbbreviation.En;
+export const DEFAULT_LANGUAGE_CODE = normalizeLanguage(
+  import.meta.env.VITE_DEFAULT_LANGUAGE_CODE || LanguageAbbreviation.Zh,
+);
 
 const resources = {
   [LanguageAbbreviation.En]: translation_en,
@@ -55,14 +75,18 @@ i18n
     },
     supportedLngs: supportedLanguageCodes,
     resources,
-    fallbackLng: DEFAULT_LANGUAGE_CODE,
+    // Simplified Chinese is the default; English stays the secondary fallback
+    // because its bundle is the one bundled into the entry chunk, so a Chinese
+    // bundle that has not finished loading degrades to English instead of
+    // showing raw keys.
+    fallbackLng: [DEFAULT_LANGUAGE_CODE, LanguageAbbreviation.En],
     interpolation: {
       escapeValue: false,
     },
   });
 
 export const loadLanguageAsync = async (lng: string): Promise<void> => {
-  const normalizedLng = lng;
+  const normalizedLng = normalizeLanguage(lng);
 
   if (i18n.hasResourceBundle(normalizedLng, 'translation')) {
     return;
@@ -88,7 +112,7 @@ export const changeLanguageAsync = async (
   options: { persist?: boolean } = {},
 ): Promise<void> => {
   const { persist = true } = options;
-  const normalizedLng = lng;
+  const normalizedLng = normalizeLanguage(lng);
 
   if (
     normalizedLng !== LanguageAbbreviation.En &&
@@ -98,16 +122,20 @@ export const changeLanguageAsync = async (
   }
 
   if (persist) {
-    storage.setLanguage(lng);
+    storage.setLanguage(normalizedLng);
   }
 
-  updateDocumentLocale(lng);
+  updateDocumentLocale(normalizedLng);
 
   await i18n.changeLanguage(normalizedLng);
 };
 
 export const initLanguage = async (): Promise<void> => {
-  const currentLng = storage.getLanguage() || DEFAULT_LANGUAGE_CODE;
+  // The first visit has nothing stored, so the default is applied and written
+  // back as the persistent choice; later visits keep whatever the user picked.
+  const currentLng = normalizeLanguage(
+    storage.getLanguage() || DEFAULT_LANGUAGE_CODE,
+  );
 
   await changeLanguageAsync(currentLng);
 };
