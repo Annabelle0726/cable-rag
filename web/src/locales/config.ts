@@ -7,7 +7,7 @@ import { upperFirst } from 'lodash';
 import { initReactI18next } from 'react-i18next';
 import translation_en from './en';
 
-//The language is based on the .ng file stored in the client's local storage.
+// The language is based on the .lng file stored in the client's local storage.
 // The language stored in the database is for agent template resources, as these resources reside on the server.
 // When a user logs in from a different machine, the login page language is the language configured by VITE_DEFAULT_LANGUAGE_CODE.
 
@@ -41,7 +41,7 @@ const resources = {
 const updateDocumentLocale = (lng: string) => {
   document.documentElement.lang = lng;
   document.documentElement.dir = 'ltr';
-  dayjs.locale(lng === 'zh' ? 'zh-cn' : lng);
+  dayjs.locale(lng === LanguageAbbreviation.Zh ? 'zh-cn' : lng);
 };
 
 i18n
