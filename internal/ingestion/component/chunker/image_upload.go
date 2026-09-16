@@ -40,7 +40,7 @@ import (
 var imageUploadSem = make(chan struct{}, imageUploadConcurrency())
 
 // ChunkImageUploader is the uploader used by the chunker's image-upload pass
-// (the imageUploadDecorator). It defaults to component.DefaultImageUploader;
+// (the chunkOutputDecorator). It defaults to component.DefaultImageUploader;
 // tests and specialized runtimes override it (e.g. with a no-op uploader).
 var ChunkImageUploader component.ImageUploader = component.DefaultImageUploader
 
@@ -63,7 +63,7 @@ func imageUploadConcurrency() int {
 //     uploadOneImage at key=ck["id"], set img_id="<kb_id>-<chunk_id>", and
 //     delete the raw image field (用完即弃).
 //
-// The caller (imageUploadDecorator) must write ck["id"] before calling this
+// The caller (chunkOutputDecorator) must write ck["id"] before calling this
 // function. uploadChunkImage errors when a chunk arrives without id.
 func uploadChunkImages(ctx context.Context, chunks []map[string]any, up component.ImageUploader, kbID string) error {
 	for _, ck := range chunks {

@@ -47,7 +47,7 @@ func MustRegisterChunker(name string) {
 		if err != nil {
 			return nil, err
 		}
-		return &imageUploadDecorator{inner: comp}, nil
+		return &chunkOutputDecorator{inner: comp}, nil
 	}
 	runtime.MustRegister(name, runtime.CategoryIngestion, factory, runtime.Metadata{
 		Version: "1.0.0",
@@ -56,14 +56,24 @@ func MustRegisterChunker(name string) {
 	})
 }
 
-// imageUploadDecorator wraps a chunker component. Before upload it writes
-// ck["id"] (the single source of chunk identity) for every chunk; then it runs
-// uploadChunkImages which reads ck["id"] and uploads any raw image bytes.
-type imageUploadDecorator struct {
+// chunkOutputDecorator wraps a chunker component and owns the whole post-slicing
+// pass every chunker variant shares — the single choke point all of them flow
+// through, whichever variant produced the chunks:
+//
+//  1. attachDocumentContext binds the document-level identity (standard number,
+//     title, section) to each chunk's text, so a chunk sliced away from the cover
+//     page still states which standard it belongs to.
+//  2. write ck["id"] (the single source of chunk identity) for every chunk;
+//  3. run uploadChunkImages, which reads ck["id"] and uploads any raw image bytes.
+//
+// Order matters: the context prefix is part of the chunk text, so it is applied
+// before the id is derived — the persisted id stays a pure function of the
+// persisted text. Image upload runs last because it consumes ck["id"].
+type chunkOutputDecorator struct {
 	inner runtime.Component
 }
 
-func (d *imageUploadDecorator) Invoke(ctx context.Context, db *gorm.DB, inputs map[string]any) (map[string]any, error) {
+func (d *chunkOutputDecorator) Invoke(ctx context.Context, db *gorm.DB, inputs map[string]any) (map[string]any, error) {
 	out, err := d.inner.Invoke(ctx, db, inputs)
 	if err != nil {
 		return nil, err
@@ -78,13 +88,18 @@ func (d *imageUploadDecorator) Invoke(ctx context.Context, db *gorm.DB, inputs m
 	// variant flows through, so the cap applies regardless of variant, and it
 	// also limits downstream compiler/tokenizer work in the debug run — the
 	// intended cost saving. Truncation happens FIRST, before any per-chunk
-	// work below: dropped chunks get no id computation and no image upload /
-	// byte dropping, so a chunk can never be persisted to storage and then
-	// discarded by this cap. No chunker node (or cap == 0) → untouched.
+	// work below: dropped chunks get no context prefix, no id computation and
+	// no image upload / byte dropping, so a chunk can never be persisted to
+	// storage and then discarded by this cap. No chunker node (or cap == 0) →
+	// untouched.
 	if chunkCap := globals.DebugChunkCap(ctx); chunkCap > 0 && len(chunks) > chunkCap {
 		chunks = chunks[:chunkCap]
 		out["chunks"] = chunks
 	}
+
+	// Bind the document-level context (standard number / title / section) to the
+	// text of every chunk before anything derives value from that text.
+	attachDocumentContext(chunks, globals.GlobalOrInput(ctx, inputs, "name", ""))
 
 	kbID, docID := resolveImageUploadContext(ctx, inputs)
 

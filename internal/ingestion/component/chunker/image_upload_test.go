@@ -205,11 +205,11 @@ func TestUploadOneImage_ConcurrencyLimit(t *testing.T) {
 	}
 }
 
-// TestImageUploadDecorator_EndToEnd drives a real OneChunker through the
-// registration decorator and asserts the produced chunk was uploaded (img_id
+// TestChunkOutputDecorator_ImageUploadEndToEnd drives a real OneChunker through
+// the registration decorator and asserts the produced chunk was uploaded (img_id
 // and id set, image dropped). Uses the ChunkImageUploader override seam so no
 // real storage backend is needed.
-func TestImageUploadDecorator_EndToEnd(t *testing.T) {
+func TestChunkOutputDecorator_ImageUploadEndToEnd(t *testing.T) {
 	var gotKB, gotKey string
 	prev := ChunkImageUploader
 	ChunkImageUploader = func(_ context.Context, kbID, chunkID string, _ []byte) (string, error) {
@@ -222,7 +222,7 @@ func TestImageUploadDecorator_EndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewOneChunker: %v", err)
 	}
-	decorated := &imageUploadDecorator{inner: comp}
+	decorated := &chunkOutputDecorator{inner: comp}
 
 	inputs := map[string]any{
 		"name":   "doc.pdf",
@@ -281,13 +281,13 @@ func waitForInflight(t *testing.T, counter *int64, target int64) {
 	}
 }
 
-// TestImageUploadDecorator_DebugSkipsUpload verifies that a debug/dry-run run
+// TestChunkOutputDecorator_DebugSkipsUpload verifies that a debug/dry-run run
 // (empty kb_id) does NOT upload the chunk image to storage, while still
 // dropping the raw image bytes. This keeps the debug path free of MinIO side
 // effects and preserves the current memory behaviour (raw bytes discarded, not
 // held until a persist stage). An empty kb_id only occurs in canvas debug
 // (dry-run) mode; production ingestion always supplies a KB.
-func TestImageUploadDecorator_DebugSkipsUpload(t *testing.T) {
+func TestChunkOutputDecorator_DebugSkipsUpload(t *testing.T) {
 	prev := ChunkImageUploader
 	ChunkImageUploader = func(_ context.Context, _, _ string, _ []byte) (string, error) {
 		t.Fatalf("ChunkImageUploader must not be called in a debug run")
@@ -299,7 +299,7 @@ func TestImageUploadDecorator_DebugSkipsUpload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewOneChunker: %v", err)
 	}
-	decorated := &imageUploadDecorator{inner: comp}
+	decorated := &chunkOutputDecorator{inner: comp}
 
 	inputs := map[string]any{
 		"name":   "doc.pdf",
@@ -327,7 +327,7 @@ func TestImageUploadDecorator_DebugSkipsUpload(t *testing.T) {
 }
 
 // stubChunker is a deterministic fake runtime.Component used to exercise the
-// imageUploadDecorator without depending on a real chunker variant's slicing
+// chunkOutputDecorator without depending on a real chunker variant's slicing
 // behaviour. It returns exactly the chunks it was constructed with.
 type stubChunker struct {
 	chunks []map[string]any
@@ -337,14 +337,14 @@ func (s *stubChunker) Invoke(_ context.Context, _ *gorm.DB, _ map[string]any) (m
 	return map[string]any{"chunks": s.chunks}, nil
 }
 
-// TestImageUploadDecorator_DebugCapsChunks pins the canvas-debug chunk cap:
+// TestChunkOutputDecorator_DebugCapsChunks pins the canvas-debug chunk cap:
 // when CanvasState.Globals carries debug_chunk_cap (>=1), the decorator
 // truncates the chunker output to the leading N chunks for preview. This is
 // the single choke point that every chunker variant flows through, so the cap
 // applies regardless of which chunker variant produced the chunks. The test
 // drives a stub chunker (deterministic output) through the decorator with a
 // ctx that has the cap set, and asserts only the first N chunks survive.
-func TestImageUploadDecorator_DebugCapsChunks(t *testing.T) {
+func TestChunkOutputDecorator_DebugCapsChunks(t *testing.T) {
 	const capN = 3
 	src := make([]map[string]any, 0, 6)
 	for i := 0; i < 6; i++ {
@@ -352,7 +352,7 @@ func TestImageUploadDecorator_DebugCapsChunks(t *testing.T) {
 			"text": fmt.Sprintf("chunk-%d", i),
 		})
 	}
-	decorated := &imageUploadDecorator{inner: &stubChunker{chunks: src}}
+	decorated := &chunkOutputDecorator{inner: &stubChunker{chunks: src}}
 
 	inputs := map[string]any{
 		"name":   "doc.pdf",
@@ -382,17 +382,17 @@ func TestImageUploadDecorator_DebugCapsChunks(t *testing.T) {
 	}
 }
 
-// TestImageUploadDecorator_NoCapKeepsAll asserts that without debug_chunk_cap
+// TestChunkOutputDecorator_NoCapKeepsAll asserts that without debug_chunk_cap
 // in globals the decorator leaves every chunk intact — the cap is opt-in via
 // the global, so persist runs and chunker-less debug runs are untouched.
-func TestImageUploadDecorator_NoCapKeepsAll(t *testing.T) {
+func TestChunkOutputDecorator_NoCapKeepsAll(t *testing.T) {
 	src := make([]map[string]any, 0, 5)
 	for i := 0; i < 5; i++ {
 		src = append(src, map[string]any{
 			"text": fmt.Sprintf("chunk-%d", i),
 		})
 	}
-	decorated := &imageUploadDecorator{inner: &stubChunker{chunks: src}}
+	decorated := &chunkOutputDecorator{inner: &stubChunker{chunks: src}}
 
 	inputs := map[string]any{
 		"name":   "doc.pdf",

@@ -124,7 +124,7 @@ func TestCropImageChunks_CropsImageTableAndText(t *testing.T) {
 // TestRestorePDFTextPreview covers Chunker-1.3 directly: a text chunk that
 // carries PDF positions must receive a rendered preview image, while a text
 // chunk without positions must be left untouched (no spurious preview). The
-// img_id upload is owned by imageUploadDecorator (image_upload.go) and is
+// img_id upload is owned by chunkOutputDecorator (image_upload.go) and is
 // not asserted here.
 func TestRestorePDFTextPreview(t *testing.T) {
 	ctx := context.Background()

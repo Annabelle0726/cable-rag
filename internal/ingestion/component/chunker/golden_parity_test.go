@@ -210,7 +210,7 @@ func loadGolden(t *testing.T, caseID string) goldenResult {
 }
 
 // invokeChunker runs the component through the registry, which is the
-// production path: it wraps every chunker in imageUploadDecorator. That
+// production path: it wraps every chunker in chunkOutputDecorator. That
 // decorator is what writes the Go-only "id" field, and with no kb_id in
 // context it drops raw image bytes instead of reaching for MinIO.
 func invokeChunker(t *testing.T, tc parityCase) []map[string]any {

@@ -52,7 +52,7 @@
 //   - PDF text previews (Python `restore_pdf_text_previews`) are
 //     generated on demand for text chunks that carry PDF positions:
 //     cropImageChunks crops the text region and writes a preview image,
-//     then imageUploadDecorator uploads it to img_id. See pdfcrop_cgo.go.
+//     then chunkOutputDecorator uploads it to img_id. See pdfcrop_cgo.go.
 //
 //   - OVER-BUDGET UNITS (contract #17799): a single item that exceeds
 //     chunk_token_size is KEPT WHOLE as its own chunk and is NOT

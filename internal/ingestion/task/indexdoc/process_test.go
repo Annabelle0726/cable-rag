@@ -122,7 +122,7 @@ func TestProcessChunksForPipeline_RejectsNonStringText(t *testing.T) {
 // processChunkPositions prunes the _pdf_positions internal field (the
 // parser-emitted position matrix) before indexing. The "image" field is
 // no longer dropped here — its lifecycle is owned by the chunker's
-// imageUploadDecorator (register.go + image_upload.go), which uploads and
+// chunkOutputDecorator (register.go + image_upload.go), which uploads and
 // deletes it at the chunker stage.
 func TestProcessChunksForPipeline_RemovesInternalPipelineFields(t *testing.T) {
 	chunks := []map[string]any{{
