@@ -35,6 +35,8 @@ import types
 
 import pytest
 
+from common.constants import MAXIMUM_PAGE_NUMBER
+
 _LOG = logging.getLogger(__name__)
 _PDF_PARSER_KEY = "deepdoc.parser.pdf_parser"
 
@@ -69,7 +71,30 @@ def _make_pdf_parser_stub():
         def remove_tag(text):
             return text
 
+    class _StubPlainParser:
+        """Import-time stand-in for deepdoc's PlainParser.
+
+        ``deepdoc/parser/__init__.py`` and ``rag/app/naive.py`` import PlainParser
+        eagerly, so a stub that omits it makes those modules unimportable and every
+        test module under ``test/unit_test/rag`` that reaches deepdoc — directly or
+        through ``api.db.services.task_service`` — fail at collection.
+        """
+
+        def __call__(self, *args, **kwargs):  # pragma: no cover - never invoked
+            raise NotImplementedError("PlainParser is stubbed for import-time use only")
+
+    class _StubVisionParser(_StubPdfParser):
+        """Import-time stand-in for deepdoc's VisionParser (see _StubPlainParser)."""
+
+        def __init__(self, *args, **kwargs):  # pragma: no cover - never invoked
+            raise NotImplementedError("VisionParser is stubbed for import-time use only")
+
     pdf_parser.RAGFlowPdfParser = _StubPdfParser
+    pdf_parser.PlainParser = _StubPlainParser
+    pdf_parser.VisionParser = _StubVisionParser
+    # Names the real module re-exports and other modules import from it.
+    pdf_parser.MAXIMUM_PAGE_NUMBER = MAXIMUM_PAGE_NUMBER
+    pdf_parser.LOCK_KEY_pdfplumber = "global_shared_lock_pdfplumber"
     return pdf_parser
 
 
