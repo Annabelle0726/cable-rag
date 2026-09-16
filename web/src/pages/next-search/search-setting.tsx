@@ -21,6 +21,7 @@ import { KnowledgeBaseFormField } from '@/components/knowledge-base-item';
 import { LlmSettingFieldItems } from '@/components/llm-setting-items/next';
 import { MetadataFilter } from '@/components/metadata-filter';
 import { RerankCandidatesCountFormField } from '@/components/rerank-candidates-count-item';
+import { SettingsDrawer } from '@/components/settings-drawer';
 import { SimilaritySliderFormField } from '@/components/similarity-slider';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,9 +41,7 @@ import {
   useStaleDatasetFormSchema,
 } from '@/hooks/use-stale-dataset-validation';
 import { useFetchTenantInfo } from '@/hooks/use-user-setting-request';
-import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -60,20 +59,16 @@ import {
   useSearchSettingFormSchema,
 } from './search-setting-hooks';
 
+/** The form lives in the drawer body; its footer button submits it by id. */
+const SearchSettingsFormId = 'search-settings-form';
+
 interface SearchSettingProps {
   open: boolean;
   setOpen: (open: boolean) => void;
-  className?: string;
   data: ISearchAppDetailProps;
 }
 
-function SearchSetting({
-  open = false,
-  setOpen,
-  className,
-  data,
-}: SearchSettingProps) {
-  const [width0, setWidth0] = useState('w-[440px]');
+function SearchSetting({ open = false, setOpen, data }: SearchSettingProps) {
   const { search_config } = data || {};
   const { llm_setting } = search_config || {};
   const { t } = useTranslation();
@@ -145,15 +140,12 @@ function SearchSetting({
     resetForm();
   }, [resetForm]);
 
-  useEffect(() => {
-    if (!open) {
-      setTimeout(() => {
-        setWidth0('w-0 hidden');
-      }, 500);
-    } else {
-      setWidth0('w-[440px]');
-    }
-  }, [open]);
+  // Cancelling drops the edits and closes the drawer; saving submits the form
+  // from the drawer's footer and closes it once the update resolves.
+  const handleCancel = useCallback(() => {
+    resetForm();
+    setOpen(false);
+  }, [resetForm, setOpen]);
 
   const { rerankModelEnabled, aiSummaryEnabled } = useRevalidatePersistedModels(
     {
@@ -288,29 +280,45 @@ function SearchSetting({
     }
   };
   return (
-    <div
-      className={cn(
-        'text-text-primary border-l-0.5 p-4 pb-12',
-        {
-          'animate-fade-in-right': open,
-          'animate-fade-out-right': !open,
-        },
-        width0,
-        className,
-      )}
-    >
-      <div className="flex justify-between items-center text-base mb-8">
-        <div className="text-text-primary">{t('search.searchSettings')}</div>
-        <div onClick={() => setOpen(false)}>
-          <X size={16} className="text-text-primary cursor-pointer" />
+    // The panel is the shared right-hand drawer, anchored to the search page so
+    // its top edge lines up with the app bar's bottom edge and the search area
+    // underneath keeps its full width while the drawer is closed.
+    <SettingsDrawer
+      open={open}
+      onOpenChange={setOpen}
+      title={t('search.searchSettings')}
+      testId="search-settings-drawer"
+      contained
+      footer={
+        <div className="flex items-center justify-end gap-3">
+          <Button
+            type="button"
+            variant={'outline'}
+            onClick={handleCancel}
+            data-testid="search-settings-cancel"
+          >
+            {t('search.cancelText')}
+          </Button>
+          <Button
+            data-testid="search-settings-save"
+            type="submit"
+            form={SearchSettingsFormId}
+            disabled={formSubmitLoading}
+          >
+            {formSubmitLoading && (
+              <div className="size-4">
+                <Spin size="small" />
+              </div>
+            )}
+            {t('search.okText')}
+          </Button>
         </div>
-      </div>
-      <div
-        style={{ maxHeight: 'calc(100dvh - 270px)' }}
-        className="overflow-y-auto scrollbar-auto p-1 text-text-secondary"
-      >
+      }
+    >
+      <div className="text-text-secondary">
         <Form {...formMethods}>
           <form
+            id={SearchSettingsFormId}
             onSubmit={formMethods.handleSubmit(
               (data) => {
                 onSubmit(data as unknown as IUpdateSearchProps);
@@ -492,36 +500,10 @@ function SearchSetting({
                 </FormItem>
               )}
             />
-            {/* Submit Button */}
-            <div className="flex justify-end"></div>
-            <div className="flex justify-end gap-2 absolute bottom-1 right-3 bg-bg-base w-[calc(100%-1em)] py-2">
-              <Button
-                type="reset"
-                variant={'transparent'}
-                onClick={() => {
-                  resetForm();
-                  setOpen(false);
-                }}
-              >
-                {t('search.cancelText')}
-              </Button>
-              <Button
-                data-testid="search-settings-save"
-                type="submit"
-                disabled={formSubmitLoading}
-              >
-                {formSubmitLoading && (
-                  <div className="size-4">
-                    <Spin size="small" />
-                  </div>
-                )}
-                {t('search.okText')}
-              </Button>
-            </div>
           </form>
         </Form>
       </div>
-    </div>
+    </SettingsDrawer>
   );
 }
 

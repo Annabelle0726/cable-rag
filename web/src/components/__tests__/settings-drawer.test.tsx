@@ -1,6 +1,6 @@
+import { SettingsDrawer } from '@/components/settings-drawer';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
-import { SettingsDrawer } from './settings-drawer';
 
 function Harness() {
   const [open, setOpen] = useState(true);
@@ -10,6 +10,7 @@ function Harness() {
       open={open}
       onOpenChange={setOpen}
       title="聊天设置"
+      testId="chat-detail-settings"
       footer={<button type="button">save</button>}
     >
       <p>retrieval</p>
@@ -32,6 +33,36 @@ describe('SettingsDrawer', () => {
     expect(panel.className).toContain('slide-in-from-right');
     // The panel casts leftwards over the conversation.
     expect(panel.className).toContain('shadow-cable-drawer');
+    // Viewport anchored by default: the chat page lets the drawer cover its own
+    // header.
+    expect(panel.className).toContain('fixed');
+    expect(panel.className).not.toContain('absolute');
+  });
+
+  it('anchors to its own container when the page asks for it', () => {
+    render(
+      <div className="relative">
+        <SettingsDrawer
+          open
+          onOpenChange={() => {}}
+          title="搜索设置"
+          testId="search-settings-drawer"
+          contained
+        >
+          <p>kb</p>
+        </SettingsDrawer>
+      </div>,
+    );
+
+    const panel = screen.getByTestId('search-settings-drawer');
+
+    // `absolute` is what keeps the panel and its backdrop below the app bar.
+    expect(panel.className).toContain('absolute');
+    expect(panel.className).not.toContain('fixed');
+    expect(
+      document.querySelector('[data-state="open"].bg-cable-backdrop')
+        ?.className,
+    ).toContain('absolute');
   });
 
   it('scrolls its body so every setting stays reachable', () => {

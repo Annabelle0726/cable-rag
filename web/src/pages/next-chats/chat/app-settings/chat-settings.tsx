@@ -1,3 +1,4 @@
+import { SettingsDrawer } from '@/components/settings-drawer';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import {
@@ -30,7 +31,6 @@ import { PrologueFields } from './sections/prologue-fields';
 import { RetrievalFields } from './sections/retrieval-fields';
 import { SystemPromptFields } from './sections/system-prompt-fields';
 import { SavingButton } from './saving-button';
-import { SettingsDrawer } from './settings-drawer';
 import { useChatSettingSchema } from './use-chat-setting-schema';
 import { useRevealSubmitErrors } from './use-reveal-submit-errors';
 
@@ -222,6 +222,7 @@ export function ChatSettings({
       open={visible}
       onOpenChange={onVisibleChange}
       title={t('chat.chatSetting')}
+      testId="chat-detail-settings"
       footer={
         <div className="flex items-center justify-end gap-3">
           <Button

@@ -17,7 +17,8 @@
 import { Button } from '@/components/ui/button';
 import { useFetchUserInfo } from '@/hooks/use-user-setting-request';
 import { Settings } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ISearchAppDetailProps,
   useFetchSearchDetail,
@@ -31,6 +32,7 @@ import SearchingPage from './searching';
 export default function SearchPage() {
   const [isSearching, setIsSearching] = useState(false);
   const { data: SearchData } = useFetchSearchDetail();
+  const { t } = useTranslation();
 
   const [openSetting, setOpenSetting] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -47,6 +49,10 @@ export default function SearchPage() {
       setOpenSetting(false);
     }
   }, [isSearching]);
+
+  const handleToggleSettings = useCallback(() => {
+    setOpenSetting((previous) => !previous);
+  }, []);
 
   return (
     <section
@@ -82,23 +88,27 @@ export default function SearchPage() {
             </div>
           )}
         </div>
-        {openSetting && (
-          <SearchSetting
-            open={openSetting}
-            setOpen={setOpenSetting}
-            className="shrink-0 max-w-full"
-            data={SearchData as ISearchAppDetailProps}
-          />
-        )}
       </div>
 
+      {/* The only settings trigger: one gear in the page's own corner. The panel
+          it opens is a drawer anchored to this section, so the search area keeps
+          the full width and nothing is pushed to the side while it is closed. */}
       <Button
         variant="transparent"
-        className="bg-bg-card m-4 shrink-0"
-        onClick={() => setOpenSetting(!openSetting)}
+        className="absolute right-4 top-4 z-30 bg-bg-card"
+        onClick={handleToggleSettings}
+        aria-label={t('search.searchSettings')}
+        title={t('search.searchSettings')}
+        data-testid="search-settings-open"
       >
         <Settings className="text-text-secondary" />
       </Button>
+
+      <SearchSetting
+        open={openSetting}
+        setOpen={setOpenSetting}
+        data={SearchData as ISearchAppDetailProps}
+      />
     </section>
   );
 }
