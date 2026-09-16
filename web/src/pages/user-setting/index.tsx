@@ -17,18 +17,19 @@
 import { Outlet } from 'react-router';
 import { SideBar } from './sidebar';
 
-import { cn } from '@/lib/utils';
-
 function UserSetting() {
   return (
-    <section className="pt-8 size-full grid grid-cols-[4rem_minmax(0,1fr)] md:grid-cols-[303px_minmax(0,1fr)] grid-rows-1 min-w-0">
+    // Fills exactly what the app shell leaves below the header, because `main`
+    // in the shell is the `1fr` row that is left once the bar is laid out.
+    // `min-h-0` on the section and on the content column is what keeps each
+    // column's own scroll area scrolling: grid items are `min-height: auto` by
+    // default, so a tall child used to stretch the section past the screen and
+    // push both the panel's footer and its content out of the viewport instead
+    // of scrolling inside it.
+    <section className="grid size-full min-h-0 min-w-0 grid-cols-[4rem_minmax(0,1fr)] grid-rows-1 overflow-hidden md:grid-cols-[303px_minmax(0,1fr)]">
       <SideBar />
 
-      <div
-        className={cn(
-          'pr-2 md:pr-6 pb-6 flex flex-1 min-w-0 rounded-lg overflow-hidden',
-        )}
-      >
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden pb-4 pr-2 md:pb-6 md:pr-6">
         <Outlet />
       </div>
     </section>
