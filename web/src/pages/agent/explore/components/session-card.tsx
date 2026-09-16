@@ -27,7 +27,7 @@ export function SessionCard({
     <Card
       onClick={onClick}
       className={cn(
-        'cursor-pointer hover:shadow-md transition-shadow',
+        'card-interactive transition-colors duration-200 ease-in-out',
         selected && 'border-accent-primary bg-accent-primary/10',
       )}
     >

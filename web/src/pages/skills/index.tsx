@@ -663,7 +663,7 @@ const SkillsPage: React.FC = () => {
                   {filteredSpaces.map((space) => (
                     <Card
                       key={space.id}
-                      className="group flex flex-col cursor-pointer bg-bg-card hover:border-accent-primary hover:shadow-md transition-all"
+                      className="card-interactive transition-colors duration-200 ease-in-out group flex flex-col bg-bg-card"
                       onClick={() => {
                         setSelectedSpaceId(space.id);
                         setSelectedSpaceName(space.name);

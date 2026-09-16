@@ -34,7 +34,10 @@ export function CompilationTemplateCard({
   );
 
   return (
-    <Card className="group cursor-pointer h-full" onClick={onClick}>
+    <Card
+      className="card-interactive transition-colors duration-200 ease-in-out group h-full"
+      onClick={onClick}
+    >
       <CardContent className="py-4 px-2.5 flex gap-3">
         <RAGFlowAvatar
           avatar={data.avatar}

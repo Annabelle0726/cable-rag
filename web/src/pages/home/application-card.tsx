@@ -10,12 +10,11 @@ import { ChevronRight } from 'lucide-react';
  * memory). Sizing is fluid so the tiles can live in the responsive grid.
  */
 const applicationCardClass = cn(
-  'group h-full w-full rounded-xl px-4 py-3',
+  // `card-interactive` supplies the pointer cursor and a colour-only hover
+  // (background tint + border highlight) — no elevation, no translate: the
+  // overflow-auto grid these tiles live in would clip a lifted card.
+  'card-interactive transition-colors duration-200 ease-in-out group h-full w-full rounded-xl px-4 py-3',
   'border border-cable-border bg-cable-surface shadow-cable-surface',
-  // Elevation plus border highlight only: a translate would be clipped by the
-  // overflow-auto grid these tiles are rendered in.
-  'transition-[box-shadow,border-color] duration-200 ease-out',
-  'hover:border-cable-border-hover hover:shadow-cable-surface-hover',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cable-accent',
 );
 
@@ -68,7 +67,7 @@ export function SeeAllAppCard({ click }: SeeAllAppCardProps) {
     <Card
       className={cn(
         applicationCardClass,
-        'flex min-h-[76px] cursor-pointer items-center justify-center',
+        'flex min-h-[76px] items-center justify-center',
       )}
       onClick={click}
       tabIndex={0}

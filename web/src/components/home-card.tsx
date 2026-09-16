@@ -67,13 +67,14 @@ export function HomeCard({
       }}
       tabIndex={0}
       className={cn(
-        'group flex h-full w-full items-start gap-3 rounded-xl px-4 py-4',
+        // `card-interactive` supplies the pointer cursor and a colour-only hover
+        // (background tint + border highlight). No transform or scale: these
+        // cards render inside `overflow-hidden` grids, which clip a lifted card.
+        'card-interactive group flex h-full w-full items-start gap-3 rounded-xl px-4 py-4',
         'border border-cable-border bg-cable-surface shadow-cable-surface',
-        // No translate on hover: these cards render inside `overflow-auto` grids,
-        // which clip a lifted card (and its shadow) on the first row. Elevation
-        // plus the border highlight give the same feedback without moving layout.
-        'transition-[box-shadow,border-color] duration-200 ease-out',
-        'hover:border-cable-border-hover hover:shadow-cable-surface-hover',
+        // Needed because `Card` ships `transition-shadow`, which would otherwise
+        // pin transition-property to box-shadow and drop the colour transition.
+        'transition-colors duration-200 ease-in-out',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cable-accent',
       )}
     >
