@@ -1,54 +1,20 @@
 <div align="center">
-<a href="https://cloud.ragflow.io/">
-<img src="https://raw.githubusercontent.com/infiniflow/ragflow/main/web/src/assets/logo-with-text.svg" width="520" alt="ragflow logo">
-</a>
+<img src="./web/public/logo.svg" width="88" alt="Cable RAG logo">
+<h1>Cable RAG</h1>
+<p><b>Cable Industry AI Retrieval-Augmented Generation Engine</b></p>
+<p>AI retrieval and question answering over cable standards, specifications, BOMs and QC records.</p>
 </div>
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-DBEDFA"></a>
   <a href="./README_zh.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-DFE0E5"></a>
+  <a href="./LICENSE"><img height="21" src="https://img.shields.io/badge/License-Apache--2.0-ffffff?labelColor=d4eaf7&color=2e6cc4" alt="license"></a>
 </p>
-
-<p align="center">
-    <a href="https://x.com/intent/follow?screen_name=infiniflowai" target="_blank">
-        <img src="https://img.shields.io/twitter/follow/infiniflow?logo=X&color=%20%23f5f5f5" alt="follow on X(Twitter)">
-    </a>
-    <a href="https://cloud.ragflow.io" target="_blank">
-        <img alt="Static Badge" src="https://img.shields.io/badge/Get-Started-4e6b99">
-    </a>
-    <a href="https://hub.docker.com/r/infiniflow/ragflow" target="_blank">
-        <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/infiniflow/ragflow-stats/main/badges/docker-pulls.json&style=flat-square&logo=docker&logoColor=white" alt="docker pull infiniflow/ragflow:v0.27.2">
-    </a>
-    <a href="https://github.com/infiniflow/ragflow/releases/latest">
-        <img src="https://img.shields.io/github/v/release/infiniflow/ragflow?color=blue&label=Latest%20Release" alt="Latest Release">
-    </a>
-    <a href="https://github.com/infiniflow/ragflow/blob/main/LICENSE">
-        <img height="21" src="https://img.shields.io/badge/License-Apache--2.0-ffffff?labelColor=d4eaf7&color=2e6cc4" alt="license">
-    </a>
-    <a href="https://deepwiki.com/infiniflow/ragflow">
-        <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg">
-    </a>
-</p>
-
-<h4 align="center">
-  <a href="https://cloud.ragflow.io">Cloud</a> |
-  <a href="https://ragflow.io/docs/dev/">Documentation</a> |
-  <a href="https://github.com/infiniflow/ragflow/issues/12241">Roadmap</a> |
-  <a href="https://discord.gg/NjYzJD3GM3">Discord</a>
-</h4>
-
-<div align="center" style="margin-top:20px;margin-bottom:20px;">
-<img alt="RAGFlow in the GitHub Octoverse" src="https://raw.githubusercontent.com/infiniflow/ragflow-docs/refs/heads/image/image/ragflow-octoverse.png" width="1200"/>
-</div>
-
-<div align="center">
-<a href="https://trendshift.io/repositories/9064" target="_blank"><img src="https://trendshift.io/api/badge/repositories/9064" alt="infiniflow%2Fragflow | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</div>
 
 <details open>
 <summary><b>📕 Table of Contents</b></summary>
 
-- 💡 [What is RAGFlow?](#-what-is-ragflow)
+- 💡 [What is Cable RAG?](#-what-is-cable-rag)
 - 🎮 [Get Started](#-get-started)
 - 🔥 [Latest Updates](#-latest-updates)
 - 🌟 [Key Features](#-key-features)
@@ -58,30 +24,29 @@
 - 🔧 [Build a Docker Image](#-build-a-docker-image)
 - 🔨 [Launch Service from Source for Development](#-launch-service-from-source-for-development)
 - 📚 [Documentation](#-documentation)
-- 📜 [Roadmap](#-roadmap)
-- 🏄 [Community](#-community)
 - 🙌 [Contributing](#-contributing)
 
 </details>
 
-## 💡 What is RAGFlow?
+## 💡 What is Cable RAG?
 
-[RAGFlow](https://ragflow.io/) is a leading open-source Retrieval-Augmented Generation ([RAG](https://ragflow.io/basics/what-is-rag)) engine that fuses cutting-edge RAG with Agent capabilities to create a superior context layer for LLMs. It offers a streamlined RAG workflow adaptable to enterprises of any scale. Powered by a converged [context engine](https://ragflow.io/basics/what-is-agent-context-engine) and pre-built agent templates, RAGFlow enables developers to transform complex data into high-fidelity, production-ready AI systems with exceptional efficiency and precision.
+Cable RAG is an AI retrieval-augmented generation (RAG) engine purpose-built for the cable industry: a self-hosted retrieval and question-answering system that turns cable-domain material into a citation-grounded knowledge base.
+
+It ingests what a cable business actually runs on — national and international standards, product specifications and datasheets, BOMs, test reports, QC records, process documentation, scanned drawings and web pages — and answers questions over them with traceable references instead of unverifiable prose.
+
+The platform keeps the hardened pipeline of its upstream engine (deep document understanding and OCR, template-based chunking, hybrid keyword/vector retrieval with fused re-ranking, agent workflows, OpenAI-compatible APIs) and wraps it in an industrial cable workflow: datasets with per-file parsing configuration, chunk-level inspection, automatic keyword and question extraction, knowledge graphs, and agents that can call internal systems.
 
 ## 🎮 Get Started
 
-Try our cloud service at [https://cloud.ragflow.io](https://cloud.ragflow.io).
+Cable RAG is self-hosted. Pick the path that matches your goal:
 
-<div align="center" style="margin-top:20px;margin-bottom:20px;">
-<img alt="Chunking demonstration" src="https://raw.githubusercontent.com/infiniflow/ragflow-docs/refs/heads/image/image/chunking.gif" width="1200"/>
-<img alt="Agentic workflow demonstration" src="https://raw.githubusercontent.com/infiniflow/ragflow-docs/refs/heads/image/image/agentic-dark.gif" width="1200"/>
-</div>
+- **Docker deployment or evaluation** — see [Self-Hosting](#-self-hosting).
+- **Development from source (the standard flow for this repository)** — see [Launch Service from Source for Development](#-launch-service-from-source-for-development).
 
 ## 🔥 Latest Updates
 
 - 2026-06-15 Support multiple chat channels such as Feishu, Discord, Telegram, Line, etc.
 - 2026-04-24 Supports DeepSeek v4.
-- 2026-03-24 [RAGFlow Skill on OpenClaw](https://clawhub.ai/yingfeng/ragflow-skill) — Provides an official skill for accessing RAGFlow datasets via OpenClaw.
 - 2025-12-26 Supports 'Memory' for AI agent.
 - 2025-11-19 Supports Gemini 3 Pro.
 - 2025-11-12 Supports data synchronization from Confluence, S3, Notion, Discord, Google Drive.
@@ -91,15 +56,6 @@ Try our cloud service at [https://cloud.ragflow.io](https://cloud.ragflow.io).
 - 2025-08-01 Supports agentic workflow and MCP.
 - 2025-05-23 Adds a Python/JavaScript code executor component to Agent.
 - 2025-03-19 Supports using a multi-modal model to make sense of images within PDF or DOCX files.
-
-## 🎉 Stay Tuned
-
-⭐️ Star our repository to stay up-to-date with exciting new features and improvements! Get instant notifications for new
-releases! 🌟
-
-<div align="center" style="margin-top:20px;margin-bottom:20px;">
-<img alt="RAGFlow feature updates" src="https://github.com/user-attachments/assets/18c9707e-b8aa-4caf-a154-037089c105ba" width="1200"/>
-</div>
 
 ## 🌟 Key Features
 
@@ -132,9 +88,15 @@ releases! 🌟
 
 ## 🔎 System Architecture
 
-<div align="center" style="margin-top:20px;margin-bottom:20px;">
-<img alt="RAGFlow system architecture" src="https://github.com/user-attachments/assets/31b0dd6f-ca4f-445a-9457-70cb44a381b2" width="1000"/>
-</div>
+Cable RAG runs as a small stack behind a single nginx entry point:
+
+- **Web UI** — the frontend bundle built into the image and served by nginx on port `80`.
+- **API server** (`api/ragflow_server.py`) — the HTTP API on port `9380` and the admin API on port `9381`.
+- **Task executor** (`rag/svr/task_executor.py`) — background workers that parse, OCR, chunk and index documents.
+- **Document engine** — Elasticsearch by default; Infinity and OpenSearch are also supported for full-text and vector storage.
+- **Metadata, objects and queues** — MySQL for metadata, MinIO for original files, Redis for queues and locks.
+
+See [docs/](./docs) for the administrator, developer and reference guides.
 
 ## 🎬 Self-Hosting
 
@@ -144,15 +106,17 @@ releases! 🌟
 - RAM >= 16 GB
 - Disk >= 50 GB
 - Docker >= 24.0.0 & Docker Compose >= v2.26.1
-- Python >= 3.13
-- [gVisor](https://gvisor.dev/docs/user_guide/install/): Required only if you intend to use the code executor (sandbox) feature of RAGFlow.
+- Python >= 3.13 (for the from-source flow only)
+- [gVisor](https://gvisor.dev/docs/user_guide/install/): required only if you intend to use the code executor (sandbox) feature.
 
 > [!TIP]
-> If you have not installed Docker on your local machine (Windows, Mac, or Linux), see [Install Docker Engine](https://docs.docker.com/engine/install/).
+> On Windows, Docker Desktop runs this stack inside a WSL2 VM. Size that VM before building images or running the
+> document engine — for example in `%USERPROFILE%\.wslconfig`: `memory=10GB`, `processors=8`, `swap=8GB`, followed by
+> `wsl --shutdown`. A VM that is too small makes container builds crawl in swap instead of failing fast.
 
 ### 🚀 Start up the server
 
-1. Ensure `vm.max_map_count` >= 262144:
+1. On Linux hosts, ensure `vm.max_map_count` >= 262144 (Docker Desktop on Windows/macOS sets this inside its own VM):
 
    > To check the value of `vm.max_map_count`:
    >
@@ -173,74 +137,70 @@ releases! 🌟
    > ```bash
    > vm.max_map_count=262144
    > ```
-2. Clone the repo:
+2. Clone this repository:
 
    ```bash
-   git clone https://github.com/infiniflow/ragflow.git
+   git clone <YOUR_REPOSITORY_URL> cable-rag
+   cd cable-rag
    ```
-3. Start up the server using the pre-built Docker images:
-
-> [!CAUTION]
-> All Docker images are built for x86 platforms. We don't currently offer Docker images for ARM64.
-> If you are on an ARM64 platform, follow [this guide](https://ragflow.io/docs/dev/build_docker_image) to build a Docker image compatible with your system.
-
-> The command below downloads the `v0.27.2` edition of the RAGFlow Docker image. See the following table for descriptions of different RAGFlow editions. To download a RAGFlow edition different from `v0.27.2`, update the `RAGFLOW_IMAGE` variable accordingly in **docker/.env** before using `docker compose` to start the server.
-
-```bash
-   cd ragflow/docker
-
-   git checkout v0.27.2
-   # Optional: use a stable tag (see releases: https://github.com/infiniflow/ragflow/releases)
-   # This step ensures the **entrypoint.sh** file in the code matches the Docker image version.
-
-   # Use CPU for DeepDoc tasks:
-   docker compose -f docker-compose.yml up -d
-
-   # To use GPU to accelerate DeepDoc tasks:
-   # sed -i '1i DEVICE=gpu' .env
-   # docker compose -f docker-compose.yml up -d
-```
-
-> Note: Prior to `v0.22.0`, we provided both images with embedding models and slim images without embedding models. Details as follows:
-
-| RAGFlow image tag | Image size (GB) | Has embedding models? | Stable?        |
-|-------------------|-----------------|-----------------------|----------------|
-| v0.21.1           | &approx;9       | ✔️                    | Stable release |
-| v0.21.1-slim      | &approx;2       | ❌                     | Stable release |
-
-> Starting with `v0.22.0`, we ship only the slim edition and no longer append the **-slim** suffix to the image tag.
-
-4. Check the server status after having the server up and running:
+3. Build and start the application container:
 
    ```bash
-   docker logs -f docker-ragflow-cpu-1
+   cd docker
+
+   # Build the image (see "Build a Docker Image" for a faster, frontend-prebuilt build):
+   docker compose build cablerag-cpu
+
+   # Start the application container:
+   docker compose up -d cablerag-cpu
+   ```
+
+   > The application container is named `cablerag-cpu` and runs the image selected by `RAGFLOW_IMAGE` in
+   > [.env](./docker/.env) — `my-cablerag:latest` by default. Its dependency containers
+   > (`cable-rag-mysql-1`, `cable-rag-es01-1`, `cable-rag-minio-1`, `cable-rag-redis-1`) must already be running.
+   > On a cold machine, start the whole stack instead:
+   >
+   > ```bash
+   > docker compose up -d
+   > ```
+4. Check the server status:
+
+   ```bash
+   docker logs -f cablerag-cpu
    ```
 
    _The following output confirms a successful launch of the system:_
 
-   ```bash
+   ```text
+   ______   ____   ____   |    ______   ____   ______
+  / ____/  / __ \ / __ \  |   / __ \   / __ \ / ____/
+ / /      / /_/ // /_/ /  |  / /_/ /  / /_/ // / __
+/ /___   / __  // /_/ /   | / _, _/  / __  // /_/ /
+\____/  /_/ /_//_____/    |/_/ |_|  /_/ /_//____/
+                         Cable RAG Engine
 
-         ____   ___    ______ ______ __
-        / __ \ /   |  / ____// ____// /____  _      __
-       / /_/ // /| | / / __ / /_   / // __ \| | /| / /
-      / _, _// ___ |/ /_/ // __/  / // /_/ /| |/ |/ /
-     /_/ |_|/_/  |_|\____//_/    /_/ \____/ |__/|__/
-
-    * Running on all addresses (0.0.0.0)
+   Cable RAG version: v0.27.1-<git-describe>
+   project base: /ragflow
+   Cable RAG server is ready after 131.1s initialization.
+   Running on http://0.0.0.0:9380 (CTRL + C to quit)
    ```
 
-   > If you skip this confirmation step and directly log in to RAGFlow, your browser may prompt a `network abnormal`
-   > error because, at that moment, your RAGFlow may not be fully initialized.
+   > The version suffix is the `git describe` output of the build you are running. The first start takes longer
+   > because the database tables, indexes and superuser are provisioned before the API starts listening.
    >
-5. In your web browser, enter the IP address of your server and log in to RAGFlow.
-
-   > With the default settings, you only need to enter `http://IP_OF_YOUR_MACHINE` (**sans** port number) as the default
-   > HTTP serving port `80` can be omitted when using the default configurations.
+   > If you skip this confirmation step and log in too early, your browser may report a `network abnormal` error
+   > because the API is not fully initialized yet.
    >
-6. In [service_conf.yaml.template](./docker/service_conf.yaml.template), select the desired LLM factory in `user_default_llm` and update
-   the `API_KEY` field with the corresponding API key.
+5. In your web browser, enter the IP address of your server and log in:
 
-   > See [llm_api_key_setup](https://ragflow.io/docs/dev/llm_api_key_setup) for more information.
+   > With the default settings, you only need to enter `http://IP_OF_YOUR_MACHINE` (**sans** port number), as the
+   > default HTTP serving port `80` can be omitted.
+   >
+6. In [service_conf.yaml.template](./docker/service_conf.yaml.template), select the desired LLM factory in
+   `user_default_llm` and update the `API_KEY` field with the corresponding API key.
+
+   > Cable RAG ships as the slim edition and includes no embedding models, so also configure an embedding model
+   > provider before creating datasets. See [docs/](./docs) for configuration guides.
    >
 
    _The show is on!_
@@ -249,8 +209,8 @@ releases! 🌟
 
 When it comes to system configurations, you will need to manage the following files:
 
-- [.env](./docker/.env): Keeps the fundamental setups for the system, such as `SVR_HTTP_PORT`, `MYSQL_PASSWORD`, and
-  `MINIO_PASSWORD`.
+- [.env](./docker/.env): Keeps the fundamental setups for the system, such as `COMPOSE_PROJECT_NAME`,
+  `RAGFLOW_IMAGE`, `SVR_HTTP_PORT`, `MYSQL_PASSWORD`, and `MINIO_PASSWORD`.
 - [service_conf.yaml.template](./docker/service_conf.yaml.template): Configures the back-end services. The environment variables in this file will be automatically populated when the Docker container starts. Any environment variables set within the Docker container will be available for use, allowing you to customize service behavior based on the deployment environment.
 - [docker-compose.yml](./docker/docker-compose.yml): The system relies on [docker-compose.yml](./docker/docker-compose.yml) to start up.
 
@@ -260,15 +220,16 @@ When it comes to system configurations, you will need to manage the following fi
 To update the default HTTP serving port (80), go to [docker-compose.yml](./docker/docker-compose.yml) and change `80:80`
 to `<YOUR_SERVING_PORT>:80`.
 
-Updates to the above configurations require a reboot of all containers to take effect:
+Updates to the above configurations require a restart of the application container to take effect:
 
 > ```bash
-> docker compose -f docker-compose.yml up -d
+> cd docker
+> docker compose up -d cablerag-cpu
 > ```
 
 ### Switch doc engine from Elasticsearch to Infinity
 
-RAGFlow uses Elasticsearch by default for storing full text and vectors. To switch to [Infinity](https://github.com/infiniflow/infinity/), follow these steps:
+Cable RAG uses Elasticsearch by default for storing full text and vectors. To switch to Infinity, follow these steps:
 
 1. Stop all running containers:
 
@@ -291,22 +252,41 @@ RAGFlow uses Elasticsearch by default for storing full text and vectors. To swit
 
 ## 🔧 Build a Docker Image
 
-This image is approximately 2 GB in size and relies on external LLM and embedding services.
+The application image is built from the [Dockerfile](./Dockerfile) in this repository and tagged with
+`RAGFLOW_IMAGE` from [docker/.env](./docker/.env) (`my-cablerag:latest`).
+
+**Fastest build — prebuilt frontend.** Build `web/dist` on the host, then let the image ship it instead of running a
+Vite build inside the container:
 
 ```bash
-git clone https://github.com/infiniflow/ragflow.git
-cd ragflow/
-docker build --platform linux/amd64 -f Dockerfile -t infiniflow/ragflow:nightly .
+# 1. Build the frontend on the host (the container build reads web/dist from the build context):
+cd web
+npm run build
+cd ..
+
+# 2. Build the image with the prebuilt frontend:
+cd docker
+docker compose build --build-arg WEB_DIST_MODE=prebuilt cablerag-cpu
 ```
 
-Or if you are behind a proxy, you can pass proxy arguments:
+> Prefer this route on machines with a small Docker VM: the in-container Vite build of this monorepo is memory
+> hungry. `WEB_BUILD_HEAP_MB` (default `4096`) caps the V8 heap for the in-container build and must stay below the
+> memory the Docker VM can actually back with RAM.
+
+**Full in-container build** (frontend compiled inside the image):
 
 ```bash
-docker build --platform linux/amd64 \
-  --build-arg http_proxy=http://YOUR_PROXY:PORT \
-  --build-arg https_proxy=http://YOUR_PROXY:PORT \
-  -f Dockerfile -t infiniflow/ragflow:nightly .
+cd docker
+docker compose build cablerag-cpu
 ```
+
+> Both routes need the dependency image that bundles the models and native libraries. It is built from this
+> repository and can be recreated at any time without network access:
+>
+> ```bash
+> cd ragflow_deps
+> docker build -f Dockerfile -t infiniflow/ragflow_deps:latest .
+> ```
 
 ## 🔨 Launch Service from Source for Development
 
@@ -341,8 +321,8 @@ local startup procedure, and keep the Docker dependencies running in the backgro
 
 ### Start the services
 
-1. Make sure the Docker dependencies are running: `docker ps` should list `docker-mysql-1`,
-   `docker-es01-1`, `docker-redis-1` and `docker-minio-1`. If they are not running, start them
+1. Make sure the Docker dependency containers are running: `docker ps` should list `cable-rag-mysql-1`,
+   `cable-rag-es01-1`, `cable-rag-redis-1` and `cable-rag-minio-1`. If they are not running, start them
    now and skip this step next time:
 
    ```powershell
@@ -369,16 +349,23 @@ local startup procedure, and keep the Docker dependencies running in the backgro
    uv run python api/ragflow_server.py
    ```
 
-4. Terminal 3 — frontend UI, listening on port 9222 and proxying `/api` and `/v1` to port 9380:
+4. Terminal 3 — frontend UI, serving <http://localhost:9222> and proxying the API:
 
    ```powershell
    cd C:\Projects\RAG\ragflow\web
    npm run dev
    ```
 
-5. Open <http://localhost:9222> to use RAGFlow:
+   | Frontend (dev) | API proxy target | Purpose |
+   |----------------|------------------|---------|
+   | `http://localhost:9222` | `http://127.0.0.1:9380` | `/api`, `/v1` — application API served by `api/ragflow_server.py` |
+   | `http://localhost:9222` | `http://127.0.0.1:9381` | `/api/v1/admin` — admin API served by the same process |
 
-   ![RAGFlow web interface](https://github.com/user-attachments/assets/0daf462c-a24d-4496-a66f-92533534e187)
+5. Open <http://localhost:9222> to use Cable RAG:
+
+   Wait for the console banner shown in [Self-Hosting](#-self-hosting) (or the equivalent lines in
+   `logs/ragflow_server.log`) before the first request: the Web API binds port 9380 only after the database and
+   document engine are ready.
 
    `$env:PYTHONUTF8="1"` keeps Chinese log output from breaking the console code page, and
    `$env:HF_ENDPOINT="https://hf-mirror.com"` points model downloads at the HuggingFace mirror.
@@ -393,25 +380,14 @@ On Linux or macOS, replace the `$env:X="..."` lines with `export X=...`; there
 
 ## 📚 Documentation
 
-- [Quickstart](https://ragflow.io/docs/dev/)
-- [Configuration](https://ragflow.io/docs/dev/configurations)
-- [Release notes](https://ragflow.io/docs/dev/release_notes)
-- [User guides](https://ragflow.io/docs/category/user-guides)
-- [Developer guides](https://ragflow.io/docs/category/developer-guides)
-- [References](https://ragflow.io/docs/dev/category/references)
-- [FAQs](https://ragflow.io/docs/dev/faq)
-
-## 📜 Roadmap
-
-See the [RAGFlow Roadmap 2026](https://github.com/infiniflow/ragflow/issues/12241)
-
-## 🏄 Community
-
-- [Discord](https://discord.gg/NjYzJD3GM3)
-- [X](https://x.com/infiniflowai)
-- [GitHub Discussions](https://github.com/orgs/infiniflow/discussions)
+- [docs/](./docs) — administrator, developer, guide and reference documentation shipped with this repository.
+- [docker/README.md](./docker/README.md) — environment variables and service configuration used by `service_conf.yaml.template`.
+- [deepdoc/README.md](./deepdoc/README.md) — the deep document understanding and OCR pipeline.
+- [internal/development.md](./internal/development.md) — native and Go build notes.
+- [AGENTS.md](./AGENTS.md) — repository conventions and validation expectations for changes.
 
 ## 🙌 Contributing
 
-RAGFlow flourishes via open-source collaboration. In this spirit, we embrace diverse contributions from the community.
-If you would like to be a part, review our [Contribution Guidelines](https://ragflow.io/docs/dev/contributing) first.
+This repository is a private downstream customization. Keep changes small and local, validate them with the narrowest
+relevant command (see [AGENTS.md](./AGENTS.md)), and prefer deleting superseded code over keeping compatibility
+shims. For frontend work, follow [web/CLAUDE.md](./web/CLAUDE.md).

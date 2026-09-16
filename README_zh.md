@@ -1,87 +1,52 @@
 <div align="center">
-<a href="https://cloud.ragflow.io/">
-<img src="https://raw.githubusercontent.com/infiniflow/ragflow/main/web/src/assets/logo-with-text.svg" width="520" alt="ragflow logo">
-</a>
+<img src="./web/public/logo.svg" width="88" alt="Cable RAG logo">
+<h1>Cable RAG</h1>
+<p><b>线缆工业 AI 检索增强生成引擎</b></p>
+<p>面向线缆标准、产品规格、BOM 与质检记录的智能检索与问答系统。</p>
 </div>
 
 <p align="center">
   <a href="./README.md"><img alt="README in English" src="https://img.shields.io/badge/English-DFE0E5"></a>
   <a href="./README_zh.md"><img alt="简体中文版自述文件" src="https://img.shields.io/badge/简体中文-DBEDFA"></a>
+  <a href="./LICENSE"><img height="21" src="https://img.shields.io/badge/License-Apache--2.0-ffffff?labelColor=d4eaf7&color=2e6cc4" alt="license"></a>
 </p>
-
-<p align="center">
-    <a href="https://x.com/intent/follow?screen_name=infiniflowai" target="_blank">
-        <img src="https://img.shields.io/twitter/follow/infiniflow?logo=X&color=%20%23f5f5f5" alt="follow on X(Twitter)">
-    </a>
-    <a href="https://cloud.ragflow.io" target="_blank">
-        <img alt="Static Badge" src="https://img.shields.io/badge/Get-Started-4e6b99">
-    </a>
-    <a href="https://hub.docker.com/r/infiniflow/ragflow" target="_blank">
-        <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/infiniflow/ragflow-stats/main/badges/docker-pulls.json&style=flat-square&logo=docker&logoColor=white" alt="docker pull infiniflow/ragflow:v0.27.2">
-    </a>
-    <a href="https://github.com/infiniflow/ragflow/releases/latest">
-        <img src="https://img.shields.io/github/v/release/infiniflow/ragflow?color=blue&label=Latest%20Release" alt="Latest Release">
-    </a>
-    <a href="https://github.com/infiniflow/ragflow/blob/main/LICENSE">
-        <img height="21" src="https://img.shields.io/badge/License-Apache--2.0-ffffff?labelColor=d4eaf7&color=2e6cc4" alt="license">
-    </a>
-    <a href="https://deepwiki.com/infiniflow/ragflow">
-        <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg">
-    </a>
-</p>
-
-<h4 align="center">
-  <a href="https://cloud.ragflow.io">Cloud</a> |
-  <a href="https://ragflow.io/docs/dev/">Document</a> |
-  <a href="https://github.com/infiniflow/ragflow/issues/12241">Roadmap</a> |
-  <a href="https://discord.gg/NjYzJD3GM3">Discord</a>
-</h4>
-
-<div align="center" style="margin-top:20px;margin-bottom:20px;">
-<img alt="RAGFlow in the GitHub Octoverse" src="https://raw.githubusercontent.com/infiniflow/ragflow-docs/refs/heads/image/image/ragflow-octoverse.png" width="1200"/>
-</div>
-
-<div align="center">
-<a href="https://trendshift.io/repositories/9064" target="_blank"><img src="https://trendshift.io/api/badge/repositories/9064" alt="infiniflow%2Fragflow | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</div>
 
 <details open>
 <summary><b>📕 目录</b></summary>
 
-- 💡 [RAGFlow 是什么？](#-RAGFlow-是什么)
+- 💡 [Cable RAG 是什么？](#-cable-rag-是什么)
 - 🎮 [快速开始](#-快速开始)
 - 📌 [近期更新](#-近期更新)
 - 🌟 [主要功能](#-主要功能)
 - 🔎 [系统架构](#-系统架构)
 - 🎬 [自主托管](#-自主托管)
 - 🔧 [系统配置](#-系统配置)
+- 🔧 [源码编译 Docker 镜像](#-源码编译-docker-镜像)
 - 🔨 [以源代码启动服务](#-以源代码启动服务)
 - 📚 [技术文档](#-技术文档)
-- 📜 [路线图](#-路线图)
-- 🏄 [贡献指南](#-贡献指南)
-- 🙌 [加入社区](#-加入社区)
-- 🤝 [商务合作](#-商务合作)
+- 🙌 [贡献指南](#-贡献指南)
 
 </details>
 
-## 💡 RAGFlow 是什么？
+## 💡 Cable RAG 是什么？
 
-[RAGFlow](https://ragflow.io/) 是一款领先的开源检索增强生成（[RAG](https://ragflow.io/basics/what-is-rag)）引擎，通过融合前沿的 RAG 技术与 Agent 能力，为大型语言模型提供卓越的上下文层。它提供可适配任意规模企业的端到端 RAG 工作流，凭借融合式[上下文引擎](https://ragflow.io/basics/what-is-agent-context-engine)与预置的 Agent 模板，助力开发者以极致效率与精度将复杂数据转化为高可信、生产级的人工智能系统。
+Cable RAG 是面向线缆工业的检索增强生成（RAG）引擎：一套自主托管的智能检索与问答系统，把线缆领域的资料沉淀为**可溯源、有引用**的知识库。
+
+它摄入线缆企业日常真正依赖的文档——国家标准与国际标准、产品规格书与数据表、BOM 物料清单、检测报告、质检记录、工艺文件、扫描图纸与网页——并基于这些内容回答问题，给出可追溯的引用，而不是无法验证的泛泛而谈。
+
+平台保留了上游引擎中经过验证的核心链路（深度文档理解与 OCR、基于模板的文本切片、关键词/向量混合召回与融合重排序、Agent 工作流、OpenAI 兼容 API），并封装为线缆工业的工作流：按文件单独配置解析方式的数据集、切片级人工检查、自动关键词与问题提取、知识图谱，以及可调用内部系统的 Agent。
 
 ## 🎮 快速开始
 
-请登录网址 [https://cloud.ragflow.io](https://cloud.ragflow.io) 体验云服务。
+Cable RAG 采用自主托管方式，请按目标选择路径：
 
-<div align="center" style="margin-top:20px;margin-bottom:20px;">
-<img alt="Chunking demonstration" src="https://raw.githubusercontent.com/infiniflow/ragflow-docs/refs/heads/image/image/chunking.gif" width="1200"/>
-<img alt="Agentic workflow demonstration" src="https://raw.githubusercontent.com/infiniflow/ragflow-docs/refs/heads/image/image/agentic-dark.gif" width="1200"/>
-</div>
+- **Docker 部署或试用** —— 见 [自主托管](#-自主托管)。
+- **本地源码开发（本仓库标准流程）** —— 见 [以源代码启动服务](#-以源代码启动服务)。
 
-## 🔥 近期更新
+## 📌 近期更新
 
 - 2026-06-15 支持飞书、Discord、Telegram、Line 等多种聊天渠道。
-- 2026-04-24 支持 DeepSeek v4.
-- 2026-03-24 发布 [RAGFlow 官方 Skill](https://clawhub.ai/yingfeng/ragflow-skill) — 提供官方 Skill 以通过 OpenClaw 访问 RAGFlow 数据集。
+- 2026-04-24 支持 DeepSeek v4。
 - 2025-12-26 支持 AI 代理的"记忆"功能。
 - 2025-11-19 支持 Gemini 3 Pro。
 - 2025-11-12 支持从 Confluence、S3、Notion、Discord、Google Drive 进行数据同步。
@@ -90,16 +55,7 @@
 - 2025-08-08 支持 OpenAI 最新的 GPT-5 系列模型。
 - 2025-08-01 支持 agentic workflow 和 MCP。
 - 2025-05-23 Agent 新增 Python/JS 代码执行器组件。
-- 2025-03-19 PDF 和 DOCX 中的图支持用多模态大模型去解析得到描述。
-
-
-## 🎉 关注项目
-
-⭐️ 点击右上角的 Star 关注 RAGFlow，可以获取最新发布的实时通知 !🌟
-
-<div align="center" style="margin-top:20px;margin-bottom:20px;">
-<img alt="RAGFlow feature updates" src="https://github.com/user-attachments/assets/18c9707e-b8aa-4caf-a154-037089c105ba" width="1200"/>
-</div>
+- 2025-03-19 PDF 和 DOCX 中的图支持用多模态大模型解析并生成描述。
 
 ## 🌟 主要功能
 
@@ -111,7 +67,7 @@
 ### 🍱 **基于模板的文本切片**
 
 - 不仅仅是智能，更重要的是可控可解释。
-- 多种文本模板可供选择
+- 多种文本模板可供选择。
 
 ### 🌱 **有理有据、最大程度降低幻觉（hallucination）**
 
@@ -120,7 +76,7 @@
 
 ### 🍔 **兼容各类异构数据源**
 
-- 支持丰富的文件类型，包括 Word 文档、PPT、excel 表格、txt 文件、图片、PDF、影印件、复印件、结构化数据、网页等。
+- 支持丰富的文件类型，包括 Word 文档、PPT、Excel 表格、txt 文件、图片、PDF、影印件、复印件、结构化数据、网页等。
 
 ### 🛀 **全程无忧、自动化的 RAG 工作流**
 
@@ -131,9 +87,15 @@
 
 ## 🔎 系统架构
 
-<div align="center" style="margin-top:20px;margin-bottom:20px;">
-<img alt="RAGFlow system architecture" src="https://github.com/user-attachments/assets/31b0dd6f-ca4f-445a-9457-70cb44a381b2" width="1000"/>
-</div>
+Cable RAG 以一个轻量栈的形式运行在统一的 nginx 入口之后：
+
+- **Web UI** —— 构建进镜像的前端产物，由 nginx 在 `80` 端口提供服务。
+- **API 服务**（`api/ragflow_server.py`）—— 应用 API 监听 `9380`，管理 API 监听 `9381`。
+- **任务执行器**（`rag/svr/task_executor.py`）—— 负责文档解析、OCR、切片与索引的后台进程。
+- **文档引擎** —— 默认 Elasticsearch，也可切换为 Infinity 或 OpenSearch，用于全文与向量存储。
+- **元数据、对象与队列** —— MySQL 存元数据，MinIO 存原始文件，Redis 负责队列与锁。
+
+管理员、开发者与参考文档见 [docs/](./docs)。
 
 ## 🎬 自主托管
 
@@ -142,16 +104,18 @@
 - CPU >= 4 核
 - RAM >= 16 GB
 - Disk >= 50 GB
-- Docker >= 24.0.0 & Docker Compose >= v2.26.1
-- Python >= 3.13
-- [gVisor](https://gvisor.dev/docs/user_guide/install/): 仅在你打算使用 RAGFlow 的代码执行器（沙箱）功能时才需要安装。
+- Docker >= 24.0.0 且 Docker Compose >= v2.26.1
+- Python >= 3.13（仅本地源码启动方式需要）
+- [gVisor](https://gvisor.dev/docs/user_guide/install/): 仅当你打算使用代码执行器（沙箱）功能时才需要安装。
 
 > [!TIP]
-> 如果你并没有在本机安装 Docker（Windows、Mac，或者 Linux）, 可以参考文档 [Install Docker Engine](https://docs.docker.com/engine/install/) 自行安装。
+> 在 Windows 上，Docker Desktop 把整套服务跑在 WSL2 虚拟机里。请在构建镜像或运行文档引擎前给虚拟机留足内存，
+> 例如在 `%USERPROFILE%\.wslconfig` 中配置 `memory=10GB`、`processors=8`、`swap=8GB`，然后执行 `wsl --shutdown`
+> 使其生效。虚拟内存过小会让容器构建陷在 swap 抖动中缓慢爬行，而不是快速失败。
 
 ### 🚀 启动服务器
 
-1. 确保 `vm.max_map_count` 不小于 262144：
+1. Linux 主机需确保 `vm.max_map_count` 不小于 262144（Windows/macOS 的 Docker Desktop 已在其虚拟机内设置好）：
 
    > 如需确认 `vm.max_map_count` 的大小：
    >
@@ -172,75 +136,72 @@
    > vm.max_map_count=262144
    > ```
 
-2. 克隆仓库：
+2. 克隆本仓库：
 
    ```bash
-   git clone https://github.com/infiniflow/ragflow.git
+   git clone <YOUR_REPOSITORY_URL> cable-rag
+   cd cable-rag
    ```
 
-3. 进入 **docker** 文件夹，利用提前编译好的 Docker 镜像启动服务器：
-
-> [!CAUTION]
-> 请注意，目前官方提供的所有 Docker 镜像均基于 x86 架构构建，并不提供基于 ARM64 的 Docker 镜像。
-> 如果你的操作系统是 ARM64 架构，请参考[这篇文档](https://ragflow.io/docs/dev/build_docker_image)自行构建 Docker 镜像。
-
-   > 运行以下命令会自动下载 RAGFlow Docker 镜像 `v0.27.2`。请参考下表查看不同 Docker 发行版的描述。如需下载不同于 `v0.27.2` 的 Docker 镜像，请在运行 `docker compose` 启动服务之前先更新 **docker/.env** 文件内的 `RAGFLOW_IMAGE` 变量。
+3. 构建并启动应用容器：
 
    ```bash
-   cd ragflow/docker
+   cd docker
 
-   git checkout v0.27.2
-   # 可选：使用稳定版本标签（查看发布：https://github.com/infiniflow/ragflow/releases）
-   # 这一步确保代码中的 entrypoint.sh 文件与 Docker 镜像的版本保持一致。
+   # 构建镜像（更快的前端预构建方式见「源码编译 Docker 镜像」）：
+   docker compose build cablerag-cpu
 
-   # Use CPU for DeepDoc tasks:
-   docker compose -f docker-compose.yml up -d
-
-   # To use GPU to accelerate DeepDoc tasks:
-   # sed -i '1i DEVICE=gpu' .env
-   # docker compose -f docker-compose.yml up -d
+   # 启动应用容器：
+   docker compose up -d cablerag-cpu
    ```
 
-   > 注意：在 `v0.22.0` 之前的版本，我们会同时提供包含 embedding 模型的镜像和不含 embedding 模型的 slim 镜像。具体如下：
-
-   | RAGFlow image tag | Image size (GB) | Has embedding models? | Stable?        |
-   |-------------------|-----------------|-----------------------|----------------|
-   | v0.21.1           | &approx;9       | ✔️                    | Stable release |
-   | v0.21.1-slim      | &approx;2       | ❌                     | Stable release |
-
-   > 从 `v0.22.0` 开始，我们只发布 slim 版本，并且不再在镜像标签后附加 **-slim** 后缀。
-
-   > [!TIP]
-   > 如果你遇到 Docker 镜像拉不下来的问题，可以在 **docker/.env** 文件内根据变量 `RAGFLOW_IMAGE` 的注释提示选择华为云或者阿里云的相应镜像。
+   > 应用容器名为 `cablerag-cpu`，使用的镜像由 [.env](./docker/.env) 中的 `RAGFLOW_IMAGE` 指定，默认为
+   > `my-cablerag:latest`。它依赖的容器（`cable-rag-mysql-1`、`cable-rag-es01-1`、`cable-rag-minio-1`、
+   > `cable-rag-redis-1`）必须先处于运行状态；冷启动整栈请改用：
    >
-   > - 华为云镜像名：`swr.cn-north-4.myhuaweicloud.com/infiniflow/ragflow`
-   > - 阿里云镜像名：`registry.cn-hangzhou.aliyuncs.com/infiniflow/ragflow`
+   > ```bash
+   > docker compose up -d
+   > ```
 
-4. 服务器启动成功后再次确认服务器状态：
-
-   ```bash
-   docker logs -f docker-ragflow-cpu-1
-   ```
-
-   _出现以下界面提示说明服务器启动成功：_
+4. 服务器启动成功后确认服务器状态：
 
    ```bash
-        ____   ___    ______ ______ __
-       / __ \ /   |  / ____// ____// /____  _      __
-      / /_/ // /| | / / __ / /_   / // __ \| | /| / /
-     / _, _// ___ |/ /_/ // __/  / // /_/ /| |/ |/ /
-    /_/ |_|/_/  |_|\____//_/    /_/ \____/ |__/|__/
-
-    * Running on all addresses (0.0.0.0)
+   docker logs -f cablerag-cpu
    ```
 
-   > 如果您在没有看到上面的提示信息出来之前，就尝试登录 RAGFlow，你的浏览器有可能会提示 `network abnormal` 或 `网络异常`。
+   _出现以下输出说明服务器启动成功：_
 
-5. 在你的浏览器中输入你的服务器对应的 IP 地址并登录 RAGFlow。
-   > 上面这个例子中，您只需输入 http://IP_OF_YOUR_MACHINE 即可：未改动过配置则无需输入端口（默认的 HTTP 服务端口 80）。
-6. 在 [service_conf.yaml.template](./docker/service_conf.yaml.template) 文件的 `user_default_llm` 栏配置 LLM factory，并在 `API_KEY` 栏填写和你选择的大模型相对应的 API key。
+   ```text
+   ______   ____   ____   |    ______   ____   ______
+  / ____/  / __ \ / __ \  |   / __ \   / __ \ / ____/
+ / /      / /_/ // /_/ /  |  / /_/ /  / /_/ // / __
+/ /___   / __  // /_/ /   | / _, _/  / __  // /_/ /
+\____/  /_/ /_//_____/    |/_/ |_|  /_/ /_//____/
+                         Cable RAG Engine
 
-   > 详见 [llm_api_key_setup](https://ragflow.io/docs/dev/llm_api_key_setup)。
+   Cable RAG version: v0.27.1-<git-describe>
+   project base: /ragflow
+   Cable RAG server is ready after 131.1s initialization.
+   Running on http://0.0.0.0:9380 (CTRL + C to quit)
+   ```
+
+   > 版本号后缀是你所构建代码的 `git describe` 结果。首次启动耗时更久，因为在 API 开始监听之前需要完成数据表、
+   > 索引与超级用户的初始化。
+   >
+   > 如果你在没有看到上述提示信息之前就尝试登录，浏览器可能会提示 `network abnormal` 或 `网络异常`，因为此时
+   > API 尚未完成初始化。
+   >
+
+5. 在浏览器中输入服务器对应的 IP 地址并登录：
+
+   > 默认配置下只需输入 `http://IP_OF_YOUR_MACHINE` 即可：未改动过配置则无需输入端口（默认 HTTP 服务端口 `80`）。
+   >
+
+6. 在 [service_conf.yaml.template](./docker/service_conf.yaml.template) 文件的 `user_default_llm` 栏配置 LLM factory，并在 `API_KEY` 栏填写与你所选大模型相对应的 API key。
+
+   > Cable RAG 发布的是 slim 版本，不包含 embedding 模型，因此在创建知识库之前还需配置 embedding 模型服务。
+   > 相关配置说明见 [docs/](./docs)。
+   >
 
    _好戏开始，接着奏乐接着舞！_
 
@@ -248,7 +209,7 @@
 
 系统配置涉及以下三份文件：
 
-- [.env](./docker/.env)：存放一些基本的系统环境变量，比如 `SVR_HTTP_PORT`、`MYSQL_PASSWORD`、`MINIO_PASSWORD` 等。
+- [.env](./docker/.env)：存放一些基本的系统环境变量，比如 `COMPOSE_PROJECT_NAME`、`RAGFLOW_IMAGE`、`SVR_HTTP_PORT`、`MYSQL_PASSWORD`、`MINIO_PASSWORD` 等。
 - [service_conf.yaml.template](./docker/service_conf.yaml.template)：配置各类后台服务。
 - [docker-compose.yml](./docker/docker-compose.yml): 系统依赖该文件完成启动。
 
@@ -260,15 +221,16 @@
 
 如需更新默认的 HTTP 服务端口(80), 可以在 [docker-compose.yml](./docker/docker-compose.yml) 文件中将配置 `80:80` 改为 `<YOUR_SERVING_PORT>:80`。
 
-> 所有系统配置都需要通过系统重启生效：
+> 所有系统配置都需要通过重启应用容器生效：
 >
 > ```bash
-> docker compose -f docker-compose.yml up -d
+> cd docker
+> docker compose up -d cablerag-cpu
 > ```
 
 ### 把文档引擎从 Elasticsearch 切换成为 Infinity
 
-RAGFlow 默认使用 Elasticsearch 存储文本和向量数据. 如果要切换为 [Infinity](https://github.com/infiniflow/infinity/), 可以按照下面步骤进行:
+Cable RAG 默认使用 Elasticsearch 存储文本和向量数据。如果要切换为 Infinity，可以按照下面步骤进行：
 
 1. 停止所有容器运行:
 
@@ -286,26 +248,42 @@ RAGFlow 默认使用 Elasticsearch 存储文本和向量数据. 如果要切换�
    ```
 
 > [!WARNING]
-> Infinity 目前官方并未正式支持在 Linux/arm64 架构下的机器上运行.
+> Infinity 目前并未正式支持在 Linux/arm64 架构下的机器上运行。
 
 ## 🔧 源码编译 Docker 镜像
 
-本 Docker 镜像大小约 2 GB 左右并且依赖外部的大模型和 embedding 服务。
+应用镜像由本仓库根目录的 [Dockerfile](./Dockerfile) 构建，并以 [docker/.env](./docker/.env) 中的 `RAGFLOW_IMAGE`
+（默认 `my-cablerag:latest`）打标签。
+
+**最快的构建方式 —— 前端预构建。** 先在宿主机上生成 `web/dist`，再让镜像直接使用它，避免在容器内跑 Vite 构建：
 
 ```bash
-git clone https://github.com/infiniflow/ragflow.git
-cd ragflow/
-docker build --platform linux/amd64 -f Dockerfile -t infiniflow/ragflow:nightly .
+# 1. 在宿主机上构建前端（容器构建会从构建上下文中读取 web/dist）：
+cd web
+npm run build
+cd ..
+
+# 2. 使用预构建前端构建镜像：
+cd docker
+docker compose build --build-arg WEB_DIST_MODE=prebuilt cablerag-cpu
 ```
 
-如果您处在代理环境下，可以传递代理参数：
+> 在 Docker 虚拟机内存较小的机器上建议走这条路：本仓库在容器内执行 Vite 构建时非常吃内存。
+> `WEB_BUILD_HEAP_MB`（默认 `4096`）用于限制容器内构建的 V8 堆上限，必须低于 Docker 虚拟机能够用真实内存支撑的量。
+
+**容器内完整构建**（前端在镜像内编译）：
 
 ```bash
-docker build --platform linux/amd64 \
-  --build-arg http_proxy=http://YOUR_PROXY:PORT \
-  --build-arg https_proxy=http://YOUR_PROXY:PORT \
-  -f Dockerfile -t infiniflow/ragflow:nightly .
+cd docker
+docker compose build cablerag-cpu
 ```
+
+> 两种方式都需要一个内含模型与 native 依赖库的依赖镜像；它构建自本仓库，任何时候都可以在无外网的情况下重新生成：
+>
+> ```bash
+> cd ragflow_deps
+> docker build -f Dockerfile -t infiniflow/ragflow_deps:latest .
+> ```
 
 ## 🔨 以源代码启动服务
 
@@ -340,8 +318,8 @@ docker build --platform linux/amd64 \
 
 ### 启动服务
 
-1. 确认 Docker 依赖服务已启动：执行 `docker ps` 应能看到 `docker-mysql-1`、`docker-es01-1`、
-   `docker-redis-1` 和 `docker-minio-1`。如果尚未启动，请先执行以下命令（下次可直接跳过本步骤）：
+1. 确认 Docker 依赖容器已启动：执行 `docker ps` 应能看到 `cable-rag-mysql-1`、`cable-rag-es01-1`、
+   `cable-rag-redis-1` 和 `cable-rag-minio-1`。如果尚未启动，请先执行以下命令（下次可直接跳过本步骤）：
 
    ```powershell
    docker compose -f docker/docker-compose-base.yml up -d
@@ -367,16 +345,22 @@ docker build --platform linux/amd64 \
    uv run python api/ragflow_server.py
    ```
 
-4. 终端 3 —— 前端 UI，监听 9222 端口，并把 `/api`、`/v1` 代理到 9380 端口：
+4. 终端 3 —— 前端 UI，访问地址 <http://localhost:9222>，并代理后端 API：
 
    ```powershell
    cd C:\Projects\RAG\ragflow\web
    npm run dev
    ```
 
-5. 浏览器访问 <http://localhost:9222> 即可使用 RAGFlow：
+   | 前端（开发） | API 代理目标 | 用途 |
+   |--------------|--------------|------|
+   | `http://localhost:9222` | `http://127.0.0.1:9380` | `/api`、`/v1` —— 由 `api/ragflow_server.py` 提供的应用 API |
+   | `http://localhost:9222` | `http://127.0.0.1:9381` | `/api/v1/admin` —— 同一进程提供的管理 API |
 
-   ![RAGFlow web interface](https://github.com/user-attachments/assets/0daf462c-a24d-4496-a66f-92533534e187)
+5. 浏览器访问 <http://localhost:9222> 即可使用 Cable RAG：
+
+   首次请求前请等待控制台出现 [自主托管](#-自主托管) 中所示的启动横幅（或 `logs/ragflow_server.log` 中的等价日志）：
+   Web API 只有在数据库与文档引擎就绪后才会监听 9380 端口。
 
    `$env:PYTHONUTF8="1"` 用于避免中文日志触发控制台编码报错（乱码），
    `$env:HF_ENDPOINT="https://hf-mirror.com"` 用于把模型下载指向 HuggingFace 镜像站。
@@ -389,39 +373,15 @@ docker build --platform linux/amd64 \
 在 Linux 或 macOS 上，把 `$env:X="..."` 换成 `export X=...` 即可；这两个平台上
 `bash docker/launch_backend_service.sh` 可以在一个终端内同时启动两个后端进程。
 
-
 ## 📚 技术文档
 
-- [Quickstart](https://ragflow.io/docs/dev/)
-- [Configuration](https://ragflow.io/docs/dev/configurations)
-- [Release notes](https://ragflow.io/docs/dev/release_notes)
-- [User guides](https://ragflow.io/docs/category/user-guides)
-- [Developer guides](https://ragflow.io/docs/category/developer-guides)
-- [References](https://ragflow.io/docs/dev/category/references)
-- [FAQs](https://ragflow.io/docs/dev/faq)
-
-## 📜 路线图
-
-详见 [RAGFlow Roadmap 2026](https://github.com/infiniflow/ragflow/issues/12241) 。
-
-## 🏄 开源社区
-
-- [Discord](https://discord.gg/NjYzJD3GM3)
-- [X](https://x.com/infiniflowai)
-- [GitHub Discussions](https://github.com/orgs/infiniflow/discussions)
+- [docs/](./docs) —— 本仓库自带的管理员、开发者、使用指南与参考文档。
+- [docker/README.md](./docker/README.md) —— `service_conf.yaml.template` 使用的环境变量与服务配置说明。
+- [deepdoc/README.md](./deepdoc/README.md) —— 深度文档理解与 OCR 链路。
+- [internal/development.md](./internal/development.md) —— native 与 Go 构建说明。
+- [AGENTS.md](./AGENTS.md) —— 本仓库的改动约定与验证要求。
 
 ## 🙌 贡献指南
 
-RAGFlow 只有通过开源协作才能蓬勃发展。秉持这一精神,我们欢迎来自社区的各种贡献。如果您有意参与其中,请查阅我们的 [贡献者指南](https://ragflow.io/docs/dev/contributing) 。
-
-## 🤝 商务合作
-
-- [预约咨询](https://aao615odquw.feishu.cn/share/base/form/shrcnjw7QleretCLqh1nuPo1xxh)
-
-## 👥 加入社区
-
-扫二维码添加 RAGFlow 小助手，进 RAGFlow 交流群。
-
-<p align="center">
-  <img alt="RAGFlow assistant QR code" src="https://github.com/infiniflow/ragflow/assets/7248/bccf284f-46f2-4445-9809-8f1030fb7585" width=50% height=50%>
-</p>
+本仓库是私有二次开发分支。请保持改动小而聚焦，用范围最小的相关命令进行验证（见 [AGENTS.md](./AGENTS.md)），
+并优先删除被取代的代码，而不是保留兼容层。前端相关改动请同时遵循 [web/CLAUDE.md](./web/CLAUDE.md)。
