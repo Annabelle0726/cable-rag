@@ -181,7 +181,7 @@ export default function Chat() {
             onOpenSettings={showSettings}
           ></Sessions>
 
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="glass-surface flex min-w-0 flex-1 flex-col overflow-hidden">
             {/* Rendered only while the conversation list is collapsed: an
                 expanded list already names the active conversation, and an
                 empty header bar would still cost its own height. */}

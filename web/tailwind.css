@@ -119,8 +119,32 @@
     /* Cable industry theme: page, surfaces, brand and accents.
        Every value below is resolved per mode, so components never need
        hardcoded whites/blacks nor `dark:` duplicates for these surfaces. */
+    /* The page canvas is a deep-ocean wash: a cool base that darkens towards the
+       edges, one accent bloom in the lower right and a fainter one bottom-left.
+       The blooms are what the glass panels above actually blur — over a flat
+       fill the backdrop filter has nothing to show. */
     --cable-page-from: #f8fafc;
     --cable-page-to: #f1f5f9;
+    --cable-page-edge: #e2e8f0;
+    --page-accent-bloom: rgba(2, 132, 199, 0.12);
+    --page-accent-bloom-soft: rgba(2, 132, 199, 0.07);
+    --page-gradient:
+      radial-gradient(
+        circle at 15% 15%,
+        var(--cable-page-from) 0%,
+        var(--cable-page-to) 50%,
+        var(--cable-page-edge) 100%
+      ),
+      radial-gradient(
+        circle at 85% 85%,
+        var(--page-accent-bloom) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        circle at 12% 92%,
+        var(--page-accent-bloom-soft) 0%,
+        transparent 55%
+      );
     --cable-surface: #ffffff;
     --cable-surface-muted: #f8fafc;
     --cable-surface-border: rgba(226, 232, 240, 0.8);
@@ -159,6 +183,9 @@
     --glass-bg: rgba(255, 255, 255, 0.8);
     --glass-border: rgba(2, 132, 199, 0.18);
     --glass-blur: 8px;
+    /* 1px inner highlight along the top edge of a glass surface: it is what
+       makes a translucent pane read as ice rather than as a flat tint. */
+    --glass-highlight: rgba(255, 255, 255, 0.75);
     --shadow-accent: rgba(2, 132, 199, 0.22);
     --surface-hover-bg: rgba(2, 132, 199, 0.06);
     --surface-hover-border: rgba(2, 132, 199, 0.45);
@@ -271,8 +298,13 @@
     --text-secondary-inverse: 117 120 122;
 
     /* Cable industry theme in dark mode: industrial black-blue instead of pure black. */
-    --cable-page-from: #0d1117;
-    --cable-page-to: #0f172a;
+    /* Deep ocean in the dark theme: the same three-stop wash, with the bloom
+       lifted because a navy glow on near-black needs the extra alpha. */
+    --cable-page-from: #0f172a;
+    --cable-page-to: #090d16;
+    --cable-page-edge: #020617;
+    --page-accent-bloom: rgba(14, 165, 233, 0.15);
+    --page-accent-bloom-soft: rgba(14, 165, 233, 0.08);
     --cable-surface: #161b22;
     --cable-surface-muted: #1b2129;
     --cable-surface-border: #1f2937;
@@ -303,6 +335,7 @@
     --glass-bg: rgba(15, 23, 42, 0.75);
     --glass-border: rgba(56, 189, 248, 0.22);
     --glass-blur: 8px;
+    --glass-highlight: rgba(255, 255, 255, 0.06);
     --shadow-accent: rgba(2, 132, 199, 0.35);
     --surface-hover-bg: rgba(56, 189, 248, 0.1);
     --surface-hover-border: rgba(56, 189, 248, 0.5);
@@ -322,6 +355,12 @@
   }
   body {
     @apply bg-bg-base text-text-primary;
+    /* The ocean canvas is painted on the document as well as on the app shell,
+       with a fixed attachment so it stays put while a page scrolls over it and
+       every glass surface has the same backdrop wherever it sits. */
+    background-image: var(--page-gradient);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
@@ -398,6 +437,17 @@
     border: 1px solid var(--glass-border);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+
+  /* Glass material without a frame of its own: it blurs the page canvas behind
+     it and keeps one highlight along its top edge, leaving the outline to
+     whichever edge actually needs a hairline. Used by the panes that should
+     meet edge to edge rather than float as cards. */
+  .glass-surface {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
   }
 
   /* The top bar keeps a translucent surface but only a bottom hairline, so it
@@ -480,14 +530,10 @@
 
 @layer utilities {
   /* Cable industry page canvas. One class, both modes: the gradient stops come
-     from the cable tokens above, so no component repeats a `dark:` variant. */
+     from the page tokens above, so no component repeats a `dark:` variant. */
   .bg-cable-page {
-    background-color: var(--cable-page-from);
-    background-image: linear-gradient(
-      180deg,
-      var(--cable-page-from) 0%,
-      var(--cable-page-to) 100%
-    );
+    background-color: var(--cable-page-to);
+    background-image: var(--page-gradient);
   }
 
   .text-cable-gradient {

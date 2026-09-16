@@ -71,10 +71,10 @@ export function Header({
         ref={headerRef}
         key="app-navbar"
         className={cn(
-          // Glass bar: translucent over the page gradient with a hairline
-          // accent border, and a fixed 52px height so the content below never
-          // shifts with the nav's contents.
-          'glass-header page-gutter flex h-[52px] min-w-0 items-center gap-2 sm:gap-4',
+          // The glass surface belongs to the full-width bar rendered by the
+          // layout; this row only aligns the controls with the page columns and
+          // fixes the 52px height, so the content below never shifts.
+          'page-gutter flex h-[52px] min-w-0 items-center gap-2 sm:gap-4',
           className,
         )}
         {...props}

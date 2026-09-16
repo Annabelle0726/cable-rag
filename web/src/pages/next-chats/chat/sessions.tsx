@@ -202,7 +202,7 @@ export function Sessions({
 
   if (!visible) {
     return (
-      <div className="flex w-14 shrink-0 justify-center border-r border-cable-hairline p-3">
+      <div className="glass-surface flex w-14 shrink-0 justify-center border-r border-cable-hairline p-3">
         <Button
           variant="transparent"
           size="icon-sm"
@@ -225,7 +225,7 @@ export function Sessions({
       // Flush against the chat box: the two panes meet at one hairline instead
       // of a rounded floating card with a 24px gutter around it. One column
       // with a single gap value, so the rail reads as evenly spaced blocks.
-      className="glass-panel flex h-full w-[296px] shrink-0 flex-col gap-4 border-r border-cable-hairline p-5"
+      className="glass-surface flex h-full w-[296px] shrink-0 flex-col gap-4 border-r border-cable-hairline p-5"
       role="complementary"
       data-testid="chat-detail-sessions"
     >
