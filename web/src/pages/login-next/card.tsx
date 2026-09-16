@@ -11,7 +11,6 @@ const FlipCard3D = (props: IProps) => {
   const { children, isLoginPage } = props;
   const [isFlipped, setIsFlipped] = useState(false);
   useEffect(() => {
-    console.log('title', isLoginPage);
     if (isLoginPage) {
       setIsFlipped(false);
     } else {
@@ -29,13 +28,15 @@ const FlipCard3D = (props: IProps) => {
   return (
     <>
       {isBackfaceVisibilitySupported() && (
-        <div className="relative w-full h-full perspective-1000">
+        // Both faces live in the same grid cell, so the card takes the height of
+        // whichever face is taller instead of a reserved fixed height.
+        <div className="perspective-1000 relative w-full">
           <div
-            className={`relative w-full h-full transition-transform transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}
+            className={`transform-style-3d relative grid w-full ${isFlipped ? 'rotate-y-180' : ''}`}
           >
             {/* Front Face */}
             <div
-              className="absolute inset-0 flex items-center justify-center backface-hidden rotate-y-0"
+              className="backface-hidden rotate-y-0 flex items-center justify-center [grid-area:1/1]"
               {...(!isFlipped ? { 'data-testid': 'auth-card-active' } : {})}
             >
               <FlipFaceContext.Provider value="front">
@@ -45,7 +46,7 @@ const FlipCard3D = (props: IProps) => {
 
             {/* Back Face */}
             <div
-              className="absolute inset-0 flex items-center justify-center backface-hidden rotate-y-180"
+              className="backface-hidden rotate-y-180 flex items-center justify-center [grid-area:1/1]"
               {...(isFlipped ? { 'data-testid': 'auth-card-active' } : {})}
             >
               <FlipFaceContext.Provider value="back">

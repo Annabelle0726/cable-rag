@@ -15,7 +15,9 @@ export const BgSvg = ({ isPaused = false }: { isPaused?: boolean }) => {
   ) => {
     return (
       <svg
-        className="w-full h-full"
+        // `currentColor` below inherits from here, so the trace colour lives in
+        // one place and follows the light/dark accent token.
+        className="h-full w-full text-accent-color"
         // style={{ aspectRatio: `1440/${aspectRatio[type]}` }}
         // preserveAspectRatio="xMinYMid meet"
         preserveAspectRatio="none"
@@ -27,10 +29,13 @@ export const BgSvg = ({ isPaused = false }: { isPaused?: boolean }) => {
       >
         <defs>
           <linearGradient id={`glow${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#80FFF8" stopOpacity="0" />
-            <stop offset="50%" stopColor="#80FFF8" stopOpacity="1" />
-            <stop offset="100%" stopColor="#80FFF8" stopOpacity="0" />
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0" />
+            <stop offset="50%" stopColor="currentColor" stopOpacity="1" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
           </linearGradient>
+          {/* The black/white/gold stops below are luminance values read by the
+              masks, not visible colours: white reveals the trace, black hides
+              it. They must stay absolute, so they are not theme tokens. */}
           <linearGradient
             id="strokeWidthGradient"
             x1="0%"
@@ -106,7 +111,7 @@ export const BgSvg = ({ isPaused = false }: { isPaused?: boolean }) => {
         </defs>
         <path
           d={path}
-          stroke="#00BEB4"
+          stroke="currentColor"
           strokeWidth="1"
           fill="none"
           opacity="0.1"

@@ -9,7 +9,7 @@
     height: 100%;
     stroke-dasharray: 660;
     stroke-dashoffset: 0;
-    stroke: #d11818;
+    stroke: var(--accent-color);
     stroke-width: 8;
     fill: none;
   }
@@ -46,13 +46,17 @@
 }
 
 //////////////////////////////////////////////////////////////////////////
+/* 3D flip helpers.
+ *
+ * The flip container is a grid whose two faces share one cell, so the card is
+ * exactly as tall as its tallest face. It used to reserve a hard-coded 680px
+ * (and the page another 1050px), which is what pushed the card out of place on
+ * a normal screen. */
 .perspective-1000 {
   perspective: 1000px;
   -webkit-perspective: 1000px;
-  overflow: hidden;
-  min-height: 680px;
-  display: flex;
-  align-items: center;
+  display: grid;
+  width: 100%;
   will-change: transform;
 }
 .transform-style-3d {
