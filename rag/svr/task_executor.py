@@ -2027,41 +2027,48 @@ async def main():
                 logging.info("[recycle] stop_event observed after acquiring task_limiter; releasing the semaphore and exiting the main loop.")
                 task_limiter.release()
                 break
-            t = asyncio.create_task(task_manager())
-            tasks.append(t)
+
+            task = asyncio.create_task(task_manager())
+            tasks.append(task)
+            tasks = [t for t in tasks if not t.done()]
     finally:
-        if MAX_TASKS_PER_WORKER > 0 and tasks:
-            # Recycling is a planned exit, so let in-flight task_managers finish
-            # instead of discarding their work -- but bound the wait so a single
-            # hung task cannot keep the worker alive forever.
-            _, pending = await asyncio.wait(tasks, timeout=RECYCLE_SHUTDOWN_TIMEOUT)
-            if pending:
-                logging.warning(f"[recycle] {len(pending)} task(s) still running after {RECYCLE_SHUTDOWN_TIMEOUT}s grace; cancelling them.")
-            tasks = list(pending)
-        for t in tasks:
-            t.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
         report_task.cancel()
-        await asyncio.gather(report_task, return_exceptions=True)
-    logging.error("BUG!!! You should not reach here!!!")
+        if tasks:
+            logging.info(f"Waiting for {len(tasks)} in-flight tasks to complete...")
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*tasks, return_exceptions=True),
+                    timeout=RECYCLE_SHUTDOWN_TIMEOUT,
+                )
+            except TimeoutError:
+                logging.warning(f"[recycle] timed out after {RECYCLE_SHUTDOWN_TIMEOUT}s waiting for in-flight tasks to complete; exiting anyway.")
 
 
 if __name__ == "__main__":
-    # Parse command line arguments (consistent with SAAS version)
-    parser = argparse.ArgumentParser(description="Task Executor")
-    parser.add_argument("-i", "--index", type=str, default="0")
-    parser.add_argument("-t", "--type", type=str, default="common", help="[common, graphrag, raptor, resume]")
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--task_type",
+        type=str,
+        default="common",
+        help="task type: common",
+    )
+    parser.add_argument(
+        "--te_idx",
+        type=str,
+        default="0",
+        help="task executor index",
+    )
     args = parser.parse_args()
+    TASK_TYPE = args.task_type
+    TE_IDX = args.te_idx
 
-    # Update global variables
-    TASK_TYPE = args.type
-    TE_IDX = args.index
     CONSUMER_NAME = f"task_executor_{TASK_TYPE}_{TE_IDX}"
 
-    faulthandler.enable()
     init_root_logger(CONSUMER_NAME)
+
     try:
         asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        pass
     except Exception as e:
-        logging.exception(f"Unhandled exception: {e}")
-        sys.exit(1)
+        logging.exception(f"task_executor main got exception: {e}")
