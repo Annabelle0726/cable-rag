@@ -50,10 +50,14 @@ export default function SearchPage() {
 
   return (
     <section
-      className="size-full flex-1 relative px-5 pb-5 flex pt-4"
+      // The route already lives under the layout's header row, so this pane is
+      // the whole remaining area: no outer margin or padding to squeeze it, and
+      // the same frame-less glass surface the chat panes use instead of a hard
+      // 0.5px border with the page background behind it.
+      className="relative flex size-full min-w-0 flex-1"
       data-testid="search-detail"
     >
-      <div className="flex gap-3 flex-1 min-w-0 bg-bg-base border-0.5 border-border-button">
+      <div className="glass-surface flex min-w-0 flex-1">
         <div className="flex-1 min-w-0 overflow-hidden">
           {!isSearching && (
             <div className="animate-fade-in-down h-full overflow-x-hidden overflow-y-auto">
@@ -90,7 +94,7 @@ export default function SearchPage() {
 
       <Button
         variant="transparent"
-        className="bg-bg-card ml-5 shrink-0"
+        className="bg-bg-card m-4 shrink-0"
         onClick={() => setOpenSetting(!openSetting)}
       >
         <Settings className="text-text-secondary" />

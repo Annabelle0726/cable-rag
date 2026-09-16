@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+import SvgIcon from '@/components/svg-icon';
 import { useFetchTokenListBeforeOtherStep } from '@/components/embed-dialog/use-show-embed-dialog';
 import { Button } from '@/components/ui/button';
 import { SharedFrom } from '@/constants/chat';
@@ -21,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { Routes } from '@/routes';
 import { Send } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFetchSearchDetail } from '../next-searches/hooks';
 import EmbedAppModal from './embed-app-modal';
 
@@ -56,22 +58,30 @@ function EmbedIcon() {
   );
 }
 
-export function RAGFlowLogo({
+/**
+ * The search surfaces' brand mark: the same logo file and the same name the app
+ * bar and the assistant avatar use, so the search hero cannot drift into showing
+ * the upstream wordmark (or a hard-coded teal-to-indigo gradient) again.
+ */
+export function SearchBrandMark({
   onClick,
   showEmbedIcon = true,
 }: {
   onClick?: React.MouseEventHandler<HTMLHeadingElement>;
   showEmbedIcon?: boolean;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex gap-4 items-center">
       <h1
         onClick={onClick}
         className={cn(
-          'text-4xl font-bold bg-gradient-to-l from-[#40EBE3] to-[#4A51FF] bg-clip-text',
+          'flex items-center gap-3 text-4xl font-bold text-cable-gradient',
         )}
       >
-        RAGFlow
+        <SvgIcon name="brand-logo" width={40} height={40} />
+        <span>{t('header.brandShort')}</span>
       </h1>
       {showEmbedIcon && <EmbedIcon></EmbedIcon>}
     </div>
