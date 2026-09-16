@@ -67,9 +67,13 @@ export const EmptyCard = (props: EmptyCardProps) => {
   return (
     <article
       className={cn(
-        'flex flex-col gap-3 rounded-md border border-dashed border-border-button p-5',
-        'w-full items-center justify-center text-center',
-        'md:w-fit md:items-start md:justify-start md:text-left',
+        // One centred column at every breakpoint, with a floor for its height:
+        // the tile holds an icon, a plus and sometimes a message, and the whole
+        // group has to sit in the middle of the card. It used to switch to a
+        // left-aligned, width-to-fit layout from md up, which collapsed the card
+        // to the width of its icon once the placeholder text was removed.
+        'flex min-h-[160px] w-full flex-col items-center justify-center gap-3 p-5 text-center',
+        'rounded-md border border-dashed border-border-button',
         className,
       )}
       style={style}
@@ -99,7 +103,6 @@ export const EmptyAppCard = (props: {
   const { type, showIcon, className, isSearch, children, testId, tabIndex } =
     props;
   const { t } = useTranslation();
-  let defaultClass = '';
   let style: React.CSSProperties | undefined;
   const cardData = EmptyCardData[type];
   // The create card is a plain tile — an icon and a plus — so it carries no
@@ -107,17 +110,8 @@ export const EmptyAppCard = (props: {
   // message, and that message is the one worth reading.
   const notFound = t(cardData.notFoundKey);
 
-  switch (props.size) {
-    case 'small':
-      style = { width: '256px' };
-      defaultClass = 'mt-1';
-      break;
-    case 'large':
-      defaultClass = 'mt-5';
-      break;
-    default:
-      defaultClass = '';
-      break;
+  if (props.size === 'small') {
+    style = { width: '256px' };
   }
 
   return (
@@ -126,13 +120,10 @@ export const EmptyAppCard = (props: {
         onClick={isSearch ? undefined : props.onClick}
         data-testid={testId}
         tabIndex={tabIndex ?? (isSearch ? undefined : 0)}
-        icon={showIcon ? cardData.icon : undefined}
+        icon={isSearch && showIcon ? cardData.icon : undefined}
         title={isSearch ? notFound : undefined}
         className={cn(
-          // With the placeholder text gone the create tile centres its icon and
-          // plus at every breakpoint instead of hugging the left edge.
-          !isSearch &&
-            'cursor-pointer md:items-center md:justify-center md:text-center',
+          !isSearch && 'cursor-pointer',
           props.size === 'large' && 'p-14',
           className,
           'w-full max-w-[480px] md:max-w-none',
@@ -142,12 +133,10 @@ export const EmptyAppCard = (props: {
         style={style}
       >
         {!isSearch && !children && (
-          <div
-            className={cn(
-              defaultClass,
-              'flex w-full items-center justify-center md:justify-start',
-            )}
-          >
+          // The icon and the plus are one vertical group, so the tile stays
+          // centred whatever its own width works out to be.
+          <div className="flex flex-col items-center justify-center gap-2">
+            {showIcon && cardData.icon}
             <Plus size={24} />
           </div>
         )}
