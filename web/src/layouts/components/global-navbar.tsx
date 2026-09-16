@@ -2,14 +2,22 @@ import { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router';
 
-import { LucideHouse, LucideMenu } from 'lucide-react';
+import {
+  LucideBot,
+  LucideBrain,
+  LucideDatabase,
+  LucideFolderOpen,
+  LucideHouse,
+  LucideMenu,
+  LucideMessagesSquare,
+  LucideSearch,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { Routes } from '@/routes';
 import { supportsCssAnchor } from '@/utils/css-support';
-import { HomeIcon } from '@/components/svg-icon';
 import { BrandMark } from './brand-mark';
 
 const PathMap = {
@@ -26,56 +34,45 @@ const PathMap = {
 const matchesPath = (pathname: string, candidate: string) =>
   pathname === candidate || pathname.startsWith(`${candidate}/`);
 
-// Wrapper so dataset icon shares the same ComponentType<{ className? }>
-// shape as Lucide icons in menuItems (avoids Element-vs-component union).
-const MenuItemsIcon = ({
-  className,
-  name,
-}: {
-  className?: string;
-  name?: string;
-}) => <HomeIcon imgClass={className} name={name || 'datasets'} width={20} />;
-
+// Every tab carries an icon: a bare text row reads as a list of links, while an
+// icon + label pair reads as navigation and is recognisable at a glance. Lucide
+// shapes are used (rather than bitmaps) so they inherit the token colours and
+// stay crisp at any density.
 const menuItems = [
   { path: Routes.Root, name: 'header.home', icon: LucideHouse },
   {
     path: Routes.Datasets,
     name: 'header.dataset',
-    icon: MenuItemsIcon,
-    icon_name: 'datasets',
+    icon: LucideDatabase,
+    'data-testid': 'nav-dataset',
   },
   {
     path: Routes.Chats,
     name: 'header.chat',
-    icon: MenuItemsIcon,
-    icon_name: 'chats',
+    icon: LucideMessagesSquare,
     'data-testid': 'nav-chat',
   },
   {
     path: Routes.Searches,
     name: 'header.search',
-    icon: MenuItemsIcon,
-    icon_name: 'searches',
+    icon: LucideSearch,
     'data-testid': 'nav-search',
   },
   {
     path: Routes.Agents,
     name: 'header.flow',
-    icon: MenuItemsIcon,
-    icon_name: 'agents',
+    icon: LucideBot,
     'data-testid': 'nav-agent',
   },
   {
     path: Routes.Memories,
     name: 'header.memories',
-    icon: MenuItemsIcon,
-    icon_name: 'memory',
+    icon: LucideBrain,
   },
   {
     path: Routes.Files,
     name: 'header.fileManager',
-    icon: MenuItemsIcon,
-    icon_name: 'file',
+    icon: LucideFolderOpen,
   },
 ];
 
@@ -118,22 +115,19 @@ const DesktopNavbarWithAnchor = () => {
                 {...props}
                 to={path}
                 className={cn(
-                  'inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm xl:text-base',
-                  'transition-colors',
+                  // Icon and label sit on one line, vertically centred, with a
+                  // 8px gap; the row stays 32px tall so the 52px header keeps its
+                  // breathing room above the content.
+                  'inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm',
+                  'transition-colors duration-200 ease-in-out',
                   isActive
                     ? 'font-semibold text-cable-nav-active-text'
                     : 'text-cable-nav hover:text-cable-nav-hover focus-visible:text-cable-nav-hover',
                 )}
                 aria-current={isActive ? 'page' : undefined}
               >
-                {path === Routes.Root ? (
-                  <>
-                    <Icon className="size-6 stroke-[1.5]" />
-                    <span className="sr-only">{t(name)}</span>
-                  </>
-                ) : (
-                  <span>{t(name)}</span>
-                )}
+                <Icon className="size-4 shrink-0 stroke-[1.75]" />
+                <span>{t(name)}</span>
               </Link>
             </li>
           );
@@ -178,8 +172,8 @@ const DesktopNavbarFallback = () => {
                 {...props}
                 to={path}
                 className={cn(
-                  'inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm xl:text-base',
-                  'transition-colors',
+                  'inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm',
+                  'transition-colors duration-200 ease-in-out',
                   isActive
                     ? 'border-b-2 border-b-cable-nav-indicator bg-cable-nav-active-bg font-semibold text-cable-nav-active-text'
                     : 'text-cable-nav hover:bg-cable-nav-active-bg hover:text-cable-nav-hover focus-visible:text-cable-nav-hover',
@@ -187,11 +181,8 @@ const DesktopNavbarFallback = () => {
                 aria-label={t(name)}
                 aria-current={isActive ? 'page' : undefined}
               >
-                {path === Routes.Root ? (
-                  <Icon className="size-6 stroke-[1.5]" />
-                ) : (
-                  <span>{t(name)}</span>
-                )}
+                <Icon className="size-4 shrink-0 stroke-[1.75]" />
+                <span>{t(name)}</span>
               </Link>
             </li>
           );
@@ -212,14 +203,12 @@ export function DesktopNavbar() {
 function MobileNavItem({
   label,
   icon: Icon,
-  icon_name,
   isActive,
   onClick,
   ...linkProps
 }: {
   label: string;
-  icon: React.ComponentType<{ className?: string; name?: string }>;
-  icon_name?: string;
+  icon: React.ComponentType<{ className?: string }>;
   isActive?: boolean;
   onClick?: () => void;
   to: string;
@@ -238,7 +227,7 @@ function MobileNavItem({
       )}
       aria-current={isActive ? 'page' : undefined}
     >
-      <Icon className="size-5 shrink-0 stroke-[1.5]" name={icon_name} />
+      <Icon className="size-5 shrink-0 stroke-[1.75]" />
       <span className="truncate">{label}</span>
     </Link>
   );
@@ -282,14 +271,13 @@ export function MobileNavbar({ renderFooter }: MobileNavbarProps) {
 
         <nav className="min-h-0 flex-1 overflow-y-auto py-3">
           <ul className="space-y-1">
-            {menuItems.map(({ path, name, icon_name, icon, ...props }) => (
+            {menuItems.map(({ path, name, icon, ...props }) => (
               <li key={path}>
                 <MobileNavItem
                   {...props}
                   to={path}
                   label={t(name)}
                   icon={icon}
-                  icon_name={icon_name}
                   isActive={path === activePath}
                   onClick={close}
                 />
