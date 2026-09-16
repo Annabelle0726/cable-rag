@@ -102,16 +102,17 @@ export function Applications() {
         {listLength > 0 && (
           <SeeAllAppCard click={() => handleNavigate({ isCreate: false })} />
         )}
-      </HomeCardGrid>
 
-      {listLength <= 0 && !loading && (
-        <div className="w-[210px]">
+        {/* The create tile is a grid item like the tiles it stands in for, so it
+            matches them in width and height instead of sitting in a 210px box of
+            its own. */}
+        {listLength <= 0 && !loading && (
           <EmptyAppCard
             type={EmptyTypeMap[val as keyof typeof EmptyTypeMap]}
             onClick={() => handleNavigate({ isCreate: true })}
           />
-        </div>
-      )}
+        )}
+      </HomeCardGrid>
     </section>
   );
 }

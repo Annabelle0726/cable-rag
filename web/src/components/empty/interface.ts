@@ -30,5 +30,4 @@ export type EmptyCardProps = {
   children?: React.ReactNode;
   title?: string;
   description?: string;
-  style?: React.CSSProperties;
 } & Omit<React.HTMLAttributes<HTMLDivElement>, 'title'>;

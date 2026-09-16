@@ -204,22 +204,19 @@ export default function Agents() {
             </footer>
           </>
         ) : searchString ? (
-          <div className="flex-1 flex items-center justify-center">
+          <CardContainer className="page-gutter flex-1 overflow-auto">
             <EmptyAppCard
               showIcon
-              size="large"
-              className="w-[480px] p-14"
               isSearch
               type={EmptyCardType.Agent}
               onClick={() => showCreatingModal()}
             />
-          </div>
+          </CardContainer>
         ) : listLoading ? null : (
-          <div className="flex-1 flex items-center justify-center">
+          <CardContainer className="page-gutter flex-1 overflow-auto">
             <EmptyAppCard
               showIcon
-              size="large"
-              className="w-[480px] p-14 !cursor-default"
+              className="!cursor-default"
               type={EmptyCardType.Agent}
               tabIndex={-1}
               // onClick={() => showCreatingModal()}
@@ -260,7 +257,7 @@ export default function Agents() {
                 </li>
               </ul>
             </EmptyAppCard>
-          </div>
+          </CardContainer>
         )}
       </article>
 

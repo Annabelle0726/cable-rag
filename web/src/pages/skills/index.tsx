@@ -836,25 +836,23 @@ const SkillsPage: React.FC = () => {
                 </div>
               )
             ) : (
-              <div className="flex-1 flex items-center justify-center">
+              // Grid item in the same container the skill-space cards use, so the
+              // create tile is exactly a card's size.
+              <CardContainer className="flex-1 overflow-auto">
                 {spaceSearchString ? (
                   <EmptyAppCard
                     showIcon
-                    size="large"
-                    className="w-[480px] p-14"
                     isSearch
                     type={EmptyCardType.Skills}
                   />
                 ) : (
                   <EmptyAppCard
                     showIcon
-                    size="large"
-                    className="w-[480px] p-14"
                     type={EmptyCardType.Skills}
                     onClick={() => setCreateSpaceModalOpen(true)}
                   />
                 )}
-              </div>
+              </CardContainer>
             )}
           </div>
         </article>

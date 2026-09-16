@@ -6,12 +6,12 @@ import { render, screen } from '@testing-library/react';
 const classList = (element: HTMLElement) => element.className.split(/\s+/);
 
 /**
- * The create tiles are the page's only call to action, so they have to hold
- * their own centring: an icon, a plus and a one-line prompt, stacked in the
- * middle of a tile that keeps a standard size.
+ * The create tiles are the page's only call to action. They have to be the same
+ * size as the cards they stand in for, and hold their own centring: an icon, a
+ * plus and a one-line prompt on a single row, in the middle of the tile.
  */
 describe('empty create card', () => {
-  it('centres the tile and its content at every breakpoint', () => {
+  it('keeps a card-sized footprint at every breakpoint', () => {
     render(
       <EmptyAppCard type={EmptyCardType.Chat} showIcon testId="empty-create" />,
     );
@@ -24,7 +24,8 @@ describe('empty create card', () => {
         'flex-col',
         'items-center',
         'justify-center',
-        'min-h-[160px]',
+        'min-h-[104px]',
+        'w-full',
       ]),
     );
     // The md-and-up left-aligned, width-to-fit layout collapsed the tile to the
@@ -32,6 +33,8 @@ describe('empty create card', () => {
     expect(card.className).not.toMatch(
       /md:(items-start|justify-start|text-left|w-fit)/,
     );
+    // No size override of its own any more: the grid cell decides the size.
+    expect(card.className).not.toMatch(/max-w-\[480px\]|md:w-\[480px\]|p-14/);
   });
 
   it('reads as a button on hover', () => {
@@ -46,7 +49,7 @@ describe('empty create card', () => {
     expect(card.className).toMatch(/duration-200/);
   });
 
-  it('stacks the icons and the prompt as one centred group', () => {
+  it('keeps the icons and the prompt on one centred row', () => {
     const { unmount } = render(
       <EmptyAppCard
         type={EmptyCardType.Dataset}
@@ -61,33 +64,27 @@ describe('empty create card', () => {
     expect(classList(group)).toEqual(
       expect.arrayContaining([
         'flex',
-        'flex-col',
+        'flex-row',
+        'flex-wrap',
         'items-center',
         'justify-center',
-        'gap-3',
+        'gap-2',
       ]),
     );
+    expect(group.className).not.toMatch(/flex-col/);
 
-    // The business icon and the plus, then the prompt: two blocks, and the icons
-    // are spaced apart inside their own stack.
-    expect(group.children).toHaveLength(2);
-
-    const icons = group.firstElementChild as HTMLElement;
-
-    expect(classList(icons)).toEqual(
-      expect.arrayContaining(['flex', 'flex-col', 'items-center', 'gap-2']),
-    );
-    expect(icons.children).toHaveLength(2);
+    // Business icon, plus and prompt, side by side on that one row.
+    expect(group.children).toHaveLength(3);
 
     unmount();
 
     render(<EmptyAppCard type={EmptyCardType.Chat} testId="empty-create-bare" />);
 
-    const bareIcons = screen.getByTestId('empty-create-bare')
-      .firstElementChild?.firstElementChild as HTMLElement;
+    const bareGroup = screen.getByTestId('empty-create-bare')
+      .firstElementChild as HTMLElement;
 
-    // Without the business icon the plus is the only child, still centred.
-    expect(bareIcons.children).toHaveLength(1);
+    // Without the business icon the plus and the prompt are the row.
+    expect(bareGroup.children).toHaveLength(2);
   });
 
   it('states the action, and reports the empty result on the search card', () => {

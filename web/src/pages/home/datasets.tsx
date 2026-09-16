@@ -51,12 +51,15 @@ export function Datasets() {
               </HomeCardGrid>
             )}
             {!(kbs && kbs?.length > 0) && (
-              <div className="w-[210px]">
+              // The create tile goes in the same grid as the cards would: the
+              // fixed 210px box it used to sit in made it a small square next to
+              // the section's real cards.
+              <HomeCardGrid>
                 <EmptyAppCard
                   type={EmptyCardType.Dataset}
                   onClick={() => navigateToDatasetList({ isCreate: true })}
                 />
-              </div>
+              </HomeCardGrid>
             )}
           </>
         )}

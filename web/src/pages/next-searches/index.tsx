@@ -150,31 +150,30 @@ export default function SearchList() {
               </footer>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            // Grid item in the same container the cards use: same size as a card.
+            <CardContainer className="page-gutter flex-1 overflow-auto">
               <EmptyAppCard
                 showIcon
-                size="large"
-                className="w-[480px] p-14"
                 isSearch
                 type={EmptyCardType.Search}
                 testId="search-empty-create"
               />
-            </div>
+            </CardContainer>
           )}
         </article>
       ) : (
         <article
-          className="size-full flex items-center justify-center"
+          className="size-full min-w-0 flex flex-col"
           data-testid="search-list"
         >
-          <EmptyAppCard
-            showIcon
-            size="large"
-            className="w-[480px] p-14"
-            type={EmptyCardType.Search}
-            onClick={() => openCreateModalFun()}
-            testId="search-empty-create"
-          />
+          <CardContainer className="page-gutter flex-1 overflow-auto pt-8">
+            <EmptyAppCard
+              showIcon
+              type={EmptyCardType.Search}
+              onClick={() => openCreateModalFun()}
+              testId="search-empty-create"
+            />
+          </CardContainer>
         </article>
       )}
       {openCreateModal && (

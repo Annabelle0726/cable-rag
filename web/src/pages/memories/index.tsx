@@ -128,28 +128,29 @@ export default function MemoryList() {
               </footer>
             </>
           ) : (
-            <div className="page-gutter flex flex-1 items-center justify-center">
+            // Grid item in the same container the cards use: same size as a card.
+            <CardContainer className="page-gutter flex-1 overflow-auto">
               <EmptyAppCard
                 showIcon
-                size="large"
                 isSearch
                 type={EmptyCardType.Memory}
                 onClick={() => openCreateModalFun()}
               />
-            </div>
+            </CardContainer>
           )}
         </article>
       ) : (
         <article
-          className="page-gutter size-full min-w-0 flex items-center justify-center"
+          className="size-full min-w-0 flex flex-col"
           data-testid="memory-list"
         >
-          <EmptyAppCard
-            showIcon
-            size="large"
-            type={EmptyCardType.Memory}
-            onClick={() => openCreateModalFun()}
-          />
+          <CardContainer className="page-gutter flex-1 overflow-auto pt-8">
+            <EmptyAppCard
+              showIcon
+              type={EmptyCardType.Memory}
+              onClick={() => openCreateModalFun()}
+            />
+          </CardContainer>
         </article>
       )}
       {/* {openCreateModal && (

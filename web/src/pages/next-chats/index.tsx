@@ -172,17 +172,17 @@ export default function ChatList() {
               </footer>
             </>
           ) : (
-            <div className="flex min-h-0 flex-1 items-center justify-center pb-8">
+            // A grid item in the same container the cards use: the create tile is
+            // exactly as wide and as tall as a chat card.
+            <CardContainer className="page-gutter flex-1 overflow-auto">
               <EmptyAppCard
                 showIcon
-                size="large"
-                className="w-[480px] p-14"
                 isSearch={Boolean(searchString)}
                 type={EmptyCardType.Chat}
                 onClick={() => handleShowCreateModal()}
                 testId="chats-empty-create"
               />
-            </div>
+            </CardContainer>
           )}
         </article>
       )}

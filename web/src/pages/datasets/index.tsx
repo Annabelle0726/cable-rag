@@ -133,30 +133,30 @@ export default function Datasets() {
               </footer>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
+            // The create tile is a grid item in the same container the cards use,
+            // so it is exactly as wide and as tall as a knowledge-base card.
+            <CardContainer className="page-gutter flex-1 overflow-auto">
               <EmptyAppCard
                 showIcon
-                size="large"
-                className="w-[480px] p-14"
                 isSearch
                 type={EmptyCardType.Dataset}
                 onClick={() => showModal()}
               />
-            </div>
+            </CardContainer>
           )}
         </article>
       ) : (
         <article
-          className="size-full flex items-center justify-center"
+          className="size-full min-w-0 flex flex-col"
           data-testid="datasets-list"
         >
-          <EmptyAppCard
-            showIcon
-            size="large"
-            className="w-[480px] p-14"
-            type={EmptyCardType.Dataset}
-            onClick={() => showModal()}
-          />
+          <CardContainer className="page-gutter flex-1 overflow-auto pt-8">
+            <EmptyAppCard
+              showIcon
+              type={EmptyCardType.Dataset}
+              onClick={() => showModal()}
+            />
+          </CardContainer>
         </article>
       )}
       {visible && (

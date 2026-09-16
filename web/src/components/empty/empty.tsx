@@ -62,25 +62,28 @@ const Empty = (props: EmptyProps) => {
 export default Empty;
 
 export const EmptyCard = (props: EmptyCardProps) => {
-  const { icon, className, children, title, description, style, ...restProps } =
-    props;
+  const { icon, className, children, title, description, ...restProps } = props;
   return (
     <article
       className={cn(
-        // One centred column at every breakpoint, with a floor for its height:
-        // the tile holds an icon, a plus and sometimes a message, and the whole
-        // group has to sit in the middle of the card. It used to switch to a
-        // left-aligned, width-to-fit layout from md up, which collapsed the card
-        // to the width of its icon once the placeholder text was removed.
-        'flex min-h-[160px] w-full flex-col items-center justify-center gap-3 p-5 text-center',
-        'rounded-md border border-dashed border-border-button',
+        // The same footprint as the cards it stands in for: the app card shell's
+        // padding and radius, plus a floor for its height so a grid that holds
+        // nothing but this tile still shows a card-sized slot instead of
+        // collapsing to the height of one row of text. The icon, the plus and the
+        // prompt share a single centred row inside it.
+        'flex min-h-[104px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-button px-4 py-4 text-center',
         className,
       )}
-      style={style}
       {...restProps}
     >
-      {icon}
-      {title && <div className="text-sm text-text-primary">{title}</div>}
+      {(icon || title) && (
+        <div className="flex flex-row flex-wrap items-center justify-center gap-2">
+          {icon}
+          {title && (
+            <span className="text-sm text-text-primary">{title}</span>
+          )}
+        </div>
+      )}
       {description && (
         <p className="text-sm text-text-secondary">{description}</p>
       )}
@@ -95,7 +98,6 @@ export const EmptyAppCard = (props: {
   showIcon?: boolean;
   className?: string;
   isSearch?: boolean;
-  size?: 'small' | 'large';
   children?: React.ReactNode;
   testId?: string;
   tabIndex?: number;
@@ -103,19 +105,16 @@ export const EmptyAppCard = (props: {
   const { type, showIcon, className, isSearch, children, testId, tabIndex } =
     props;
   const { t } = useTranslation();
-  let style: React.CSSProperties | undefined;
   const cardData = EmptyCardData[type];
   // The create tile states what the click does, and the "nothing matched" state
-  // says what came back empty — one line either way, under the icons.
+  // says what came back empty — one line either way, next to the icons.
   const title = t(cardData.titleKey);
   const notFound = t(cardData.notFoundKey);
 
-  if (props.size === 'small') {
-    style = { width: '256px' };
-  }
-
   return (
-    <div className="flex w-full justify-center px-5 md:px-0">
+    // `w-full` with no inset or size override of its own, so the tile is a grid
+    // item exactly like the cards around it: same column width, same row height.
+    <div className="flex w-full justify-center">
       <EmptyCard
         onClick={isSearch ? undefined : props.onClick}
         data-testid={testId}
@@ -128,22 +127,15 @@ export const EmptyAppCard = (props: {
           // surrounding grid never clips it.
           !isSearch &&
             'card-interactive transition-[background-color,border-color,box-shadow] duration-200 ease-in-out hover:border-accent-color hover:shadow-accent-glow',
-          props.size === 'large' && 'p-14',
           className,
-          'w-full max-w-[480px] md:max-w-none',
-          props.size === 'large' && 'md:w-[480px]',
-          props.size === 'small' && 'max-w-64',
         )}
-        style={style}
       >
         {!isSearch && !children && (
-          // Icon, plus and prompt read as one group in the middle of the tile.
-          <div className="flex flex-col items-center justify-center gap-3">
-            <span className="flex flex-col items-center justify-center gap-2">
-              {showIcon && cardData.icon}
-              <Plus size={24} />
-            </span>
-
+          // Icon, plus and prompt as one horizontal group in the middle of the
+          // tile: they used to be stacked, which left the plus above the text.
+          <div className="flex flex-row flex-wrap items-center justify-center gap-2">
+            {showIcon && cardData.icon}
+            <Plus size={24} />
             <span className="text-sm text-text-secondary">{title}</span>
           </div>
         )}
