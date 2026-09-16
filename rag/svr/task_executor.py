@@ -100,6 +100,7 @@ from common.versions import get_ragflow_version
 from api.db.db_models import close_connection
 from rag.app import laws, paper, presentation, manual, qa, table, book, resume, picture, naive, one, audio, email, tag
 from rag.nlp import search, rag_tokenizer, add_positions, DEFAULT_DELIMITER
+from rag.nlp.doc_context import apply_document_context
 
 from common.token_utils import num_tokens_from_string, truncate
 from rag.utils.redis_conn import REDIS_CONN, RedisDistributedLock
@@ -425,6 +426,17 @@ async def build_chunks(task, progress_callback, on_chunking_start=None):
         logging.exception("Chunking {}/{} got exception".format(task["location"], task["name"]))
         raise
 
+    # Bind the document-level identity (standard number / title / section) to
+    # every chunk body before anything derives value from it. A standards PDF
+    # sliced away from its cover page otherwise reads as an unrelated procurement
+    # standard, and the answering model refuses the question about the standard the
+    # document actually contains. Runs before the chunk ids below and before the
+    # embedding stage, so the standard number is part of content_ltks, of the
+    # vector, of the chunk id and of the text handed back to the model. Applied
+    # here as well as in the refactored executor so both paths (TE_RUN_MODE) and
+    # the dry-run comparator see the same raw_chunks.
+    apply_document_context(cks, task["name"], language=task_language)
+
     # Record raw chunks for comparison
     get_recording_context().record("raw_chunks", cks)
 
@@ -440,6 +452,14 @@ async def build_chunks(task, progress_callback, on_chunking_start=None):
             logging.info("Persisted PDF outline (%d entries) for doc %s", len(outline), task["doc_id"])
         except Exception as e:
             logging.warning("Failed to persist PDF outline for doc %s: %s", task["doc_id"], e)
+
+    # Last gate before the chunk identity is frozen (upload_to_minio derives the id
+    # from content_with_weight below). Re-applies the document context if the
+    # chunking-stage call above was bypassed, so the standard number cannot be lost
+    # silently; a prefix already present makes this a no-op. Mirrors the guard in the
+    # refactored executor (ChunkService._prepare_docs_and_upload).
+    if apply_document_context(cks, task["name"], language=task_language):
+        logging.warning("document context was not bound by the chunking stage for %s; bound it at chunk assembly instead", task["name"])
 
     docs = []
     doc = {"doc_id": task["doc_id"], "kb_id": str(task["kb_id"])}

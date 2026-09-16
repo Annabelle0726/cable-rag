@@ -41,6 +41,7 @@ from common.float_utils import normalize_overlapped_percent
 from api.db.services.document_service import DocumentService
 from api.db.services.task_service import TaskService
 from rag.nlp import search, DEFAULT_DELIMITER
+from rag.nlp.doc_context import apply_document_context
 from rag.svr.task_executor_refactor.constants import GRAPH_RAPTOR_FAKE_DOC_ID
 from rag.svr.task_executor_refactor.task_context import TaskContext
 from rag.utils.base64_image import image2id
@@ -182,6 +183,16 @@ class ChunkService:
         # Run chunking (delegated)
         cks = await run_chunking(chunker, storage_binary, ctx, on_chunking_start)
 
+        # Bind the document-level identity (standard number / title / section) to
+        # every chunk body before anything derives value from it. A standards PDF
+        # sliced away from its cover page otherwise reads as an unrelated
+        # procurement standard, and the answering model refuses the question about
+        # the standard the document actually contains. Runs before the chunk ids
+        # (_prepare_docs_and_upload) and before the embedding stage, so the
+        # standard number is part of content_ltks, of the vector, of the chunk id
+        # and of the text handed back to the model.
+        apply_document_context(cks, ctx.name, language=ctx.language)
+
         # Record raw chunks
         self._task_context.recording_context.record("raw_chunks", cks)
 
@@ -226,6 +237,20 @@ class ChunkService:
     async def _prepare_docs_and_upload(self, cks: List[Dict]) -> List[Dict]:
         """Prepare docs and upload images to MinIO."""
         ctx = self._task_context
+        # Last gate before the chunk identity is frozen. The chunking stage binds the
+        # document context, and this re-applies it if that call was bypassed — a
+        # chunking path added later, or a removed call — so the standard number can
+        # never be lost silently; a prefix already present makes this a no-op.
+        #
+        # Deliberately NOT moved to the embedding stage: the chunk id below is derived
+        # from content_with_weight, so content rewritten after this point would no
+        # longer match the persisted id. Firing here means the chunking-stage call did
+        # not run, which is worth a warning rather than a silent repair.
+        if apply_document_context(cks, ctx.name, language=ctx.language):
+            logging.warning(
+                "ChunkService: document context was not bound by the chunking stage for %s; bound it at chunk assembly instead",
+                ctx.name,
+            )
         docs = []
         doc = {"doc_id": ctx.doc_id, "kb_id": str(ctx.kb_id)}
         if ctx.pagerank:
