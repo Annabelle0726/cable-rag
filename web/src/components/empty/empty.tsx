@@ -102,7 +102,9 @@ export const EmptyAppCard = (props: {
   let defaultClass = '';
   let style: React.CSSProperties | undefined;
   const cardData = EmptyCardData[type];
-  const title = t(cardData.titleKey);
+  // The create card is a plain tile — an icon and a plus — so it carries no
+  // placeholder sentence above them; only the "nothing matched" state keeps a
+  // message, and that message is the one worth reading.
   const notFound = t(cardData.notFoundKey);
 
   switch (props.size) {
@@ -125,9 +127,12 @@ export const EmptyAppCard = (props: {
         data-testid={testId}
         tabIndex={tabIndex ?? (isSearch ? undefined : 0)}
         icon={showIcon ? cardData.icon : undefined}
-        title={isSearch ? notFound : title}
+        title={isSearch ? notFound : undefined}
         className={cn(
-          !isSearch && 'cursor-pointer',
+          // With the placeholder text gone the create tile centres its icon and
+          // plus at every breakpoint instead of hugging the left edge.
+          !isSearch &&
+            'cursor-pointer md:items-center md:justify-center md:text-center',
           props.size === 'large' && 'p-14',
           className,
           'w-full max-w-[480px] md:max-w-none',
