@@ -65,7 +65,7 @@ function LoginFormContent({
 
   return (
     <div className="flex w-full flex-col items-center justify-center">
-      <div className="text-center mb-6">
+      <div className="mb-4 text-center">
         {/* The title carries the theme blue so it echoes the submit button
             rather than reading as plain black body copy. */}
         <h2 className="text-xl font-semibold text-accent-color">
@@ -73,12 +73,14 @@ function LoginFormContent({
         </h2>
       </div>
       {/* Glass card: a translucent pane over the page gradient with a hairline
-          accent border, which lights up while a field inside it has focus. */}
-      <div className="glass-panel w-full max-w-[440px] rounded-2xl p-6 transition-colors duration-200 ease-in-out focus-within:border-accent-color sm:p-8">
+          accent border, which lights up while a field inside it has focus. The
+          padding stays tight because the register face carries one field more
+          than the login face and both have to fit one screen. */}
+      <div className="glass-panel w-full max-w-[440px] rounded-2xl px-6 py-5 transition-colors duration-200 ease-in-out focus-within:border-accent-color">
         {!disablePasswordLogin && (
           <Form {...form}>
             <form
-              className="flex flex-col gap-6 text-text-primary"
+              className="flex flex-col gap-4 text-text-primary"
               data-testid="auth-form"
               data-active={isActiveFace ? 'true' : undefined}
               onSubmit={form.handleSubmit(onCheck)}
@@ -185,7 +187,7 @@ function LoginFormContent({
                 data-testid="auth-submit"
                 type="submit"
                 loading={loading}
-                className="accent-gradient glow-accent my-2 w-full transition-colors duration-200 ease-in-out"
+                className="accent-gradient glow-accent my-1 w-full transition-colors duration-200 ease-in-out"
               >
                 {title === 'login' ? t('login') : t('continue')}
               </ButtonLoading>
@@ -197,7 +199,7 @@ function LoginFormContent({
           <div
             className={cn(
               'space-y-2',
-              !disablePasswordLogin && 'mt-6 border-t border-cable-border pt-6',
+              !disablePasswordLogin && 'mt-4 border-t border-cable-border pt-4',
             )}
           >
             {channels.map((item) => (
@@ -223,7 +225,7 @@ function LoginFormContent({
         )}
 
         {!disablePasswordLogin && title === 'login' && registerEnabled && (
-          <div className="mt-6 text-center">
+          <div className="mt-4 text-center">
             <p className="text-text-secondary text-sm">
               {t('signInTip')}
               <Button
@@ -238,7 +240,7 @@ function LoginFormContent({
           </div>
         )}
         {!disablePasswordLogin && title === 'register' && (
-          <div className="mt-6 text-center">
+          <div className="mt-4 text-center">
             <p className="text-text-secondary text-sm">
               {t('signUpTip')}
               <Button
@@ -395,15 +397,17 @@ const Login = () => {
         <BgSvg isPaused />
 
         {/* Brand, then the card, centred as one block on a single screen. The
-            column may scroll on its own if a viewport is shorter than the
-            register face, which keeps the submit button reachable; on a normal
-            screen it never overflows and no scrollbar appears. */}
-        <div className="relative z-10 flex max-h-full w-full max-w-[440px] flex-col items-center overflow-y-auto px-4 py-6">
-          <header className="mb-6 flex flex-col items-center gap-2 text-center">
-            <span className="glass-panel flex size-12 items-center justify-center rounded-2xl">
-              <SvgIcon name="brand-logo" width={28} height={28} />
+            column is not a scroll container: the compact card fits the viewport
+            at the sizes this page is used at, and any scrollbar here would be
+            the one thing the layout is meant to avoid. */}
+        <div className="relative z-10 flex w-full max-w-[440px] flex-col items-center px-4 py-4">
+          {/* Logo and product name read as one line, both on the same centre
+              line, instead of a stacked mark with a caption under it. */}
+          <header className="mb-4 flex flex-row items-center justify-center gap-3">
+            <span className="glass-panel flex size-10 shrink-0 items-center justify-center rounded-xl">
+              <SvgIcon name="brand-logo" width={24} height={24} />
             </span>
-            <p className="text-lg font-semibold tracking-tight text-text-primary">
+            <p className="text-xl font-semibold tracking-tight text-text-primary">
               {tHeader('brandShort')}
             </p>
           </header>
