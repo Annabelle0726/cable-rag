@@ -53,7 +53,7 @@ export function McpCard({
   };
 
   return (
-    <Card key={data.id}>
+    <Card key={data.id} className="rounded-none">
       <CardContent className="p-2.5 pt-2 group">
         <section className="flex justify-between pb-2">
           <h3 className="text-base font-normal truncate flex-1 text-text-primary">

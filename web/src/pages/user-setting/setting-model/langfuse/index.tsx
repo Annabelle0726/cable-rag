@@ -48,7 +48,7 @@ export function LangfuseCard() {
   }, [data?.project_id]);
 
   return (
-    <Card>
+    <Card className="rounded-none">
       <CardHeader>
         <CardTitle className="flex justify-between">
           <div className="flex items-center gap-4">

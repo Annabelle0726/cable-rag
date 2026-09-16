@@ -159,7 +159,7 @@ const VerifyButton: React.FC<IVerifyButton> = ({
       </div>
       {verifyResult && verifyResult.isValid === false && verifyResult.logs && (
         <div className="space-y-2">
-          <div className="w-full  whitespace-pre-line text-wrap bg-bg-card rounded-lg h-fit max-h-[250px] overflow-y-auto scrollbar-auto p-2.5">
+          <div className="w-full  whitespace-pre-line text-wrap bg-bg-card h-fit max-h-[250px] overflow-y-auto scrollbar-auto p-2.5">
             {replaceText(verifyResult.logs)}
           </div>
         </div>

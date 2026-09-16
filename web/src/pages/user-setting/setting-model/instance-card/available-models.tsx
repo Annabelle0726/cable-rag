@@ -183,7 +183,7 @@ export const AvailableModels: FC<{
             key={model.name}
             data-testid="available-model-card"
             data-provider={model.name}
-            className="group border border-border-button rounded-lg p-3 hover:bg-bg-input transition-colors"
+            className="group border border-border-button p-3 hover:bg-bg-input transition-colors"
             onClick={() => handleAddModel(model.name)}
           >
             <div className="flex items-center gap-3 mb-3">

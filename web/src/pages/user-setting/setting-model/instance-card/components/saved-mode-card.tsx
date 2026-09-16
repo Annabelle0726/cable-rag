@@ -133,7 +133,7 @@ export function SavedModeCard({
     <Collapsible
       open={open}
       onOpenChange={setOpen}
-      className="bg-bg-card px-5 py-3 rounded-xl"
+      className="bg-bg-card px-5 py-3"
     >
       <CollapsibleTrigger asChild>
         <div

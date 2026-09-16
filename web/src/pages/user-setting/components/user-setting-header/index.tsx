@@ -14,39 +14,32 @@
  *  limitations under the License.
  */
 
-import Spotlight from '@/components/spotlight';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { PropsWithChildren } from 'react';
-
-export function Title({ children }: PropsWithChildren) {
-  return <span className="font-bold text-xl">{children}</span>;
-}
 
 type ProfileSettingWrapperCardProps = {
   header: React.ReactNode;
 } & PropsWithChildren;
 
+/**
+ * The right-hand settings panel.
+ *
+ * It is deliberately not a card: no radius and no gutter of its own, it takes
+ * the whole height of the settings column and reaches the right and bottom
+ * edges of the viewport, so it reads as the page's content area rather than a
+ * tile floating on top of it. The translucent surface and the backdrop blur
+ * keep it visually separate from the rail beside it; the rail draws the seam.
+ */
 export function ProfileSettingWrapperCard({
   header,
   children,
 }: ProfileSettingWrapperCardProps) {
   return (
-    // The wrapper is the panel: it takes the full height of the settings column
-    // and hands the leftover space to its body, so a long list scrolls inside
-    // `CardContent` instead of stretching the panel past the viewport.
-    <Card
-      as="article"
-      className="relative w-full h-full min-h-0 border-border-button bg-transparent border-0.5 flex flex-col overflow-hidden"
-    >
-      <CardHeader className="flex-0 border-b-0.5 border-border-button p-5">
+    <article className="glass-surface relative flex h-full min-h-0 w-full flex-col overflow-hidden">
+      <header className="shrink-0 border-b border-cable-hairline p-5">
         {header}
-      </CardHeader>
+      </header>
 
-      <CardContent className="flex-1 min-h-0 p-0 overflow-hidden">
-        {children}
-      </CardContent>
-
-      <Spotlight />
-    </Card>
+      <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+    </article>
   );
 }

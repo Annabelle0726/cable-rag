@@ -142,7 +142,7 @@ function SystemSetting() {
   }, [defaultModelDictionary, t]);
 
   return (
-    <article className="rounded-lg w-full">
+    <article className="w-full">
       <header className="py-5 px-10">
         <h2 className="text-2xl font-medium text-text-primary">
           {t('systemModelSettings')}

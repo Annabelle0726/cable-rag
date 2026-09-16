@@ -22,7 +22,6 @@ import {
 } from '@/hooks/use-user-setting-request';
 import { useTranslation } from 'react-i18next';
 
-import Spotlight from '@/components/spotlight';
 import { SearchInput } from '@/components/ui/input';
 import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
@@ -60,10 +59,8 @@ const UserSettingTeam = () => {
         </header>
       }
     >
-      <Spotlight />
-
       <div className="h-full overflow-x-hidden overflow-y-auto">
-        <Card className="bg-transparent border-none">
+        <Card className="bg-transparent border-none rounded-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
             {/* <User className="mr-2 h-5 w-5 text-[#1677ff]" /> */}
             <CardTitle className="text-base">
@@ -89,7 +86,7 @@ const UserSettingTeam = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-transparent border-none mt-8">
+        <Card className="bg-transparent border-none mt-8 rounded-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
             {/* <Users className="mr-2 h-5 w-5 text-[#1677ff]" /> */}
             <CardTitle className="text-base w-fit">

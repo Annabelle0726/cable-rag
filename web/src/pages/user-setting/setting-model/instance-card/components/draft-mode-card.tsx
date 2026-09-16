@@ -59,7 +59,7 @@ export function DraftModeCard({
   );
 
   return (
-    <div className="px-5 py-3 flex flex-col gap-4 bg-bg-card rounded-xl ">
+    <div className="px-5 py-3 flex flex-col gap-4 bg-bg-card ">
       <InstanceNameSection
         draftName={draftName}
         setDraftName={setDraftName}

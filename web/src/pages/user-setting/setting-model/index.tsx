@@ -14,7 +14,6 @@
  *  limitations under the License.
  */
 
-import Spotlight from '@/components/spotlight';
 import message from '@/components/ui/message';
 import { useTranslate } from '@/hooks/common-hooks';
 import {
@@ -282,11 +281,13 @@ const SettingModelV2: FC = () => {
   );
 
   return (
-    // `min-h-0` at every level of the column is what lets the two scroll areas
-    // below actually scroll instead of stretching this panel past the viewport.
-    <div className="flex w-full h-full min-h-0 border-[0.5px] border-border-button rounded-lg relative overflow-hidden">
-      <Spotlight />
-      <section className="flex flex-col gap-4 w-[320px] shrink-0 px-5 border-r-[0.5px] border-border-button overflow-auto scrollbar-auto">
+    // Not a card: no radius, no outer border and no gutter, so the provider list
+    // and the configuration area fill the whole panel and only their shared
+    // hairline separates them. `min-h-0` at every level of the column is what
+    // lets the scroll areas inside actually scroll rather than stretching the
+    // panel past the viewport.
+    <div className="glass-surface relative flex h-full min-h-0 w-full overflow-hidden">
+      <section className="flex flex-col gap-4 w-[320px] shrink-0 px-5 border-r border-cable-hairline overflow-auto scrollbar-auto">
         <Sidebar selection={selection} onSelect={setSelection} />
       </section>
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">

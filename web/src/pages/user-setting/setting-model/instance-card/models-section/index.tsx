@@ -378,7 +378,7 @@ export function ModelsSection(props: ModelsSectionProps) {
           )}
         </div>
 
-        <div className="bg-bg-card rounded-lg max-h-80 overflow-auto scrollbar-auto border border-border-button">
+        <div className="bg-bg-card max-h-80 overflow-auto scrollbar-auto border border-border-button">
           {filteredModels.length === 0 ? (
             <div className="flex items-center justify-center text-text-secondary text-sm py-6 gap-2">
               <Search className="size-4" />

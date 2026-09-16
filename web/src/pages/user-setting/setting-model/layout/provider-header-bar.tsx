@@ -59,8 +59,11 @@ export function ProviderHeaderBar({
       : null);
 
   return (
+    // No background of its own: the panel it sits on is the surface now, and an
+    // opaque strip across the top of it read as a second header. The bar is a
+    // sibling of the scrolling list, not inside it, so nothing passes under it.
     <div
-      className="sticky top-0 z-10 bg-bg-base flex items-center gap-2 px-4 py-3 border-b border-border-button"
+      className="flex items-center gap-2 px-4 py-3 border-b border-cable-hairline"
       data-testid={`provider-header-${providerName}`}
     >
       <LlmIcon
