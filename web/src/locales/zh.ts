@@ -113,7 +113,7 @@ export default {
       skills: 'Skills',
       flow: '智能体',
       search: '搜索',
-      brandShort: '线缆工业智搜平台',
+      brandShort: 'Cable RAG',
       heroTitle: '线缆工业智搜 Agent 平台',
       heroSubtitle: '工业级标准、BOM 表与质检规范智能查验系统',
       dataset: '知识库',

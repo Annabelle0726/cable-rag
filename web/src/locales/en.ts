@@ -131,7 +131,7 @@ export default {
       skills: 'Skills',
       flow: 'Agent',
       search: 'Search',
-      brandShort: 'Cable industry search',
+      brandShort: 'Cable RAG',
       heroTitle: 'Cable industry intelligent search agent platform',
       heroSubtitle:
         'Industrial standards, BOM and QC compliance verification system',
@@ -3860,7 +3860,7 @@ Important structured information may include: names, dates, locations, events, k
 
     admin: {
       loginTitle: 'Admin console',
-      title: 'RAGFlow',
+      title: 'Cable RAG',
       confirm: 'Confirm',
       close: 'Close',
       yes: 'Yes',

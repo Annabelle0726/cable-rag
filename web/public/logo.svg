@@ -1,29 +1,28 @@
-<svg width="32" height="34" viewBox="0 0 32 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path fill-rule="evenodd" clip-rule="evenodd"
-        d="M3.43265 20.7677C4.15835 21.5062 4.15834 22.7035 3.43262 23.4419L3.39546 23.4797C2.66974 24.2182 1.49312 24.2182 0.767417 23.4797C0.0417107 22.7412 0.0417219 21.544 0.767442 20.8055L0.804608 20.7677C1.53033 20.0292 2.70694 20.0293 3.43265 20.7677Z"
-        fill="#B2DDFF" />
-    <path fill-rule="evenodd" clip-rule="evenodd"
-        d="M12.1689 21.3375C12.8933 22.0773 12.8912 23.2746 12.1641 24.0117L7.01662 29.2307C6.2896 29.9678 5.11299 29.9657 4.38859 29.2259C3.66419 28.4861 3.66632 27.2888 4.39334 26.5517L9.54085 21.3327C10.2679 20.5956 11.4445 20.5977 12.1689 21.3375Z"
-        fill="#53B1FD" />
-    <path fill-rule="evenodd" clip-rule="evenodd"
-        d="M19.1551 30.3217C19.7244 29.4528 20.8781 29.218 21.7321 29.7973L21.8436 29.8729C22.6975 30.4522 22.9283 31.6262 22.359 32.4952C21.7897 33.3641 20.6359 33.5989 19.782 33.0196L19.6705 32.944C18.8165 32.3647 18.5858 31.1907 19.1551 30.3217Z"
-        fill="#B2DDFF" />
-    <path fill-rule="evenodd" clip-rule="evenodd"
-        d="M31.4184 20.6544C32.1441 21.3929 32.1441 22.5902 31.4184 23.3286L28.8911 25.9003C28.1654 26.6388 26.9887 26.6388 26.263 25.9003C25.5373 25.1619 25.5373 23.9646 26.263 23.2261L28.7903 20.6544C29.516 19.916 30.6927 19.916 31.4184 20.6544Z"
-        fill="#53B1FD" />
-    <path fill-rule="evenodd" clip-rule="evenodd"
-        d="M31.4557 11.1427C32.1814 11.8812 32.1814 13.0785 31.4557 13.8169L12.7797 32.8209C12.054 33.5594 10.8774 33.5594 10.1517 32.8209C9.42599 32.0825 9.42599 30.8852 10.1517 30.1467L28.8277 11.1427C29.5534 10.4043 30.73 10.4043 31.4557 11.1427Z"
-        fill="#1570EF" />
-    <path fill-rule="evenodd" clip-rule="evenodd"
-        d="M27.925 5.29994C28.6508 6.0384 28.6508 7.23568 27.925 7.97414L17.184 18.9038C16.4583 19.6423 15.2817 19.6423 14.556 18.9038C13.8303 18.1653 13.8303 16.9681 14.556 16.2296L25.297 5.29994C26.0227 4.56148 27.1993 4.56148 27.925 5.29994Z"
-        fill="#1570EF" />
-    <path fill-rule="evenodd" clip-rule="evenodd"
-        d="M22.256 1.59299C22.9822 2.33095 22.983 3.52823 22.2578 4.26718L8.45055 18.3358C7.72533 19.0748 6.54871 19.0756 5.82251 18.3376C5.09631 17.5996 5.09552 16.4024 5.82075 15.6634L19.6279 1.59478C20.3532 0.855827 21.5298 0.855022 22.256 1.59299Z"
-        fill="#1570EF" />
-    <path fill-rule="evenodd" clip-rule="evenodd"
-        d="M8.58225 6.09619C9.30671 6.83592 9.30469 8.0332 8.57772 8.77038L3.17006 14.2541C2.4431 14.9913 1.26649 14.9893 0.542025 14.2495C-0.182438 13.5098 -0.180413 12.3125 0.546548 11.5753L5.95421 6.09159C6.68117 5.3544 7.85778 5.35646 8.58225 6.09619Z"
-        fill="#53B1FD" />
-    <path fill-rule="evenodd" clip-rule="evenodd"
-        d="M11.893 0.624023C12.9193 0.624023 13.7513 1.47063 13.7513 2.51497V2.70406C13.7513 3.7484 12.9193 4.59501 11.893 4.59501C10.8667 4.59501 10.0347 3.7484 10.0347 2.70406V2.51497C10.0347 1.47063 10.8667 0.624023 11.893 0.624023Z"
-        fill="#B2DDFF" />
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Cable RAG logo used as the browser favicon (index.html) and by the login, admin
+  and embed pages, which reference it as /logo.svg.
+
+  Same artwork as src/assets/svg/brand-logo.svg so the product mark exists in one
+  shape; stroke weights are marginally heavier for legibility at favicon size.
+  Palette follows the cable theme in tailwind.css (blue #3B82F6 body, copper
+  #F59E0B terminals) and is literal because the file is loaded through <img>.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="none" role="img" aria-label="Cable RAG">
+  <title>Cable RAG</title>
+  <!-- connector shell -->
+  <rect x="2.25" y="8.5" width="5.5" height="7" rx="1.75" stroke="#3B82F6" stroke-width="1.7" />
+  <!-- pins -->
+  <path d="M7.75 10.75h1.75M7.75 13.25h1.75" stroke="#3B82F6" stroke-width="1.7" stroke-linecap="round" />
+  <!-- cable running from the pins to the splice -->
+  <path d="M9.5 12h1.5" stroke="#3B82F6" stroke-width="1.7" stroke-linecap="round" />
+  <!-- splice where the cable fans out -->
+  <circle cx="12" cy="12" r="1.45" fill="#F59E0B" />
+  <!-- branches to the two terminals -->
+  <path d="M12 12c0-2.75 1.6-4 3.4-4h.85M12 12c0 2.75 1.6 4 3.4 4h.85" stroke="#3B82F6" stroke-width="1.7" stroke-linecap="round" />
+  <!-- copper terminals -->
+  <circle cx="18.15" cy="8" r="1.95" stroke="#F59E0B" stroke-width="1.6" />
+  <circle cx="18.15" cy="16" r="1.95" stroke="#F59E0B" stroke-width="1.6" />
+  <circle cx="18.15" cy="8" r="0.7" fill="#F59E0B" />
+  <circle cx="18.15" cy="16" r="0.7" fill="#F59E0B" />
 </svg>
