@@ -77,6 +77,12 @@ export default {
       owner: '所有者',
       running: '运行中...',
     },
+    // 列表页脚使用这两条：total 显示总条数，page 用于每页条数选择器，
+    // 因此占位符是条数而不是页码。
+    pagination: {
+      total: '共 {{total}} 条',
+      page: '{{size}} 条/页',
+    },
     login: {
       loginTitle: '登录账户',
       signUpTitle: '创建账户',

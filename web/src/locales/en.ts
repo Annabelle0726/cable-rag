@@ -94,6 +94,13 @@ export default {
       owner: 'Owner',
       running: 'Running...',
     },
+    // The list footers read these two: `total` labels the row count and `page`
+    // labels one entry of the page-size selector, so its placeholder is the
+    // size, not the page number.
+    pagination: {
+      total: 'Total {{total}}',
+      page: '{{size}}/page',
+    },
     login: {
       loginTitle: 'Sign in to your account',
       signUpTitle: 'Create an account',
