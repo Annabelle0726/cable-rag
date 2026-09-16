@@ -70,12 +70,9 @@ const AddFieldButton: FC<AddFieldButtonProps & KeyInputProps> = ({
         onClick={() => setDialogOpen(true)}
         variant={variant === 'primary' ? 'default' : 'outline'}
         size="sm"
-        className="flex items-center gap-1.5 group"
+        className="flex items-center gap-1.5"
       >
-        <CirclePlus
-          size={16}
-          className="group-hover:scale-110 transition-transform"
-        />
+        <CirclePlus size={16} />
         <span>{t.fieldAddNewButton}</span>
       </Button>
 

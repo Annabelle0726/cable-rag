@@ -540,8 +540,8 @@ const FloatingChatWidget = () => {
               '*',
             );
           }}
-          className={`w-14 h-14 text-white rounded-full transition-all duration-300 flex items-center justify-center group ${
-            isOpen ? 'scale-95' : 'scale-100 hover:scale-105'
+          className={`w-14 h-14 text-white rounded-full transition-colors duration-200 ease-in-out hover:opacity-90 flex items-center justify-center group ${
+            isOpen ? 'opacity-95' : 'opacity-100'
           }`}
           style={{ backgroundColor: widgetAccentColor }}
         >
@@ -571,8 +571,8 @@ const FloatingChatWidget = () => {
         <button
           type="button"
           onClick={toggleChat}
-          className={`w-14 h-14 text-white rounded-full transition-all duration-300 flex items-center justify-center group ${
-            isOpen ? 'scale-95' : 'scale-100 hover:scale-105'
+          className={`w-14 h-14 text-white rounded-full transition-colors duration-200 ease-in-out hover:opacity-90 flex items-center justify-center group ${
+            isOpen ? 'opacity-95' : 'opacity-100'
           }`}
           style={{ backgroundColor: widgetAccentColor }}
         >
@@ -987,8 +987,8 @@ const FloatingChatWidget = () => {
         <button
           type="button"
           onClick={toggleChat}
-          className={`w-14 h-14 text-white rounded-full transition-all duration-300 flex items-center justify-center group ${
-            isOpen ? 'scale-95' : 'scale-100 hover:scale-105'
+          className={`w-14 h-14 text-white rounded-full transition-colors duration-200 ease-in-out hover:opacity-90 flex items-center justify-center group ${
+            isOpen ? 'opacity-95' : 'opacity-100'
           }`}
           style={{ backgroundColor: widgetAccentColor }}
         >

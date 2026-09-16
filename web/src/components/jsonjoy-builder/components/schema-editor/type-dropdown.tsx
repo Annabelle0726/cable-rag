@@ -52,7 +52,7 @@ export const TypeDropdown: React.FC<TypeDropdownProps> = ({
         className={cn(
           'text-xs px-3.5 py-1.5 rounded-md font-medium w-[92px] text-center flex items-center justify-between',
           getTypeColor(value),
-          'hover:shadow-xs hover:ring-1 hover:ring-ring/30 active:scale-95 transition-all',
+          'hover:shadow-xs hover:ring-1 hover:ring-ring/30 active:opacity-80 transition-[background-color,border-color,color,opacity,box-shadow] duration-200 ease-in-out',
           className,
         )}
         onClick={() => setIsOpen(!isOpen)}

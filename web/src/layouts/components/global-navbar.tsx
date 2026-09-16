@@ -138,8 +138,10 @@ const DesktopNavbarWithAnchor = () => {
             positioning. */}
         <li
           className={cn(
-            'absolute -z-[1] rounded-lg border-b-2 border-b-cable-nav-indicator bg-cable-nav-active-bg opacity-0',
-            'transition-all',
+            // The capsule re-anchors to the active item, so only its opacity
+            // animates; the single-colour accent glow marks the current tab.
+            'absolute -z-[1] rounded-lg border-b-2 border-b-cable-nav-indicator bg-cable-nav-active-bg opacity-0 shadow-accent-glow',
+            'transition-opacity duration-200 ease-in-out',
             hasAnyActive && 'opacity-100',
           )}
           role="presentation"
@@ -175,7 +177,7 @@ const DesktopNavbarFallback = () => {
                   'inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm',
                   'transition-colors duration-200 ease-in-out',
                   isActive
-                    ? 'border-b-2 border-b-cable-nav-indicator bg-cable-nav-active-bg font-semibold text-cable-nav-active-text'
+                    ? 'border-b-2 border-b-cable-nav-indicator bg-cable-nav-active-bg font-semibold text-cable-nav-active-text shadow-accent-glow'
                     : 'text-cable-nav hover:bg-cable-nav-active-bg hover:text-cable-nav-hover focus-visible:text-cable-nav-hover',
                 )}
                 aria-label={t(name)}

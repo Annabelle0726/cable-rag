@@ -189,7 +189,7 @@ export const SchemaPropertyEditor: React.FC<SchemaPropertyEditorProps> = ({
                 type="button"
                 onClick={() => onRequiredChange(!required)}
                 className={cn(
-                  'text-xs px-2 py-1 rounded-md font-medium min-w-[80px] text-center cursor-pointer hover:shadow-xs hover:ring-2 hover:ring-ring/30 active:scale-95 transition-all whitespace-nowrap',
+                  'text-xs px-2 py-1 rounded-md font-medium min-w-[80px] text-center cursor-pointer hover:shadow-xs hover:ring-2 hover:ring-ring/30 active:opacity-80 transition-[background-color,border-color,color,opacity,box-shadow] duration-200 ease-in-out whitespace-nowrap',
                   required
                     ? 'bg-red-50 text-red-500'
                     : 'bg-secondary text-muted-foreground',
