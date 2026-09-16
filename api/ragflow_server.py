@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-print("Start RAGFlow server...")
+print("Start Cable RAG server...")
 
 import time
 
@@ -93,15 +93,17 @@ def signal_handler(sig, frame):
 def run_server():
     faulthandler.enable()
     init_root_logger("ragflow_server")
+    # Cable RAG ASCII Banner
     logging.info(r"""
-        ____   ___    ______ ______ __
-       / __ \ /   |  / ____// ____// /____  _      __
-      / /_/ // /| | / / __ / /_   / // __ \| | /| / /
-     / _, _// ___ |/ /_/ // __/  / // /_/ /| |/ |/ /
-    /_/ |_|/_/  |_|\____//_/    /_/ \____/ |__/|__/
-
+   ______   ____   ____   |    ______   ____   ______ 
+  / ____/  / __ \ / __ \  |   / __ \   / __ \ / ____/ 
+ / /      / /_/ // /_/ /  |  / /_/ /  / /_/ // / __   
+/ /___   / __  // /_/ /   | / _, _/  / __  // /_/ /   
+\____/  /_/ /_//_____/    |/_/ |_|  /_/ /_//____/    
+                         Cable RAG Engine
     """)
-    logging.info(f"RAGFlow version: {get_ragflow_version()}")
+    # Updated startup branding log to Cable RAG
+    logging.info(f"Cable RAG version: {get_ragflow_version()}")
     logging.info(f"project base: {get_project_base_directory()}")
     show_configs()
     settings.init_settings()
@@ -120,7 +122,8 @@ def run_server():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--version", default=False, help="RAGFlow version", action="store_true")
+    # Update CLI parameter description to Cable RAG version
+    parser.add_argument("--version", default=False, help="Cable RAG version", action="store_true")
     parser.add_argument("--debug", default=False, help="debug mode", action="store_true")
     parser.add_argument("--init-superuser", default=False, help="init superuser", action="store_true")
     args = parser.parse_args()
@@ -168,8 +171,8 @@ def run_server():
         threading.Timer(1.0, delayed_start_update_progress).start()
         start_chat_channels()
 
-    # start http server
-    logging.info(f"RAGFlow server is ready after {time.time() - start_ts}s initialization.")
+    # Updated ready prompt to Cable RAG server
+    logging.info(f"Cable RAG server is ready after {time.time() - start_ts}s initialization.")
     app.run(host=settings.HOST_IP, port=settings.HOST_PORT, use_reloader=RuntimeConfig.DEBUG, debug=False)
 
 
