@@ -21,6 +21,26 @@ export type RAGFlowPaginationType = {
   showSizeChanger?: boolean;
 };
 
+/**
+ * One page control. The whole pager and the page-size picker live inside a single
+ * translucent capsule, so the row reads as one instrument rather than two loose
+ * controls; the current page is a small ceramic tile lifted out of that capsule,
+ * and every other page answers the pointer with a frosted sheen instead of a
+ * filled block. Colours come from the theme tokens, so light and dark switch
+ * without a `dark:` variant here.
+ */
+const PagerMotion =
+  'transition-[background-color,border-color,color,box-shadow] duration-200 ease-in-out';
+const PagerRestClass = cn(
+  'size-8 rounded-lg text-content-secondary',
+  PagerMotion,
+  'hover:bg-cable-nav-active-bg hover:text-content-primary',
+);
+const PagerCurrentClass = cn(
+  'size-8 rounded-lg border border-cable-hairline bg-glass text-content-primary shadow-ceramic',
+  PagerMotion,
+);
+
 export function RAGFlowPagination({
   current = 1,
   pageSize = 5,
@@ -135,53 +155,59 @@ export function RAGFlowPagination({
   }, [pages, currentPage]);
 
   return (
-    <div className="flex items-center justify-end text-text-sub-title-invert">
-      <span className="mr-4 text-text-primary">
+    <div className="flex items-center justify-end gap-3">
+      <span className="text-sm text-content-tertiary">
         {t('pagination.total', { total: total })}
       </span>
-      <Pagination className="w-auto mx-0 mr-4">
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious onClick={handlePreviousPageChange} />
-          </PaginationItem>
 
-          {displayedPages.map((page, index) =>
-            page === -1 ? (
-              <PaginationItem key={`ellipsis-${index}`}>
-                <PaginationEllipsis />
-              </PaginationItem>
-            ) : (
-              <PaginationItem
-                key={page}
-                className={cn('text-text-disabled', {
-                  ['bg-bg-card rounded-md text-text-primary']:
-                    currentPage === page,
-                })}
-              >
-                <PaginationLink
-                  onClick={handlePageChange(page)}
-                  className="size-8"
-                >
-                  {page}
-                </PaginationLink>
-              </PaginationItem>
-            ),
-          )}
+      <div className="ceramic-pill flex items-center gap-2 rounded-full p-1">
+        <Pagination className="mx-0 w-auto">
+          <PaginationContent className="gap-0.5">
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={handlePreviousPageChange}
+                className={PagerRestClass}
+              />
+            </PaginationItem>
 
-          <PaginationItem>
-            <PaginationNext onClick={handleNextPageChange} />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+            {displayedPages.map((page, index) =>
+              page === -1 ? (
+                <PaginationItem key={`ellipsis-${index}`}>
+                  <PaginationEllipsis className="text-content-tertiary" />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    isActive={currentPage === page}
+                    onClick={handlePageChange(page)}
+                    className={
+                      currentPage === page ? PagerCurrentClass : PagerRestClass
+                    }
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ),
+            )}
 
-      {showSizeChanger && (
-        <RAGFlowSelect
-          options={sizeChangerOptions}
-          value={currentPageSize}
-          onChange={handlePageSizeChange}
-          triggerClassName="bg-bg-card border-transparent"
-        />
-      )}
+            <PaginationItem>
+              <PaginationNext
+                onClick={handleNextPageChange}
+                className={PagerRestClass}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+
+        {showSizeChanger && (
+          <RAGFlowSelect
+            options={sizeChangerOptions}
+            value={currentPageSize}
+            onChange={handlePageSizeChange}
+            triggerClassName="rounded-full border-cable-hairline bg-transparent"
+          />
+        )}
+      </div>
     </div>
   );
 }
