@@ -4,6 +4,7 @@
  * away mid-answer and back shows the stream still in progress.
  */
 import { IMessage, Variable } from '@/interfaces/database/chat';
+import { isEmpty } from 'lodash';
 import {
   CompletionChunk,
   parseCompletionEventStream,
@@ -91,7 +92,15 @@ export async function runChatCompletionStream({
     try {
       for await (const chunk of parseCompletionEventStream(response)) {
         accumulatedAnswer = mergeAnswerChunk(accumulatedAnswer, chunk);
-        pendingChunk = pendingChunk ? { ...pendingChunk, ...chunk } : chunk;
+        const merged = pendingChunk ? { ...pendingChunk, ...chunk } : chunk;
+        // The merge above replaces fields, so an empty `reference` on a later
+        // chunk would wipe a pool an earlier one delivered — every citation in
+        // the answer would then resolve against nothing. Keep the last non-empty
+        // pool, which is what "fields are merged rather than replaced" promises.
+        if (pendingChunk && isEmpty(chunk.reference) && !isEmpty(pendingChunk.reference)) {
+          merged.reference = pendingChunk.reference;
+        }
+        pendingChunk = merged;
 
         // The first chunk flushes immediately (lastFlushAt is 0), so the empty
         // placeholder is replaced without waiting out an interval.

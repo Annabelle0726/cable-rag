@@ -1,6 +1,7 @@
 import {
   countAgenticLogLines,
   generateTemporaryConversationId,
+  isAgenticLogContinuation,
   isAgenticLogLine,
   isAgenticPreambleLine,
   isPersistedConversationId,
@@ -321,6 +322,109 @@ describe('agentic RAG log extraction', () => {
     expect(replaceAgenticLogsToSection('Just the answer.', 'Log')).toBe(
       'Just the answer.',
     );
+  });
+
+  it('recognises the stage tags the completed whitelist adds', () => {
+    // Seven tags used to be listed while the pipeline emitted twenty-odd, so the
+    // missing ones leaked into the answer body as raw text.
+    for (const line of [
+      '[SCA] sufficiency check round 2',
+      '[QueryRewriter] 护套 PUR 紫色',
+      '[SlotResearch] slot table after round:',
+      '[Planner] 3 sub-questions',
+      '[Routing] dataset route',
+      '[Draft] draft v1',
+      '[StateGuard] state trimmed',
+      '[Follow-up search] 弯曲半径',
+      '[Tool loop] iteration 2',
+      '[Function tool] rag',
+    ]) {
+      expect(isAgenticLogLine(line)).toBe(true);
+    }
+  });
+
+  it('collapses an unknown bracketed stage tag instead of leaking it', () => {
+    // A stage added later must not leak just because nobody extended the list.
+    expect(isAgenticLogLine('[Brand new stage] doing work')).toBe(true);
+    expect(
+      replaceAgenticLogsToSection(
+        '[Brand new stage] doing work\nThe answer.',
+        'Log · {{num}}',
+      ),
+    ).toContain('<summary>Log · 1</summary>');
+  });
+
+  it('does not mistake an evidence index or a markdown link for a stage tag', () => {
+    // `[1]` is a footnote/evidence index the answer must keep.
+    expect(isAgenticLogLine('[1]')).toBe(false);
+    expect(isAgenticLogLine('[12] 0.0991 Ω/km')).toBe(false);
+    // A bracketed link text is followed by `(`, not by answer text.
+    expect(isAgenticLogLine('[见附表](https://example.com)')).toBe(false);
+  });
+
+  it('absorbs the continuation rows of a multi-line log record', () => {
+    // `"[SlotResearch] slot table after round:\n%s"` prints its body on the
+    // following lines, which carry no tag of their own.
+    const result = replaceAgenticLogsToSection(
+      [
+        '[SlotResearch] slot table after round:',
+        '| slot | value |',
+        '| --- | --- |',
+        '| 护套 | PUR 紫色 |',
+        'The answer.',
+      ].join('\n'),
+      'Log · {{num}}',
+    );
+
+    expect(result).toContain('<summary>Log · 4</summary>');
+    expect(result).toContain('| 护套 | PUR 紫色 |');
+    expect(result).toContain('The answer.');
+  });
+
+  it('ends the log run at the first line that is not a continuation', () => {
+    // The answer follows the last log line with no separator, so a broad
+    // "everything after a log line is a log line" rule would swallow it.
+    const result = replaceAgenticLogsToSection(
+      [
+        '[SlotResearch] slot table after round:',
+        '| slot | value |',
+        '护套为 PUR 紫色，外径 6.60 mm。',
+        '- 弯曲半径 5 倍',
+      ].join('\n'),
+      'Log · {{num}}',
+    );
+
+    expect(result).toContain('<summary>Log · 2</summary>');
+    expect(result).toContain('护套为 PUR 紫色，外径 6.60 mm。');
+    expect(result).toContain('- 弯曲半径 5 倍');
+  });
+
+  it('never absorbs a continuation line that carries a citation', () => {
+    // Same veto as for tagged lines: hiding a citation damages the answer.
+    expect(isAgenticLogContinuation('| [ID:2] | 0.0991 |')).toBe(false);
+
+    const result = replaceAgenticLogsToSection(
+      '[SlotResearch] slot table after round:\n| [ID:2] | 0.0991 |\nThe answer.',
+      'Log · {{num}}',
+    );
+
+    expect(result).toContain('<summary>Log · 1</summary>');
+    expect(result).toContain('| [ID:2] | 0.0991 |');
+  });
+
+  it('classifies only table, indented and box-drawing continuations', () => {
+    expect(isAgenticLogContinuation('| slot | value |')).toBe(true);
+    expect(isAgenticLogContinuation('  indented body')).toBe(true);
+    expect(isAgenticLogContinuation('\t\tindented body')).toBe(true);
+    // A single leading whitespace is answer markdown (an indented code block),
+    // not a log continuation.
+    expect(isAgenticLogContinuation('\tindented body')).toBe(false);
+    expect(isAgenticLogContinuation(' indented body')).toBe(false);
+    expect(isAgenticLogContinuation('│ box drawing')).toBe(true);
+    expect(isAgenticLogContinuation('')).toBe(false);
+    expect(isAgenticLogContinuation('   ')).toBe(false);
+    expect(isAgenticLogContinuation('- 弯曲半径 5 倍')).toBe(false);
+    expect(isAgenticLogContinuation('普通答案正文。')).toBe(false);
   });
 });
 

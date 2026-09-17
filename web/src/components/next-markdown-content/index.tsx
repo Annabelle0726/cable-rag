@@ -392,6 +392,13 @@ function MarkdownContent({
         : Object.keys(pool ?? {}).length;
       const replacedText = reactStringReplace(text, currentReg, (match, i) => {
         const chunkIndex = getChunkIndex(match, poolSize);
+        // No resolvable pool index (empty pool while streaming, or a citation
+        // past the end): keep the marker's number as plain text rather than a
+        // "图 NaN" chip. `match` is the regex capture group, so it carries the
+        // number without its `[ID:…]` wrapper.
+        if (chunkIndex < 0) {
+          return <span key={i}>{match}</span>;
+        }
 
         return (
           <HoverCard key={i}>

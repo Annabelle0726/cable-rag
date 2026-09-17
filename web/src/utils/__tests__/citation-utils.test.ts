@@ -33,22 +33,58 @@ describe('citation index basis', () => {
       expect(citedChunkIndex('5')).toBe(4);
     });
 
-    it('rejects marker 0, which 1-based citations never emit', () => {
-      expect(Number.isNaN(citedChunkIndex('[ID:0]'))).toBe(true);
+    it('reports "no index" as -1 for every unusable marker', () => {
+      // -1, never NaN: the renderers test `>= 0` and print the value otherwise,
+      // which is how an unresolvable marker once rendered as "图 NaN".
+      expect(citedChunkIndex('[ID:0]')).toBe(-1);
+      for (const value of ['', '   ', '[', '[ID:]', '[]', 'abc', 'ID:5']) {
+        expect(citedChunkIndex(value)).toBe(-1);
+      }
+      expect(citedChunkIndex(undefined as unknown as string)).toBe(-1);
+      expect(citedChunkIndex(null as unknown as string)).toBe(-1);
+    });
+
+    it('never returns NaN, whatever the input', () => {
+      const values = [
+        '',
+        '   ',
+        '[',
+        '[ID:]',
+        '[]',
+        '[ID:0]',
+        '[ID:1]',
+        '[ID:6]',
+        'abc',
+        'ID:5',
+        undefined,
+        null,
+        0,
+      ];
+
+      for (const value of values) {
+        for (const poolSize of [undefined, 0, 5]) {
+          const index = citedChunkIndex(value as unknown as string, poolSize);
+          expect(Number.isNaN(index)).toBe(false);
+          expect(index).toBeGreaterThanOrEqual(-1);
+        }
+      }
     });
 
     it('rejects a marker outside the pool when the pool size is known', () => {
       expect(citedChunkIndex('[ID:5]', 5)).toBe(4);
-      expect(Number.isNaN(citedChunkIndex('[ID:6]', 5))).toBe(true);
+      expect(citedChunkIndex('[ID:6]', 5)).toBe(-1);
     });
 
-    it('returns NaN instead of throwing on malformed input', () => {
-      for (const value of ['', '   ', '[', '[ID:]', '[]', 'abc', 'ID:5']) {
-        expect(Number.isNaN(citedChunkIndex(value))).toBe(true);
-      }
-      expect(Number.isNaN(citedChunkIndex(undefined as unknown as string))).toBe(
-        true,
-      );
+    it('rejects every marker while the pool is still empty', () => {
+      // The backend sends the reference with the final event only, so the pool
+      // is empty for the whole stream: no chip may be rendered before it lands.
+      expect(citedChunkIndex('[ID:1]', 0)).toBe(-1);
+      expect(citedChunkIndex('[ID:5]', 0)).toBe(-1);
+    });
+
+    it('keeps an in-range marker when no pool size is supplied', () => {
+      expect(citedChunkIndex('[ID:1]')).toBe(0);
+      expect(citedChunkIndex('[ID:1]', undefined)).toBe(0);
     });
   });
 });

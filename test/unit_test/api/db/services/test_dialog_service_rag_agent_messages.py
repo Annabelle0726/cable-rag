@@ -26,6 +26,7 @@ import asyncio
 import sys
 import types
 import warnings
+from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
@@ -115,10 +116,11 @@ class _StubRAGTools:
         return "You are a helpful assistant."
 
 
-def _drive_rag_agent(monkeypatch, messages):
-    chat_mdl = _RecordingChatModel()
+def _run_rag_agent(monkeypatch, messages, rag_tools_cls=_StubRAGTools, chat_mdl=None):
+    """Drives the non-streaming agentic path and returns (model, events)."""
+    chat_mdl = _RecordingChatModel() if chat_mdl is None else chat_mdl
     monkeypatch.setattr(dialog_service, "get_models", lambda _dialog, **_kw: ([_KB], None, None, chat_mdl, None))
-    monkeypatch.setattr(dialog_service, "RAGTools", _StubRAGTools)
+    monkeypatch.setattr(dialog_service, "RAGTools", rag_tools_cls)
     monkeypatch.setattr(dialog_service, "tts", lambda _mdl, _text: None)
 
     async def _run():
@@ -126,6 +128,11 @@ def _drive_rag_agent(monkeypatch, messages):
 
     events = asyncio.run(_run())
     assert events, "rag_agent must yield an answer event"
+    return chat_mdl, events
+
+
+def _drive_rag_agent(monkeypatch, messages):
+    chat_mdl, _events = _run_rag_agent(monkeypatch, messages)
     return chat_mdl
 
 
@@ -301,3 +308,78 @@ def test_render_reasoning_system_prompt_replaces_optional_missing_parameters():
 
     # Missing optional parameters are replaced with a space, matching async_chat.
     assert rendered == "Lang:  ."
+
+
+_POOL_CHUNKS = [
+    {
+        "doc_id": "doc-1",
+        "docnm_kwd": "柔性拖链技术规格书.pdf",
+        "content_with_weight": "护套：PUR，紫色 RAL4001，外径 6.60 mm。",
+        "img_id": "kb-1",
+        "vector": [0.1, 0.2],
+    },
+    {
+        "doc_id": "doc-1",
+        "docnm_kwd": "柔性拖链技术规格书.pdf",
+        "content_with_weight": "固定安装：-40 至 +80 ℃。",
+        "vector": [0.3, 0.4],
+    },
+]
+
+
+class _PoolStubRAGTools(_StubRAGTools):
+    """Retrieval returned a pool, whatever the answer ends up citing."""
+
+    def __init__(self, *_args, **_kwargs):
+        super().__init__(*_args, **_kwargs)
+        self.kbinfos = {
+            "chunks": deepcopy(_POOL_CHUNKS),
+            "doc_aggs": [{"doc_id": "doc-1", "doc_name": "柔性拖链技术规格书.pdf"}],
+        }
+
+
+class _MarkerZeroChatModel(_RecordingChatModel):
+    """Answers with `[ID:0]`, which is not a valid 1-based citation."""
+
+    async def async_chat(self, system_prompt, messages, gen_conf, **_kwargs):
+        self.sent_messages = messages
+        return "护套为 PUR 紫色 [ID:0]。"
+
+
+@pytest.mark.p2
+def test_rag_agent_returns_the_retrieved_pool_when_the_answer_cites_nothing(monkeypatch):
+    """The pool is the client's only source for figures and document names.
+
+    It used to be gated on the citation markers that resolved, so an answer with
+    no citation persisted an empty `reference`: the client had no chunk to
+    resolve a figure against and no document list to show.
+    """
+    _chat_mdl, events = _run_rag_agent(
+        monkeypatch,
+        [{"role": "user", "content": "护套是什么颜色？"}],
+        rag_tools_cls=_PoolStubRAGTools,
+    )
+
+    final = events[0]
+    assert final["answer"]
+    chunks = final["reference"]["chunks"]
+    assert chunks, "the retrieved pool must survive an answer that cites nothing"
+    assert chunks[0]["content_with_weight"].startswith("护套")
+    assert final["reference"]["doc_aggs"] == [{"doc_id": "doc-1", "doc_name": "柔性拖链技术规格书.pdf"}]
+    # Query-specific vectors must not travel to the client.
+    assert "vector" not in chunks[0]
+
+
+@pytest.mark.p2
+def test_rag_agent_returns_the_pool_when_every_citation_marker_is_unusable(monkeypatch):
+    """`[ID:0]` resolves to no chunk, which must not empty the pool either."""
+    _chat_mdl, events = _run_rag_agent(
+        monkeypatch,
+        [{"role": "user", "content": "护套是什么颜色？"}],
+        rag_tools_cls=_PoolStubRAGTools,
+        chat_mdl=_MarkerZeroChatModel(),
+    )
+
+    final = events[0]
+    assert len(final["reference"]["chunks"]) == len(_POOL_CHUNKS)
+    assert final["reference"]["doc_aggs"] == [{"doc_id": "doc-1", "doc_name": "柔性拖链技术规格书.pdf"}]

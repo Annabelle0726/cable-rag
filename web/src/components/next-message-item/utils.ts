@@ -29,14 +29,11 @@ import { getExtension } from '@/utils/document-util';
 export const extractCitedChunkIndexes = (content: string) => {
   const matches = content?.match(currentReg);
   if (matches) {
-    const list = matches
-      .map((match) => {
-        const parsed = citedChunkIndex(match);
-        return Number.isNaN(parsed) ? null : parsed;
-      })
-      .filter((num) => num !== null) as number[];
-
-    return list;
+    // citedChunkIndex reports "no index" as -1, which must never be treated as a
+    // pool index, so unusable markers are dropped.
+    return matches
+      .map((match) => citedChunkIndex(match))
+      .filter((index) => index >= 0);
   }
   return [];
 };

@@ -89,4 +89,46 @@ describe('ReferenceImageList citation mapping', () => {
     expect(screen.queryAllByTestId('doc-image')).toHaveLength(0);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('renders nothing for marker 0, which 1-based citations never emit', () => {
+    const { container } = render(
+      <ReferenceImageList
+        referenceChunks={referenceChunks}
+        messageContent="无效引用 [ID:0]。"
+      />,
+    );
+
+    expect(screen.queryAllByTestId('doc-image')).toHaveLength(0);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('renders nothing while the pool is still empty', () => {
+    // The backend sends the reference with the final event only, so mid-stream
+    // no marker resolves and no figure — let alone `图 NaN` — may appear.
+    const { container } = render(
+      <ReferenceImageList
+        referenceChunks={[] as never}
+        messageContent="护套为 PUR 紫色 [ID:1]。"
+      />,
+    );
+
+    expect(screen.queryAllByTestId('doc-image')).toHaveLength(0);
+    expect(container).toBeEmptyDOMElement();
+    expect(container.textContent).not.toContain('NaN');
+  });
+
+  it('keeps the resolvable figures when one marker is unusable', () => {
+    const { container } = render(
+      <ReferenceImageList
+        referenceChunks={referenceChunks}
+        messageContent="无效引用 [ID:0]，见表 [ID:5]。"
+      />,
+    );
+
+    const images = screen.getAllByTestId('doc-image');
+    expect(images).toHaveLength(1);
+    expect(images[0].dataset.id).toBe('kb-5');
+    expect(images[0].dataset.label).toBe('图 5');
+    expect(container.textContent).not.toContain('NaN');
+  });
 });

@@ -16,6 +16,7 @@
 import asyncio
 import html
 import logging
+import os
 import re
 import time
 import uuid
@@ -2173,7 +2174,14 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
             recall_docs = rag_tools.kbinfos["doc_aggs"]
         rag_tools.kbinfos["doc_aggs"] = recall_docs
 
-        refs = deepcopy(rag_tools.kbinfos) if doc_ids else []
+        # The retrieved pool is handed back whenever retrieval produced anything,
+        # even when the answer cites nothing. Gating it on `doc_ids` (the markers
+        # that resolved) meant an answer whose citations were dropped persisted an
+        # empty `reference`, so the client had no pool to resolve any figure
+        # against and no document list to show. The non-agentic path already
+        # returns the pool unconditionally (`kb_prompt` consumers read
+        # `reference.chunks`), so this also removes a divergence between the two.
+        refs = deepcopy(rag_tools.kbinfos)
         for c in refs.get("chunks", []) if isinstance(refs, dict) else []:
             if c.get("vector"):
                 del c["vector"]
@@ -2240,10 +2248,32 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
         think_closed = False
         outer_tool_started = False
         pending_outer_text = []
+        # Temporary instrumentation for the missing `<think>` markers: when the
+        # stream never emits `start_to_think`/`end_to_think`, the client cannot
+        # separate the pipeline logs from the answer and they render as one
+        # paragraph. State and sizes only — never the answer text — unless
+        # RAG_DEBUG_THINK_MARKERS=1 asks for it explicitly. Logging cannot change
+        # the stream itself.
+        think_marker_debug = os.environ.get("RAG_DEBUG_THINK_MARKERS", "") == "1"
+        marker_state = {"in_think": None, "stream_items": 0}
+
+        def _think_marker_state(stage):
+            logging.info(
+                "[think-markers] %s answer_started=%s think_closed=%s outer_tool_started=%s last_in_think=%s stream_items=%d deltas=%d chars=%d",
+                stage,
+                answer_started,
+                think_closed,
+                outer_tool_started,
+                marker_state["in_think"],
+                marker_state["stream_items"],
+                len(answer_deltas),
+                sum(len(d) for d in answer_deltas),
+            )
 
         async def _close_think_and_flush_answer():
             nonlocal answer_started, think_closed
             if not think_closed:
+                _think_marker_state("end_to_think emitted")
                 yield {"answer": "", "reference": {}, "audio_binary": None, "final": False, "end_to_think": True}
                 think_closed = True
             if not answer_started:
@@ -2255,6 +2285,7 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
             # The outer model emits this as a synthetic <think> token while it
             # invokes the terminal tool.  Make it part of the single progress
             # block instead of forwarding its marker separately.
+            _think_marker_state("start_to_think emitted")
             yield {"answer": "", "reference": {}, "audio_binary": None, "final": False, "start_to_think": True}
             while True:
                 item = await event_queue.get()
@@ -2293,6 +2324,8 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
                         pending_outer_text.clear()
                     break
                 _, kind, value, in_think = item
+                marker_state["in_think"] = in_think
+                marker_state["stream_items"] += 1
                 if kind != "text" or not value:
                     # The outer model's think markers are folded into the one
                     # block opened above; they must not create extra markers.
@@ -2331,6 +2364,12 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
                 logging.exception("rag_agent: drive task error")
 
         answer_text = "".join(answer_deltas)
+        # End-of-turn marker summary: `think_closed=False` here means the stream
+        # never emitted `end_to_think`, which is the shape that leaks every
+        # pipeline log into the answer body on the client.
+        _think_marker_state("stream finished")
+        if think_marker_debug:
+            logging.info("[think-markers] accumulated answer (debug, truncated): %.2000r", answer_text)
         final = await decorate_answer(answer_text)
         final["final"] = True
         final["answer"] = ""

@@ -122,8 +122,17 @@ export const ImageCarousel = ({
       <CarouselContent>
         {group.map((ref) => {
           const chunkIndex = getChunkIndex(ref.id);
+          // -1 means the marker has no pool index (see citedChunkIndex); the
+          // carousel is only mounted when every index resolved, but a missing
+          // image must never reach <Image> as `undefined` and fetch a bogus URL.
+          if (chunkIndex < 0) {
+            return null;
+          }
           const { documentUrl, fileExtension, imageId, chunkItem, documentId } =
             getReferenceInfo(chunkIndex, reference, fileThumbnails);
+          if (!imageId) {
+            return null;
+          }
 
           return (
             <CarouselItem key={ref.id}>

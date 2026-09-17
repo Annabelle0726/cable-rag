@@ -129,16 +129,58 @@ export const preprocessLaTeX = (content: string) => {
  * (`rag/advanced_rag/think_log.py` forwards every INFO record starting with
  * `[`). Matched by prefix only, so new stages need no frontend change beyond
  * adding the tag here.
+ *
+ * Keep this list complete: a stage tag that is missing here leaks its line into
+ * the answer body. The list previously held 7 tags while the pipeline emitted
+ * 20+, which is how `[SCA]`, `[QueryRewriter]`, `[SlotResearch]`, `[Planner]`
+ * and friends ended up on screen.
  */
 export const AGENTIC_LOG_PREFIXES = [
+  // orchestration / formalize
   '[Agentic RAG]',
   '[Formalize',
   '[Keywords',
+  '[Planner]',
+  '[Routing]',
+  '[Draft]',
+  '[Prefetch]',
+  '[StateGuard]',
+  '[RAGAgent]',
+  '[Naive RAG]',
+  '[Action Session',
+  '[Compute]',
+  // search / retrieval
   '[Direct search',
   '[Hybrid search',
+  '[Follow-up search',
+  '[Vector search]',
+  '[BM25 search]',
+  '[Structured search]',
+  '[Grep search]',
+  '[List chunks]',
+  '[Web search]',
+  '[Graph exploration]',
+  '[Wiki lookup]',
+  '[Dataset navigation]',
+  '[Compiled expand]',
   '[Memory',
+  // sufficiency / composition
+  '[SCA]',
+  '[QueryRewrite',
+  '[QueryRewriter]',
+  '[SlotResearch]',
   '[Composing the answer]',
+  // Go tool loop (forwarded by the Go server only)
+  '[Tool loop]',
+  '[Function tool]',
 ] as const;
+
+/**
+ * Any bracketed stage tag, so a stage added later cannot leak a line just because
+ * nobody extended the list above. The bracket content must not be a bare number:
+ * `[1]` is a footnote or an evidence index, not a stage banner.
+ */
+const GENERIC_STAGE_TAG_RE = /^\[[^\]]{1,60}\](?![([])/;
 
 /**
  * Progress chatter the tool loop prints around a call without a stage tag
@@ -153,9 +195,67 @@ const AGENTIC_PREAMBLE_RE =
  * this is never treated as a log even when it carries a stage tag: silently
  * hiding an image, a `Fig. N` reference or an `[ID:n]` citation would damage the
  * answer, whereas leaving a log line in the body is only cosmetic.
+ *
+ * This veto is deliberate, not an oversight (commit fdfac94cf). The visible
+ * consequence is that such a line stays in the answer body, and its `[ID:n]`
+ * marker is rendered like any other citation.
  */
 const ANSWER_MEDIA_RE =
   /!\[|<img|<figure|<image|\[\s*ID:\s*\d+\s*\]|\bFig(?:ure)?\.?\s*\d/i;
+
+/**
+ * A continuation line of a multi-line log record: the pipeline emits records
+ * whose body spans lines (e.g. `"[SlotResearch] slot table after round:\n%s"`),
+ * and the follow-up lines carry no tag of their own.
+ *
+ * Attribution is deliberately narrow — table rows and indented/box-drawing
+ * continuations only. A broader rule ("anything after a log line is a log line")
+ * would swallow the answer itself, which follows the last log line with no
+ * separator, and answer bullets start with `-`/`*` so those are excluded too.
+ */
+const LOG_CONTINUATION_RE = /^(?:\||[ \t]{2,}|[│┃├└┌┐┘┤┬┴─])/;
+
+/** True when a line continues the log record opened by the preceding line. */
+export function isAgenticLogContinuation(line: string = ''): boolean {
+  const trimmed = line.trimEnd();
+
+  if (trimmed.trim().length === 0 || ANSWER_MEDIA_RE.test(trimmed)) {
+    return false;
+  }
+
+  return LOG_CONTINUATION_RE.test(trimmed);
+}
+
+/** True when a line is untagged tool-progress chatter. */
+export function isAgenticPreambleLine(line: string = ''): boolean {
+  return AGENTIC_PREAMBLE_RE.test(line.trim());
+}
+
+/**
+ * True when a line belongs in the collapsed progress panel. Answer-bearing
+ * lines (figures, images, citations) are excluded first so extraction can never
+ * remove content the user is meant to read.
+ */
+export function isAgenticLogLine(line: string = ''): boolean {
+  const trimmed = line.trim().replace(/^[-*+]\s+/, '');
+
+  if (ANSWER_MEDIA_RE.test(trimmed)) {
+    return false;
+  }
+
+  return (
+    AGENTIC_LOG_PREFIXES.some((prefix) => trimmed.startsWith(prefix)) ||
+    isBareStageTagLine(trimmed) ||
+    isAgenticPreambleLine(trimmed)
+  );
+}
+
+/** True for a bracketed stage tag that is not in the list above. */
+function isBareStageTagLine(trimmed: string): boolean {
+  const match = trimmed.match(GENERIC_STAGE_TAG_RE);
+
+  return match !== null && !/^\[\s*\d+\s*\]$/.test(match[0]);
+}
 
 // Fenced code blocks must never be rewritten: a shell snippet or a log sample
 // can legitimately start a line with one of the prefixes above.
@@ -180,29 +280,6 @@ const splitLogLines = (text: string = ''): string[] =>
     .flatMap((line) => line.split(BREAK_TAG_RE))
     .map((segment) => segment.trim())
     .filter((segment) => segment.length > 0);
-
-/** True when a line is untagged tool-progress chatter. */
-export function isAgenticPreambleLine(line: string = ''): boolean {
-  return AGENTIC_PREAMBLE_RE.test(line.trim());
-}
-
-/**
- * True when a line belongs in the collapsed progress panel. Answer-bearing
- * lines (figures, images, citations) are excluded first so extraction can never
- * remove content the user is meant to read.
- */
-export function isAgenticLogLine(line: string = ''): boolean {
-  const trimmed = line.trim().replace(/^[-*+]\s+/, '');
-
-  if (ANSWER_MEDIA_RE.test(trimmed)) {
-    return false;
-  }
-
-  return (
-    AGENTIC_LOG_PREFIXES.some((prefix) => trimmed.startsWith(prefix)) ||
-    isAgenticPreambleLine(trimmed)
-  );
-}
 
 /** True when the first line of a block is an Agentic RAG log line. */
 export function isAgenticLogText(text: string = ''): boolean {
@@ -337,6 +414,9 @@ export function replaceAgenticLogsToSection(
   let inserted = false;
   let inFence = false;
   let detailsDepth = 0;
+  // True while the previous line was a log record, so a following untagged
+  // continuation line (table row / indented body) can be attributed to it.
+  let logRunOpen = false;
 
   text.split(/\r?\n/).forEach((line) => {
     // A collapsed panel is finished output, not source text: re-scanning its
@@ -344,6 +424,7 @@ export function replaceAgenticLogsToSection(
     // reasoning block that already became a panel is passed through untouched.
     if (/<details\b/i.test(line)) {
       detailsDepth += 1;
+      logRunOpen = false;
     }
     if (detailsDepth > 0) {
       kept.push(line);
@@ -355,10 +436,12 @@ export function replaceAgenticLogsToSection(
     if (CODE_FENCE_RE.test(line)) {
       inFence = !inFence;
       kept.push(line);
+      logRunOpen = false;
       return;
     }
     if (inFence) {
       kept.push(line);
+      logRunOpen = false;
       return;
     }
 
@@ -374,9 +457,17 @@ export function replaceAgenticLogsToSection(
     }
 
     if (!sawLog) {
+      // A continuation of the record opened by the previous line belongs to the
+      // panel as well; anything else ends the run and stays in the answer.
+      if (logRunOpen && isAgenticLogContinuation(line)) {
+        logs.push(line.trim());
+        return;
+      }
+      logRunOpen = false;
       kept.push(line);
       return;
     }
+    logRunOpen = true;
     if (!inserted) {
       inserted = true;
       kept.push(LOG_BLOCK_SENTINEL);

@@ -341,6 +341,16 @@ const MarkdownContent = ({
       const poolSize = reference?.chunks?.length ?? 0;
       const replacedText = reactStringReplace(text, currentReg, (match, i) => {
         const chunkIndex = getChunkIndex(match, poolSize);
+        // A marker with no resolvable pool index (empty pool while the answer
+        // streams, or a citation past the end of the pool) keeps its number as
+        // plain text: a chip reading "图 NaN" — or pointing at a figure that does
+        // not exist — is worse than the bare number, and the chip appears as soon
+        // as the pool lands. `match` here is the regex capture group, i.e. the
+        // number without its `[ID:…]` wrapper (react-string-replace splits on the
+        // group), which is also what `getChunkIndex` parses.
+        if (chunkIndex < 0) {
+          return <span key={i}>{match}</span>;
+        }
 
         return (
           <HoverCard key={i}>

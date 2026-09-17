@@ -49,25 +49,28 @@ export const parseCitationIndex = (value: string) => {
 };
 
 /**
- * The 0-based array index of the chunk a citation marker points at.
+ * The 0-based array index of the chunk a citation marker points at, or `-1`
+ * when the marker resolves to nothing.
  *
  * Returns 0-based array index for chat/agentic flows (1-based kb_prompt
- * numbering): `[ID:1]` → 0, `[ID:5]` → 4. Returns `NaN` for a malformed or
- * absent marker, for `[ID:0]` (not a valid 1-based citation) and — when
- * `poolSize` is supplied — for an index outside `[0, poolSize)`, so a caller
- * can skip rendering instead of reading `undefined` out of the chunk pool.
+ * numbering): `[ID:1]` → 0, `[ID:5]` → 4. `-1` means "no usable index": a
+ * malformed or absent marker, `[ID:0]` (not a valid 1-based citation), or —
+ * when `poolSize` is supplied — an index outside `[0, poolSize)`. The pool is
+ * empty for most of a streaming answer (the backend only sends the reference
+ * with the final event), so `-1` is the common case mid-stream and callers must
+ * skip rendering rather than print the value.
+ *
+ * Never returns `NaN`: a caller that ignores the sentinel would otherwise render
+ * "图 NaN". Always test `index >= 0`.
  *
  * Do NOT use this for the search/ask flow: its markers are already 0-based, so
  * `pages/next-search` must keep using `parseCitationIndex`.
  */
 export const citedChunkIndex = (value: string, poolSize?: number) => {
-  // Guarded before parsing: callers pass values that may be undefined when a
-  // reference pool is missing, and this function must report "no index" rather
-  // than throw.
-  if (typeof value !== 'string') return Number.NaN;
+  if (typeof value !== 'string') return -1;
   const index = parseCitationIndex(value) - 1;
-  if (Number.isNaN(index) || index < 0) return Number.NaN;
-  if (typeof poolSize === 'number' && index >= poolSize) return Number.NaN;
+  if (Number.isNaN(index) || index < 0) return -1;
+  if (typeof poolSize === 'number' && index >= poolSize) return -1;
   return index;
 };
 
