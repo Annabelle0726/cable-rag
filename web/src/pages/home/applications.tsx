@@ -54,10 +54,12 @@ export function Applications() {
     [t],
   );
 
+  // Only the tab changes here. The previous tab's cells stay on screen while the
+  // new list loads: clearing the count and flagging a load collapsed the grid to
+  // an empty row for a frame and then grew it back, which is what made the section
+  // jump every time the switcher was clicked.
   const handleChange = (path: CeramicSegmentedValue) => {
     setVal(path as Routes);
-    setListLength(0);
-    setLoading(true);
   };
 
   return (
@@ -76,12 +78,12 @@ export function Applications() {
         />
       </SectionHeading>
 
-      {/* Keyed on the active tab so the new panel fades in, and floored at one
-          card's height so a tab that is still loading cannot collapse the section
-          and take the page's scrollbar with it. */}
+      {/* Keyed on the active tab so the new panel fades in. The grid's rows are
+          sized by `HomeCardGrid`, so this floor is only the empty case: it keeps a
+          single row for the tab that has nothing to show yet. */}
       <HomeCardGrid
         key={val}
-        className="min-h-[104px] animate-in fade-in-0 duration-200"
+        className="min-h-[112px] animate-in fade-in-0 duration-200"
       >
         {val === Routes.Agents && (
           <Agents

@@ -38,6 +38,11 @@ describe('ceramic segmented control', () => {
       expect(screen.getByTestId(`ceramic-segment-${option.value}`)).toHaveTextContent(
         String(option.label),
       );
+      // The label is painted twice (once invisibly, to reserve the selected
+      // weight's width), so the accessible name has to be the label alone.
+      expect(
+        screen.getByRole('button', { name: String(option.label) }),
+      ).toBeInTheDocument();
     });
 
     expect(screen.getByTestId('ceramic-segment-/chats')).toHaveAttribute(

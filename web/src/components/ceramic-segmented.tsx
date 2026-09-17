@@ -104,7 +104,20 @@ export function CeramicSegmented({
             )}
             style={{ anchorName: `--${anchorNamePrefix}-${index}` }}
           >
-            {option.label}
+            {/* The label is measured twice: the invisible copy is set at the
+                selected weight so the button's width never changes when a tab
+                becomes current, and the visible copy is painted over it. Without
+                the reservation a font that spaces its medium weight differently
+                would resize the button, shifting every tab after it and the pill
+                with them — the click itself would look like a jitter. */}
+            <span className="relative inline-flex items-center justify-center">
+              <span aria-hidden className="invisible font-medium">
+                {option.label}
+              </span>
+              <span className="absolute inset-0 inline-flex items-center justify-center">
+                {option.label}
+              </span>
+            </span>
           </button>
         );
       })}
