@@ -50,6 +50,13 @@ jest.mock('./ppt-preview', () => ({
   PptPreviewer: () => <div data-testid="ppt-previewer" />,
 }));
 
+jest.mock('./pdf-preview', () => ({
+  __esModule: true,
+  default: ({ url }: { url: string }) => (
+    <div data-testid="pdf-previewer" data-url={url} />
+  ),
+}));
+
 jest.mock('./hooks', () => ({
   useDocumentResizeObserver: () => ({
     containerWidth: 800,
@@ -88,22 +95,34 @@ jest.mock('@extend-ai/react-docx', () => ({
 const MockRequest = jest.mocked(request);
 const OriginalResizeObserver = globalThis.ResizeObserver;
 
-// jsdom's Blob has no arrayBuffer(), which the previewer uses to inspect the
-// payload's header. The shim keeps the value a real Blob so the code can still
-// wrap it in a File.
-const mockFetchedBlob = (bytes: number[]): Blob => {
-  const blob = new Blob([new Uint8Array(bytes)]);
+const mockFetchedBlob = (bytes: number[]): Blob =>
+  new Blob([new Uint8Array(bytes)]);
 
-  if (typeof blob.arrayBuffer !== 'function') {
-    Object.defineProperty(blob, 'arrayBuffer', {
-      value: async () => new Uint8Array(bytes).buffer,
-    });
+// jsdom's Blob has no arrayBuffer(), and the previewer reads the header of both
+// the payload and a slice of the conversion response. Shimming the prototype
+// (rather than one instance) keeps slice() results readable too, and the value
+// stays a real Blob so it can still be wrapped in a File.
+const shimBlobArrayBuffer = () => {
+  if (typeof Blob.prototype.arrayBuffer === 'function') {
+    return;
   }
 
-  return blob;
+  Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+    configurable: true,
+    writable: true,
+    value: function arrayBuffer(this: Blob): Promise<ArrayBuffer> {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as ArrayBuffer);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(this);
+      });
+    },
+  });
 };
 
 beforeAll(() => {
+  shimBlobArrayBuffer();
   globalThis.ResizeObserver = jest.fn().mockImplementation(() => ({
     observe: jest.fn(),
     unobserve: jest.fn(),
@@ -161,6 +180,8 @@ describe('DocPreviewer', () => {
 
   // A .doc in the dataset can be a Word 97-2003 file, which no browser renderer
   // can read: the user gets a sentence they can act on, not a library error.
+  // The conversion endpoint answers with the original bytes when LibreOffice is
+  // missing, which is the case this asserts.
   it('explains a legacy Word file instead of leaking the library error', async () => {
     mockDetectedFormat = 'legacy-office';
 
@@ -203,5 +224,54 @@ describe('DocPreviewer', () => {
     expect(
       screen.queryByTestId('doc-preview-notice-message'),
     ).not.toBeInTheDocument();
+  });
+
+  // With LibreOffice installed the server exports the legacy file, and the PDF
+  // viewer takes over from the notice.
+  it('renders the server-converted PDF for a legacy Word file', async () => {
+    mockDetectedFormat = 'legacy-office';
+    MockRequest.mockImplementation((async (requestUrl: string) =>
+      requestUrl.includes('format=pdf')
+        ? { data: mockFetchedBlob([0x25, 0x50, 0x44, 0x46]) }
+        : {
+            data: mockFetchedBlob([
+              0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1,
+            ]),
+          }) as never);
+
+    render(<DocPreviewer url="http://example.com/document.doc" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('pdf-previewer')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('pdf-previewer')).toHaveAttribute(
+      'data-url',
+      'http://example.com/document.doc?format=pdf',
+    );
+    expect(
+      screen.queryByTestId('doc-preview-notice-message'),
+    ).not.toBeInTheDocument();
+  });
+
+  // A JSON error body (or any non-PDF payload) must not reach the PDF viewer.
+  it('keeps the notice when the conversion is not a PDF', async () => {
+    mockDetectedFormat = 'legacy-office';
+    MockRequest.mockImplementation((async (requestUrl: string) =>
+      requestUrl.includes('format=pdf')
+        ? { data: mockFetchedBlob([0x7b, 0x22, 0x63, 0x6f]) }
+        : {
+            data: mockFetchedBlob([
+              0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1,
+            ]),
+          }) as never);
+
+    render(<DocPreviewer url="http://example.com/document.doc" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('doc-preview-notice-message')).toHaveTextContent(
+        /Word 97-2003/,
+      );
+    });
+    expect(screen.queryByTestId('pdf-previewer')).not.toBeInTheDocument();
   });
 });

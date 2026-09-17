@@ -32,6 +32,7 @@ import { useTranslation } from 'react-i18next';
 import { ExcelCsvPreviewer } from './excel-preview';
 import { useDocumentResizeObserver, useDocxPreviewZoom } from './hooks';
 import { detectOfficeFormat } from './office-format';
+import PdfPreviewer from './pdf-preview';
 import { PptPreviewer } from './ppt-preview';
 
 interface DocPreviewerProps {
@@ -44,6 +45,44 @@ interface DocPreviewerProps {
  * can be translated instead of leaking the library's own wording.
  */
 type PreviewFailure = 'legacy-office' | 'unsupported' | 'fetch' | 'parse';
+
+// "%PDF"
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46];
+
+const withFormatParam = (url: string, format: string): string =>
+  `${url}${url.includes('?') ? '&' : '?'}format=${format}`;
+
+/**
+ * Ask the server to export a legacy Office document to PDF with LibreOffice.
+ *
+ * The endpoint answers with the original bytes when that conversion is not
+ * available, so the response itself decides: the conversion URL comes back only
+ * for a payload that really is a PDF, and the caller keeps its own notice
+ * otherwise.
+ */
+const requestConvertedPdf = async (url: string): Promise<string | null> => {
+  const conversionUrl = withFormatParam(url, 'pdf');
+
+  try {
+    const res = await request(conversionUrl, {
+      method: 'GET',
+      responseType: 'blob',
+    });
+    const blob: Blob = res.data;
+
+    if (!blob || typeof blob.slice !== 'function') {
+      return null;
+    }
+
+    const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+    const isPdf = PDF_MAGIC.every((byte, index) => header[index] === byte);
+
+    return isPdf ? conversionUrl : null;
+  } catch (error) {
+    console.warn('Failed to fetch the converted PDF preview:', error);
+    return null;
+  }
+};
 
 // @extend-ai/react-docx renders paragraphs without explicit line spacing at
 // 0.88x the font size, which makes CJK glyph lines overlap. Word renders such
@@ -182,6 +221,8 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
   // Set when the fetched bytes are a package this component cannot render but a
   // sibling previewer can.
   const [delegate, setDelegate] = useState<'xlsx' | 'pptx' | null>(null);
+  // Set when the server exported a legacy Office document to PDF for us.
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const showContent = !loading && !failure;
   const { zoomScale, minZoom, maxZoom, handleZoomIn, handleZoomOut } =
     useDocxPreviewZoom({
@@ -215,6 +256,7 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
     setLoading(true);
     setFailure(null);
     setDelegate(null);
+    setPdfUrl(null);
 
     let res;
     try {
@@ -253,6 +295,22 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
       }
 
       if (format !== 'docx') {
+        if (format === 'legacy-office') {
+          // A Word 97-2003 file: no browser renderer reads the OLE2 container,
+          // but the server can export it with LibreOffice. `?format=pdf` hands
+          // back the original bytes when that conversion is unavailable, which
+          // is what the notice then reports.
+          const converted = await requestConvertedPdf(url);
+
+          if (cancelledRef.current) return;
+
+          if (converted) {
+            setPdfUrl(converted);
+            setLoading(false);
+            return;
+          }
+        }
+
         setFailure(format === 'legacy-office' ? 'legacy-office' : 'unsupported');
         setLoading(false);
         return;
@@ -302,6 +360,10 @@ export const DocPreviewer: React.FC<DocPreviewerProps> = ({
 
   if (delegate === 'pptx') {
     return <PptPreviewer className={className} url={url} />;
+  }
+
+  if (pdfUrl) {
+    return <PdfPreviewer className={className} url={pdfUrl} />;
   }
 
   const pageCount = showContent && totalPages > 0 ? totalPages : 0;
