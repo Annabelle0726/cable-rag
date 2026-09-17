@@ -21,25 +21,21 @@ import {
   FormLabel,
 } from '@/components/ui/form';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { LanguageTranslationMap } from '@/constants/common';
 import { cn } from '@/lib/utils';
 import { toLower } from 'lodash';
 import { useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
-export const Languages = [
-  'English',
-  'Chinese',
-  'Spanish',
-  'French',
-  'German',
-  'Japanese',
-  'Korean',
-  'Vietnamese',
-  'Arabic',
-  'Turkish',
-  'Dutch',
-];
+/**
+ * Languages offered wherever a language hint is chosen, in display order.
+ *
+ * Derived from the same map the knowledge-base basic configuration uses, so the
+ * retrieval test, the chat prologue and the agent forms cannot drift into
+ * offering languages the product does not support.
+ */
+export const Languages = Object.keys(LanguageTranslationMap);
 
 export function useCrossLanguageOptions() {
   const { t } = useTranslation();

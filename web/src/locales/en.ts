@@ -3679,17 +3679,6 @@ export default {
     language: {
       english: 'English',
       chinese: 'Chinese',
-      spanish: 'Spanish',
-      french: 'French',
-      german: 'German',
-      japanese: 'Japanese',
-      korean: 'Korean',
-      vietnamese: 'Vietnamese',
-      russian: 'Russian',
-      bulgarian: 'Bulgarian',
-      arabic: 'Arabic',
-      turkish: 'Turkish',
-      dutch: 'Dutch',
     },
     pagination: {
       total: 'Total {{total}}',

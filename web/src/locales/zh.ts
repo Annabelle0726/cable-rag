@@ -3199,16 +3199,6 @@ export default {
     language: {
       english: '英语',
       chinese: '中文',
-      spanish: '西班牙语',
-      french: '法语',
-      german: '德语',
-      japanese: '日语',
-      korean: '韩语',
-      vietnamese: '越南语',
-      bulgarian: '保加利亚语',
-      arabic: '阿拉伯语',
-      turkish: '土耳其语',
-      dutch: '荷兰语',
     },
     pagination: {
       total: '共 {{total}} 条',
