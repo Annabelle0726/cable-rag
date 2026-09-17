@@ -20,13 +20,13 @@ import { citedChunkIndex, currentReg } from '@/utils/chat';
 import { getExtension } from '@/utils/document-util';
 
 /**
- * The chunks cited by an answer, as 0-based reference-pool indexes.
+ * The indexes of the chunks an answer cites, into the reference pool.
  *
  * Markers are 1-based in the chat/agentic flows (`kb_prompt` renders "ID: 1" …
  * "ID: n"), so `[ID:5]` yields index 4 — the index into `reference.chunks` (see
- * citedChunkIndex). The name is retained for its existing importer.
+ * citedChunkIndex).
  */
-export const extractNumbersFromMessageContent = (content: string) => {
+export const extractCitedChunkIndexes = (content: string) => {
   const matches = content?.match(currentReg);
   if (matches) {
     const list = matches

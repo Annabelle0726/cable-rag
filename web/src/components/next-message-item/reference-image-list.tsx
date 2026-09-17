@@ -28,7 +28,7 @@ import { RotateCw, ZoomIn, ZoomOut } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PhotoProvider, PhotoView } from 'react-photo-view';
-import { extractNumbersFromMessageContent } from './utils';
+import { extractCitedChunkIndexes } from './utils';
 
 type IProps = {
   referenceChunks?: IReferenceChunk[] | Record<string, IReferenceChunk>;
@@ -125,7 +125,7 @@ export function ReferenceImageList({
   referenceChunks,
   messageContent,
 }: IProps) {
-  const allChunkIndexes = extractNumbersFromMessageContent(messageContent);
+  const allChunkIndexes = extractCitedChunkIndexes(messageContent);
   const images = useMemo(() => {
     if (Array.isArray(referenceChunks)) {
       return referenceChunks
