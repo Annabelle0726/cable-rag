@@ -18,7 +18,10 @@ import { BulkOperateBar } from '@/components/bulk-operate-bar';
 import { CardContainer } from '@/components/card-container';
 import { EmptyCardType } from '@/components/empty/constant';
 import { EmptyAppCard } from '@/components/empty/empty';
-import ListFilterBar from '@/components/list-filter-bar';
+import ListFilterBar, {
+  ceramicSearchFieldClassName,
+  ceramicSearchFieldRootClassName,
+} from '@/components/list-filter-bar';
 import SvgIcon from '@/components/svg-icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -26,6 +29,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { SearchInput } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { Spin } from '@/components/ui/spin';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -920,15 +924,15 @@ const SkillsPage: React.FC = () => {
           icon="file"
         >
           <div className="flex items-center gap-2">
-            {/* Search skills: the same 40px ceramic field the list bar renders,
-                because this page hides the bar's own search box. */}
+            {/* Search skills: the shared 40px ceramic well, because this page
+                hides the bar's own search box. */}
             <SearchInput
               placeholder={t('skills.searchPlaceholder') || 'Search skills...'}
               value={searchQuery}
               onChange={handleSearchInputChange}
               onKeyDown={handleSearchKeyDown}
-              className="ceramic-relief h-10 w-[200px] rounded-full px-4"
-              rootClassName="relative"
+              className={cn(ceramicSearchFieldClassName, 'w-[200px]')}
+              rootClassName={cn('relative', ceramicSearchFieldRootClassName)}
             />
             {/* Sort order toggle */}
             <Button

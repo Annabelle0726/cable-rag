@@ -173,7 +173,8 @@ export default function Dataset() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="ceramic-cta h-10 rounded-full px-5">
-                <LucidePlus />
+                {/* `size-[1em]` matches every other create pill. */}
+                <LucidePlus className="size-[1em]" />
                 {t('knowledgeDetails.addFile')}
               </Button>
             </DropdownMenuTrigger>

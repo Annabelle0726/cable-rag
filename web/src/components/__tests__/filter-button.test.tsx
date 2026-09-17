@@ -71,6 +71,24 @@ describe('list toolbar controls', () => {
       /me-2/,
     );
   });
+
+  it('sinks the search field into the surface and insets its text past the icon', () => {
+    render(<ListFilterBar title="知识库" value={{}} onChange={jest.fn()} />);
+
+    const field = screen.getByRole('searchbox');
+    const wrapper = field.parentElement as HTMLElement;
+
+    // The recessed half of the material, on the same 40px rail as the buttons
+    // beside it.
+    expect(classList(field)).toEqual(
+      expect.arrayContaining(['ceramic-well', 'h-10', 'rounded-full', 'px-4']),
+    );
+    // `Input` writes its inline padding-inline-start from the measured prefix
+    // span, so the lead-in has to live on that span for the text to start after
+    // the magnifier instead of under it.
+    expect(wrapper.className).toMatch(/\[&>span\]:ps-3/);
+    expect(wrapper.className).toMatch(/\[&>span>svg\]:ms-0/);
+  });
 });
 
 // The mechanism behind the fix, not just its call sites: a primitive paints its

@@ -126,7 +126,9 @@ export default function Files() {
               {/* Primary action: the branded ceramic capsule, raised off the
                   surface, rather than the theme's ink-filled default button. */}
               <Button className="ceramic-cta h-10 rounded-full px-5">
-                <LucidePlus />
+                {/* `size-[1em]` matches every other create pill: a bare icon
+                    falls back to the primitive's 16px and reads heavier. */}
+                <LucidePlus className="size-[1em]" />
                 {t('knowledgeDetails.addFile')}
               </Button>
             </DropdownMenuTrigger>

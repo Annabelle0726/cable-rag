@@ -68,6 +68,24 @@ export const FilterButton = React.forwardRef<
 
 FilterButton.displayName = 'FilterButton';
 
+/**
+ * The ceramic search field, shared by the bar and by the pages that render their
+ * own box (skills hides the bar's search). It is the recessed half of the
+ * material: a well pressed into the surface, on the same 40px rail as the
+ * controls around it.
+ *
+ * The inset for the text lives on the prefix `span`, not on the input: `Input`
+ * measures that span and writes its width into an inline `padding-inline-start`,
+ * which no padding class can override. Padding the span therefore moves the
+ * magnifier in *and* moves the text past it, which is what keeps the placeholder
+ * from starting under the icon.
+ */
+export const ceramicSearchFieldClassName =
+  'ceramic-well h-10 w-full rounded-full px-4 placeholder:text-content-secondary';
+
+export const ceramicSearchFieldRootClassName =
+  '[&>span]:ps-3 [&>span>svg]:ms-0 [&>span>svg]:me-2 [&>span]:text-content-secondary';
+
 export default function ListFilterBar({
   title,
   children,
@@ -85,16 +103,18 @@ export default function ListFilterBar({
   icon,
   iconClassName,
   filterGroup,
-  searchVariant = 'default',
+  searchVariant = 'capsule',
 }: PropsWithChildren<IProps & Omit<CheckboxFormMultipleProps, 'setOpen'>> & {
   className?: string;
   icon?: ReactNode;
   iconClassName?: string;
   filterGroup?: Record<string, string[]>;
   /**
-   * `capsule` dresses the search field as the ceramic pill the file manager
-   * uses: a translucent surface, the shared hairline, an accent glow on focus
-   * and the magnifier inked in the secondary content colour.
+   * `capsule` is the ceramic field every list page shows: the recessed surface,
+   * the shared hairline, an accent ring on focus and the magnifier inked in the
+   * secondary content colour. It is the default so a new page cannot land on a
+   * field of a different height; `default` keeps the primitive's plain box for
+   * callers that are not part of a list toolbar.
    */
   searchVariant?: 'default' | 'capsule';
 }) {
@@ -173,18 +193,17 @@ export default function ListFilterBar({
             value={searchString}
             onChange={onSearchChange}
             className={cn(
-              'min-w-0 w-full',
+              'min-w-0',
               preChildren ? 'flex-1 basis-32' : '',
               'md:w-32',
-              searchVariant === 'capsule' &&
-                'ceramic-relief h-10 rounded-full px-4 placeholder:text-content-secondary',
+              searchVariant === 'capsule' && ceramicSearchFieldClassName,
             )}
             rootClassName={cn(
               // A little more air before the create action: on the bare 12px
               // rhythm the field and the pill read as one control, and the field
               // sits a touch left of where the eye expects it.
               'me-2',
-              searchVariant === 'capsule' && '[&>span]:text-content-secondary',
+              searchVariant === 'capsule' && ceramicSearchFieldRootClassName,
             )}
             role="searchbox"
           />
