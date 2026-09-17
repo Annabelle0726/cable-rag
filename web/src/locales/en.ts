@@ -437,6 +437,10 @@ export default {
       general: 'General / other',
       custom: 'Custom class',
       empty: 'No knowledge base in this class yet',
+      moveTo: 'Move to class',
+      auto: 'Classify from the name',
+      autoHint: 'Classified from the name; set one by hand in the card menu',
+      manualHint: 'Class set by hand',
       chip: {
         bom: 'BOM',
         standard: 'GB/T',

@@ -18,6 +18,7 @@
 import {
   DatasetCategory,
   DatasetCategoryDefinitions,
+  isManualCategory,
   resolveDatasetCategory,
 } from '@/constants/dataset-category';
 import { IDataset } from '@/interfaces/database/dataset';
@@ -54,14 +55,16 @@ export function DatasetCategoryIcon({
 }
 
 type DatasetCategoryChipProps = {
-  dataset: Pick<IDataset, 'name' | 'description'> & { category?: string };
+  dataset: Pick<IDataset, 'name' | 'description'> & { category?: string | null };
   className?: string;
 };
 
 /**
  * The class chip shown in the corner of a knowledge-base card. An owner's own
  * tag wins over the class label: the chip shows the text they typed while the
- * icon stays the custom-tag mark.
+ * icon stays the custom-tag mark. The tooltip says whether the class was chosen
+ * by hand or derived from the name, because a rename can move a knowledge base
+ * that nobody ever classified.
  */
 export function DatasetCategoryChip({
   dataset,
@@ -73,6 +76,11 @@ export function DatasetCategoryChip({
 
   return (
     <span
+      title={
+        isManualCategory(dataset)
+          ? t('datasetCategory.manualHint')
+          : t('datasetCategory.autoHint')
+      }
       className={cn(
         'inline-flex shrink-0 items-center gap-1 rounded-full border border-cable-hairline px-2 py-0.5 text-xs',
         toneClass,

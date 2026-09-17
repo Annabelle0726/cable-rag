@@ -394,6 +394,10 @@ export default {
       general: '通用 / 其他',
       custom: '自定义分类',
       empty: '该分类下暂无知识库',
+      moveTo: '移动到分类',
+      auto: '按名称自动判定',
+      autoHint: '分类由名称自动判定，可在卡片菜单中手动指定',
+      manualHint: '分类由手动指定',
       chip: {
         bom: 'BOM',
         standard: '国标',

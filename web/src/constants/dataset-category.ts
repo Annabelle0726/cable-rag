@@ -207,7 +207,7 @@ const matchAgainst = (haystack: string) =>
  * `General`.
  */
 export const resolveDatasetCategory = (
-  dataset: Pick<IDataset, 'name' | 'description'> & { category?: string },
+  dataset: Pick<IDataset, 'name' | 'description'> & { category?: string | null },
 ): DatasetCategoryResolution => {
   const declared = dataset.category?.trim();
 
@@ -231,6 +231,14 @@ export const resolveDatasetCategory = (
 };
 
 export type DatasetCategoryGroups = Record<DatasetCategory, IDataset[]>;
+
+/**
+ * Whether the class was chosen by a person rather than derived from the name.
+ * The chip says which, so nobody wonders why a rename moved a knowledge base.
+ */
+export const isManualCategory = (
+  dataset: Pick<IDataset, 'name' | 'description'> & { category?: string | null },
+) => Boolean(dataset.category?.trim());
 
 export const groupDatasetsByCategory = (
   datasets: IDataset[],
