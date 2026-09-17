@@ -58,6 +58,19 @@ RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt,sharing=locked \
     ghostscript pandoc lmodern texlive texlive-latex-extra texlive-xetex texlive-lang-chinese \
     fonts-freefont-ttf fonts-noto-cjk postgresql-client
 
+# LibreOffice (headless) exports the legacy Word/Excel/PowerPoint formats to PDF
+# for the document preview: those 97-2003 files are OLE2 compound documents that
+# no browser-side renderer can read. Only the Writer module is installed, which
+# covers .doc and .docx; add libreoffice-calc / libreoffice-impress if the
+# preview should also convert .xls / .ppt. fonts-wqy-zenhei gives the exporter a
+# CJK face so Chinese documents do not come back as boxes (fonts-noto-cjk above
+# stays as the fallback). --no-install-recommends keeps the desktop extras out,
+# and the apt lists are dropped in the same layer so they never reach the image.
+RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt,sharing=locked \
+    apt update && \
+    apt --no-install-recommends install -y libreoffice-writer fonts-wqy-zenhei && \
+    rm -rf /var/lib/apt/lists/*
+
 # Download resource from GitHub to /usr/share/infinity
 RUN mkdir -p /usr/share/infinity/resource && \
     if [ "$NEED_MIRROR" == "1" ]; then \
