@@ -71,7 +71,11 @@ export function HomeCard({
         // (background tint + border highlight). No transform or scale: these
         // cards render inside `overflow-hidden` grids, which clip a lifted card.
         'card-interactive group flex h-full w-full items-start gap-3 rounded-xl px-4 py-4',
-        'border border-cable-border bg-cable-surface shadow-cable-surface',
+        // The glass tint is 20-25% transparent and the blueprint micro-grid is
+        // painted on the card itself: an opaque `bg-cable-surface` covered both
+        // the page canvas behind the card and the lattice on top of it, which is
+        // why the texture was invisible here.
+        'blueprint-grid border border-cable-border bg-glass shadow-cable-surface',
         // Needed because `Card` ships `transition-shadow`, which would otherwise
         // pin transition-property to box-shadow and drop the colour transition.
         'transition-colors duration-200 ease-in-out',

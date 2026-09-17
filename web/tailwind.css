@@ -481,9 +481,13 @@
   }
 
   /* The top bar keeps a translucent surface but only a bottom hairline, so it
-     reads as a bar rather than a floating card. */
+     reads as a bar rather than a floating card. It carries the same CAD
+     blueprint micro-grid as the panes below, which is what makes the shell read
+     as one drawing rather than a plain strip above textured content. */
   .glass-header {
     background-color: var(--glass-bg);
+    background-image: var(--blueprint-texture);
+    background-size: var(--blueprint-texture-size);
     border-bottom: 1px solid var(--glass-border);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));

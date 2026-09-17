@@ -44,7 +44,7 @@ export function SeeAllCard() {
 
   return (
     <Card
-      className="card-interactive transition-colors duration-200 ease-in-out w-full flex-none h-full"
+      className="card-interactive transition-colors duration-200 ease-in-out blueprint-grid w-full flex-none h-full border border-cable-border bg-glass"
       onClick={() => navigateToDatasetList({ isCreate: false })}
     >
       <CardContent className="p-2.5 pt-1 w-full h-full flex items-center justify-center gap-1.5 text-text-secondary">
