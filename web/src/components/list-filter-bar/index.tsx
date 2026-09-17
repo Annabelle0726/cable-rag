@@ -78,11 +78,18 @@ export default function ListFilterBar({
   icon,
   iconClassName,
   filterGroup,
+  searchVariant = 'default',
 }: PropsWithChildren<IProps & Omit<CheckboxFormMultipleProps, 'setOpen'>> & {
   className?: string;
   icon?: ReactNode;
   iconClassName?: string;
   filterGroup?: Record<string, string[]>;
+  /**
+   * `capsule` dresses the search field as the ceramic pill the file manager
+   * uses: a translucent surface, the shared hairline, an accent glow on focus
+   * and the magnifier inked in the secondary content colour.
+   */
+  searchVariant?: 'default' | 'capsule';
 }) {
   const filterCount = useMemo(() => {
     return typeof value === 'object' && value !== null
@@ -159,7 +166,14 @@ export default function ListFilterBar({
               'min-w-0 w-full',
               preChildren ? 'flex-1 basis-32' : '',
               'md:w-32',
+              searchVariant === 'capsule' &&
+                'focus-glow rounded-full border-cable-hairline bg-glass placeholder:text-content-secondary',
             )}
+            rootClassName={
+              searchVariant === 'capsule'
+                ? '[&>span]:text-content-secondary'
+                : undefined
+            }
             role="searchbox"
           />
         )}

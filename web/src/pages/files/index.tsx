@@ -119,10 +119,13 @@ export default function Files() {
           onSearchChange={handleInputChange}
           showFilter={false}
           icon={'file'}
+          searchVariant="capsule"
         >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button>
+              {/* Primary action: the branded ceramic capsule rather than the
+                  theme's ink-filled default button. */}
+              <Button className="ceramic-cta rounded-full">
                 <LucidePlus />
                 {t('knowledgeDetails.addFile')}
               </Button>

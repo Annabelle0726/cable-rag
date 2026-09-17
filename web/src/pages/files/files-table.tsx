@@ -325,11 +325,22 @@ export function FilesTable({
 
   return (
     <>
-      <div className="flex-1 min-h-0 size-full">
-        <Table rootClassName="max-h-full overflow-auto">
-          <TableHeader>
+      {/* One glass shell for the whole table: the CAD ruling sits under the rows
+          and the translucent surface lets the page canvas glow through, so the
+          table no longer reads as an opaque block dropped on the page. Rows are
+          transparent, split by the shared hairline, and only catch a sheen under
+          the pointer. */}
+      <div className="glass-surface blueprint-grid flex-1 min-h-0 size-full overflow-hidden rounded-2xl">
+        <Table
+          rootClassName="max-h-full overflow-auto rounded-2xl bg-transparent"
+          className="[&_th]:text-xs"
+        >
+          <TableHeader className="bg-table-header backdrop-blur-[2px]">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow
+                key={headerGroup.id}
+                className="border-b border-cable-hairline hover:bg-transparent"
+              >
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead
@@ -358,7 +369,7 @@ export function FilesTable({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className="group"
+                  className="group border-b border-cable-hairline bg-transparent hover:bg-table-row-hover data-[state=selected]:bg-table-row-hover"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
