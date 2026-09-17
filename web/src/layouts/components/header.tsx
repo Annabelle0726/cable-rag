@@ -86,10 +86,14 @@ export function Header({
             />
           )}
           <div ref={logoRef} className="inline-flex shrink-0 items-center">
+            {/* Mark and wordmark share one capsule: the mark has no surface of
+                its own, so nothing reads as a box inside a box. The capsule
+                class carries the hover lift and the inward focus outline. */}
             <Link
               to={Routes.Root}
               aria-current={pathname === Routes.Root ? 'page' : undefined}
-              className="-m-1 flex shrink-0 items-center gap-3 rounded-xl p-1 transition-colors hover:bg-cable-brand-soft"
+              className="brand-entry flex shrink-0 items-center gap-2 rounded-full py-1.5 pe-3 ps-2"
+              data-testid="brand-entry"
             >
               <BrandMark label={t('header.brandShort')} />
               <span className="hidden text-base font-semibold tracking-tight text-cable-brand md:inline">
