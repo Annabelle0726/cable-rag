@@ -138,6 +138,23 @@ export default {
         'Sign up for free to explore top RAG technology. Create datasets and AIs to empower your business.',
       review: 'from 500+ reviews',
       seeAll: 'See all',
+      /* Sign-in hero: the brand column beside the form. */
+      hero: {
+        slogan: 'A next-generation enterprise RAG knowledge engine',
+        intro:
+          'Hybrid retrieval and large-model reasoning bring private company data to life in milliseconds.',
+        featureHybridSearch: 'Precise hybrid retrieval',
+        featureHybridSearchDesc:
+          'Vector semantics and full-text search in one engine, lifting retrieval accuracy by 85%+.',
+        featureDocumentParsing: 'Second-scale parsing for any document',
+        featureDocumentParsingDesc:
+          'Dozens of formats — PDF, Word, Markdown and more — chunked and indexed in milliseconds.',
+        featureAgentMemory: 'Agents with long memory chains',
+        featureAgentMemoryDesc:
+          'Structured memory plus a tool chain gives the model deeper reasoning and lasting context.',
+        badgeLatency: '✨ Vector search under 10ms',
+        badgeIsolation: '🔒 100% private tenant isolation',
+      },
     },
     header: {
       knowledgeBase: 'Dataset',

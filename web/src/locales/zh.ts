@@ -120,6 +120,22 @@ export default {
       description:
         '免费注册以探索顶级 RAG 技术。 创建知识库和人工智能来增强您的业务',
       review: '来自 500 多条评论',
+      /* Sign-in hero: the brand column beside the form. */
+      hero: {
+        slogan: '新一代企业级 RAG 智能知识库引擎',
+        intro: '基于混合检索与大模型推理，毫秒级激活企业私域数据价值。',
+        featureHybridSearch: '精准混合检索',
+        featureHybridSearchDesc:
+          '向量语义 + 全文检索双引擎，检索准确率提升 85%+',
+        featureDocumentParsing: '多源文档秒级解析',
+        featureDocumentParsingDesc:
+          '支持 PDF、Word、Markdown 等数十种格式毫秒级切分与索引',
+        featureAgentMemory: '智能体与长记忆链',
+        featureAgentMemoryDesc:
+          '结合结构化 Memory 与工具链，赋予 AI 深度推理与上下文记忆能力',
+        badgeLatency: '✨ 向量检索延迟 < 10ms',
+        badgeIsolation: '🔒 100% 企业级私域隔离',
+      },
     },
     header: {
       knowledgeBase: '知识库',

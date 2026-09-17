@@ -211,6 +211,24 @@
        the accent instead — an edge-lit panel rather than a grey box. */
     --glass-highlight: rgba(2, 132, 199, 0.08);
 
+    /* Sign-in hero: the brand column beside the form. Its title ramp is a token
+       rather than the literal white-to-sky gradient of the design, because that
+       ramp only reads on a dark canvas — on a pale page a white stop vanishes,
+       so the light theme runs the same three stops from deep slate into the
+       brand blue. The cards and badges follow the same rule: the design's
+       white-alpha values in the dark theme, their ink-side counterparts here. */
+    --hero-title-from: #0f172a;
+    --hero-title-via: #0369a1;
+    --hero-title-to: #0ea5e9;
+    --hero-card-bg: rgba(255, 255, 255, 0.65);
+    --hero-card-bg-hover: rgba(255, 255, 255, 0.9);
+    --hero-card-border: rgba(15, 23, 42, 0.08);
+    --hero-icon: #0284c7;
+    --hero-badge-bg: rgba(2, 132, 199, 0.1);
+    --hero-badge-border: rgba(2, 132, 199, 0.3);
+    --hero-badge-text: #0369a1;
+    --hero-glow: rgba(2, 132, 199, 0.16);
+
     /* Ceramic enamel: a raised shell built from an inner top highlight, a
        hairline edge and a soft drop shadow. The header pill, the header/main
        seam and the interactive cards all read from these, so the surface
@@ -475,6 +493,20 @@
     --glass-border: rgba(56, 189, 248, 0.22);
     --glass-blur: 8px;
     --glass-highlight: rgba(255, 255, 255, 0.06);
+    /* Dark hero: the white-to-sky title ramp, the white-alpha glass cards and
+       the sky badge tints are the design's own values, which is why the light
+       theme above carries different ones. */
+    --hero-title-from: #ffffff;
+    --hero-title-via: #bae6fd;
+    --hero-title-to: #38bdf8;
+    --hero-card-bg: rgba(255, 255, 255, 0.05);
+    --hero-card-bg-hover: rgba(255, 255, 255, 0.1);
+    --hero-card-border: rgba(255, 255, 255, 0.1);
+    --hero-icon: #38bdf8;
+    --hero-badge-bg: rgba(14, 165, 233, 0.1);
+    --hero-badge-border: rgba(56, 189, 248, 0.3);
+    --hero-badge-text: #7dd3fc;
+    --hero-glow: rgba(14, 165, 233, 0.2);
     /* Obsidian ceramic for the dark theme: a translucent graphite shell with a
        white rim light and a real drop shadow. It is a step lighter than the
        glass bar it sits in — the same navy as the bar would leave the pill

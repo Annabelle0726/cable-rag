@@ -31,6 +31,7 @@ import { z } from 'zod';
 import { NICKNAME_PATTERN } from '../user-setting/profile/constants';
 import { BgSvg } from './bg';
 import FlipCard3D, { FlipFaceContext } from './card';
+import { LoginHero } from './hero';
 import './index.less';
 
 type LoginFormContentProps = {
@@ -393,41 +394,46 @@ const Login = () => {
       <Spotlight opcity={0.4} coverage={60} />
       <Spotlight opcity={0.3} coverage={12} X={'10%'} Y={'-10%'} />
       <Spotlight opcity={0.3} coverage={12} X={'90%'} Y={'-10%'} />
-      <div className="bg-cable-page relative flex h-screen w-screen flex-col items-center justify-center overflow-hidden">
+      <div className="bg-cable-page relative flex h-screen w-screen items-center justify-center overflow-hidden">
         <BgSvg isPaused />
 
-        {/* Brand, then the card, centred as one block on a single screen. The
-            column is not a scroll container: the compact card fits the viewport
-            at the sizes this page is used at, and any scrollbar here would be
-            the one thing the layout is meant to avoid. */}
-        <div className="relative z-10 flex w-full max-w-[440px] flex-col items-center px-4 py-4">
-          {/* Logo and product name read as one line, both on the same centre
-              line, instead of a stacked mark with a caption under it. */}
-          <header className="mb-4 flex flex-row items-center justify-center gap-3">
-            <span className="glass-panel flex size-10 shrink-0 items-center justify-center rounded-xl">
-              <SvgIcon name="brand-logo" width={24} height={24} />
-            </span>
-            <p className="text-xl font-semibold tracking-tight text-text-primary">
-              {tHeader('brandShort')}
-            </p>
-          </header>
+        {/* Two columns from `lg` up: the brand column on the left, the form on
+            the right. Below `lg` the brand column is hidden and the form keeps
+            the compact logo row instead, so the single-screen promise survives
+            on a narrow window. */}
+        <div className="relative z-10 grid h-full w-full max-w-[1180px] grid-cols-1 items-center gap-8 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:gap-16">
+          <LoginHero />
 
-          {/* Login Form */}
-          <FlipCard3D isLoginPage={isLoginPage}>
-            <LoginFormContent
-              isLoginPage={isLoginPage}
-              title={title}
-              form={form}
-              loading={loading}
-              onCheck={onCheck}
-              changeTitle={changeTitle}
-              registerEnabled={registerEnabled}
-              channels={channels || []}
-              handleLoginWithChannel={handleLoginWithChannel}
-              t={t}
-              disablePasswordLogin={!!config?.disablePasswordLogin}
-            />
-          </FlipCard3D>
+          <div className="flex w-full flex-col items-center">
+            {/* Logo and product name read as one line, both on the same centre
+                line. Only for narrow screens: the brand column above already
+                names the product from `lg` up. */}
+            <header className="mb-4 flex flex-row items-center justify-center gap-3 lg:hidden">
+              <span className="glass-panel flex size-10 shrink-0 items-center justify-center rounded-xl">
+                <SvgIcon name="brand-logo" width={24} height={24} />
+              </span>
+              <p className="text-xl font-semibold tracking-tight text-text-primary">
+                {tHeader('brandShort')}
+              </p>
+            </header>
+
+            {/* Login Form */}
+            <FlipCard3D isLoginPage={isLoginPage}>
+              <LoginFormContent
+                isLoginPage={isLoginPage}
+                title={title}
+                form={form}
+                loading={loading}
+                onCheck={onCheck}
+                changeTitle={changeTitle}
+                registerEnabled={registerEnabled}
+                channels={channels || []}
+                handleLoginWithChannel={handleLoginWithChannel}
+                t={t}
+                disablePasswordLogin={!!config?.disablePasswordLogin}
+              />
+            </FlipCard3D>
+          </div>
         </div>
       </div>
     </>

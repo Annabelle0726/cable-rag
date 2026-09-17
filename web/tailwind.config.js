@@ -167,6 +167,24 @@ module.exports = {
           DEFAULT: 'var(--surface-hover-bg)',
           border: 'var(--surface-hover-border)',
         },
+        /* Sign-in hero column: the title ramp, the feature cards and the badges.
+           Light and dark carry different primitives (see tailwind.css), so the
+           component names them by role instead of by colour. */
+        'hero-title-from': 'var(--hero-title-from)',
+        'hero-title-via': 'var(--hero-title-via)',
+        'hero-title-to': 'var(--hero-title-to)',
+        'hero-card': {
+          DEFAULT: 'var(--hero-card-bg)',
+          hover: 'var(--hero-card-bg-hover)',
+          border: 'var(--hero-card-border)',
+        },
+        'hero-icon': 'var(--hero-icon)',
+        'hero-badge': {
+          DEFAULT: 'var(--hero-badge-bg)',
+          border: 'var(--hero-badge-border)',
+          text: 'var(--hero-badge-text)',
+        },
+        'hero-glow': 'var(--hero-glow)',
         /* Ceramic shell edge: the hairline that wraps the pill and the cards,
            with a brighter variant for hover. */
         'ceramic-border': {
