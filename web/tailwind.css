@@ -390,11 +390,13 @@
     --glass-border: rgba(56, 189, 248, 0.22);
     --glass-blur: 8px;
     --glass-highlight: rgba(255, 255, 255, 0.06);
-    /* Obsidian ceramic for the dark theme: a translucent graphite-navy shell
-       with a white rim light and a real drop shadow. The cable surfaces carry
-       `none` here on purpose, which is exactly why the dark pill and the dark
-       cards read flat without this set. */
-    --ceramic-surface: rgba(15, 23, 42, 0.72);
+    /* Obsidian ceramic for the dark theme: a translucent graphite shell with a
+       white rim light and a real drop shadow. It is a step lighter than the
+       glass bar it sits in — the same navy as the bar would leave the pill
+       invisible apart from its hairline. The cable surfaces carry `none` here on
+       purpose, which is exactly why the dark pill and the dark cards read flat
+       without this set. */
+    --ceramic-surface: rgba(30, 41, 59, 0.72);
     --ceramic-highlight: rgba(255, 255, 255, 0.12);
     --ceramic-border: rgba(255, 255, 255, 0.08);
     --ceramic-border-hover: rgba(56, 189, 248, 0.45);
