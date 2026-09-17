@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { FormLayout } from '@/constants/form';
+import { DEFAULT_DATASET_LANGUAGE } from '@/constants/common';
 import { ParseType } from '@/constants/knowledge';
 import { useFetchDefaultModelDictionary } from '@/hooks/use-llm-request';
 import { IModalProps } from '@/interfaces/common';
@@ -106,7 +107,10 @@ export function InputForm({ onOk }: IModalProps<any>) {
       parseType === ParseType.BuiltIn
         ? omit(data, ['pipeline_id'])
         : omit(data, [ChunkMethodName]);
-    onOk?.(nextData);
+    // The dialog has no language field, so the create payload carries the
+    // product default explicitly instead of relying on the server's column
+    // default, which follows the machine's locale.
+    onOk?.({ ...nextData, language: DEFAULT_DATASET_LANGUAGE });
   }
 
   useEffect(() => {

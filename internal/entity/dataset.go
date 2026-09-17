@@ -102,7 +102,7 @@ type Knowledgebase struct {
 	Avatar                 *string    `gorm:"column:avatar;type:longtext" json:"avatar,omitempty"`
 	TenantID               string     `gorm:"column:tenant_id;size:32;not null;index" json:"tenant_id"`
 	Name                   string     `gorm:"column:name;size:128;not null;index" json:"name"`
-	Language               *string    `gorm:"column:language;size:32;index;default:'English'" json:"language,omitempty"`
+	Language               *string    `gorm:"column:language;size:32;index;default:'Chinese'" json:"language,omitempty"`
 	Description            *string    `gorm:"column:description;type:longtext" json:"description,omitempty"`
 	EmbdID                 string     `gorm:"column:embd_id;size:128;not null;index" json:"embd_id"`
 	TenantEmbdID           *string    `gorm:"column:tenant_embd_id;size:32;index" json:"tenant_embd_id,omitempty"`

@@ -1269,7 +1269,10 @@ class Knowledgebase(DataBaseModel):
     avatar = TextField(null=True, help_text="avatar base64 string")
     tenant_id = CharField(max_length=32, null=False, index=True)
     name = CharField(max_length=128, null=False, help_text="KB name", index=True)
-    language = CharField(max_length=32, null=True, default="Chinese" if "zh_CN" in os.getenv("LANG", "") else "English", help_text="English|Chinese", index=True)
+    # A knowledge base starts in Chinese on every machine: the product bundles
+    # only Chinese and English, and the previous default followed the host
+    # locale, so the same create call produced different data per deployment.
+    language = CharField(max_length=32, null=True, default="Chinese", help_text="English|Chinese", index=True)
     description = TextField(null=True, help_text="KB description")
     # A dataset may inherit an application-level empty string. GaussDB stores it
     # as NULL and restores it to "" when read.

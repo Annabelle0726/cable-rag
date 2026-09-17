@@ -284,8 +284,8 @@ func TestCreateDataset_OmittedLanguageKeepsDefault(t *testing.T) {
 	if stored.Language == nil {
 		t.Fatal("expected the column default to be applied, got NULL language")
 	}
-	if *stored.Language != "English" {
-		t.Fatalf("language = %q, want the %q column default", *stored.Language, "English")
+	if *stored.Language != "Chinese" {
+		t.Fatalf("language = %q, want the %q column default", *stored.Language, "Chinese")
 	}
 }
 

@@ -63,35 +63,21 @@ export const LanguageAbbreviationMap = {
   [LanguageAbbreviation.Zh]: '简体中文',
 };
 
+/**
+ * Languages a knowledge base can be configured with, in the order the
+ * basic-configuration dropdown shows them.
+ *
+ * Only the two the product actually bundles are offered. The parser settings
+ * and the answers are tuned for these two, so a longer menu of languages
+ * nothing downstream distinguishes only invited misconfiguration.
+ */
 export const LanguageTranslationMap = {
-  English: 'en',
   Chinese: 'zh-Hans',
-  'Traditional Chinese': 'zh-Hant',
-  Russian: 'ru',
-  Indonesian: 'id',
-  Indonesia: 'id',
-  Spanish: 'es',
-  Vietnamese: 'vi',
-  Japanese: 'ja',
-  Korean: 'ko',
-  'Portuguese BR': 'pt-BR',
-  'pt-br': 'pt-BR',
-  'pt-BR': 'pt-BR',
-  German: 'de',
-  French: 'fr',
-  Italian: 'it',
-  Tamil: 'ta',
-  Telugu: 'te',
-  Kannada: 'ka',
-  Thai: 'th',
-  Greek: 'el',
-  Hindi: 'hi',
-  Ukrainian: 'uk',
-  Bulgarian: 'bg',
-  Arabic: 'ar',
-  Turkish: 'tr',
-  Dutch: 'nl',
+  English: 'en',
 };
+
+/** Language a knowledge base starts on, in the configuration form and on create. */
+export const DEFAULT_DATASET_LANGUAGE = 'Chinese';
 
 export enum FileMimeType {
   Bmp = 'image/bmp',

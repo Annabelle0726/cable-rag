@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/card';
 import Divider from '@/components/ui/divider';
 import { Form } from '@/components/ui/form';
+import { DEFAULT_DATASET_LANGUAGE } from '@/constants/common';
 import { FormLayout } from '@/constants/form';
 import { DocumentParserType, ParseType } from '@/constants/knowledge';
 import { PermissionRole } from '@/constants/permission';
@@ -50,7 +51,7 @@ export default function DatasetSettings() {
       name: '',
       chunk_method: DocumentParserType.Naive,
       permission: PermissionRole.Me,
-      language: 'English',
+      language: DEFAULT_DATASET_LANGUAGE,
       parser_config: {
         layout_recognize: DocumentType.DeepDOC,
         chunk_token_num: 512,

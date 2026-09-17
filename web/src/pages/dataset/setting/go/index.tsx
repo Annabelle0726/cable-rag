@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import Divider from '@/components/ui/divider';
 import { Form } from '@/components/ui/form';
+import { DEFAULT_DATASET_LANGUAGE } from '@/constants/common';
 import { FormLayout } from '@/constants/form';
 import { ParseType } from '@/constants/knowledge';
 import {
@@ -53,7 +54,7 @@ export default function DatasetSetting() {
       description: '',
       avatar: null,
       permission: '',
-      language: 'English',
+      language: DEFAULT_DATASET_LANGUAGE,
       embedding_model: '',
       pagerank: 0,
       connectors: [],
