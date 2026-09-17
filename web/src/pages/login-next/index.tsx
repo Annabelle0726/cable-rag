@@ -67,17 +67,18 @@ function LoginFormContent({
   return (
     <div className="flex w-full flex-col items-center justify-center">
       <div className="mb-4 text-center">
-        {/* The title carries the theme blue so it echoes the submit button
-            rather than reading as plain black body copy. */}
-        <h2 className="text-xl font-semibold text-accent-color">
+        {/* The largest type on the card, in the theme's primary text colour: that
+            is white on the dark ceramic and ink on the light one, so the title
+            never disappears the way a literal `text-white` would on a pale card. */}
+        <h2 className="text-2xl font-semibold text-text-primary">
           {title === 'login' ? t('loginTitle') : t('signUpTitle')}
         </h2>
       </div>
-      {/* Glass card: a translucent pane over the page gradient with a hairline
-          accent border, which lights up while a field inside it has focus. The
+      {/* The focal point of the page: a ceramic shell (surface, rim light and
+          elevation) with the accent edge and one wide accent bloom under it. Its
           padding stays tight because the register face carries one field more
           than the login face and both have to fit one screen. */}
-      <div className="glass-panel w-full max-w-[440px] rounded-2xl px-6 py-5 transition-colors duration-200 ease-in-out focus-within:border-accent-color">
+      <div className="ceramic-pill w-full max-w-[440px] rounded-2xl border-login-card-edge px-6 py-5 shadow-login-card transition-colors duration-200 ease-in-out focus-within:border-accent-color">
         {!disablePasswordLogin && (
           <Form {...form}>
             <form
@@ -188,7 +189,7 @@ function LoginFormContent({
                 data-testid="auth-submit"
                 type="submit"
                 loading={loading}
-                className="accent-gradient glow-accent my-1 w-full transition-colors duration-200 ease-in-out"
+                className="ceramic-cta my-1 w-full"
               >
                 {title === 'login' ? t('login') : t('continue')}
               </ButtonLoading>
@@ -397,14 +398,15 @@ const Login = () => {
       <div className="bg-cable-page relative flex h-screen w-screen items-center justify-center overflow-hidden">
         <BgSvg isPaused />
 
-        {/* Two columns from `lg` up: the brand column on the left, the form on
-            the right. Below `lg` the brand column is hidden and the form keeps
-            the compact logo row instead, so the single-screen promise survives
-            on a narrow window. */}
-        <div className="relative z-10 grid h-full w-full max-w-[1180px] grid-cols-1 items-center gap-8 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:gap-16">
+        {/* Two columns from `lg` up, 5 / 7: the brand column takes two fifths
+            and the form three, so the card has room to sit as the focal point.
+            Below `lg` the brand column is hidden and the form keeps the compact
+            logo row instead, so the single-screen promise survives on a narrow
+            window. */}
+        <div className="relative z-10 grid h-full w-full max-w-[1200px] grid-cols-1 items-center gap-8 px-6 py-6 lg:grid-cols-12 lg:gap-12">
           <LoginHero />
 
-          <div className="flex w-full flex-col items-center">
+          <div className="flex w-full flex-col items-center lg:col-span-7">
             {/* Logo and product name read as one line, both on the same centre
                 line. Only for narrow screens: the brand column above already
                 names the product from `lg` up. */}

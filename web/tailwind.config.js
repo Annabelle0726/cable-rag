@@ -185,6 +185,7 @@ module.exports = {
           text: 'var(--hero-badge-text)',
         },
         'hero-glow': 'var(--hero-glow)',
+        'login-card-edge': 'var(--login-card-edge)',
         /* Ceramic shell edge: the hairline that wraps the pill and the cards,
            with a brighter variant for hover. */
         'ceramic-border': {
@@ -262,6 +263,9 @@ module.exports = {
            structure and therefore interpolate smoothly on hover. */
         ceramic: 'var(--ceramic-elevation)',
         'ceramic-hover': 'var(--ceramic-elevation-hover)',
+        /* Sign-in card: the ceramic elevation with one wide accent bloom under
+           it, so the card is the focal point without a second colour. */
+        'login-card': 'var(--login-card-glow)',
       },
       borderRadius: {
         px: '1px',

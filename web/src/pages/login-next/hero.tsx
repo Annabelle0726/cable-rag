@@ -50,7 +50,7 @@ export function LoginHero() {
   const { t: tHeader } = useTranslation('translation', { keyPrefix: 'header' });
 
   return (
-    <section className="relative hidden min-w-0 flex-col gap-7 lg:flex">
+    <section className="relative hidden min-w-0 flex-col gap-7 lg:col-span-5 lg:flex">
       {/* A single accent bloom behind the text: it gives the glass cards
           something to sit on instead of a flat canvas. */}
       <div
