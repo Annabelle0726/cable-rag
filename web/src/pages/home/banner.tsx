@@ -7,21 +7,23 @@ import { useTranslation } from 'react-i18next';
  *
  * The gradient rides an inline-block span rather than the heading box: the span
  * hugs the text, so the ramp runs across the words instead of stretching over
- * the whole column, and the small bottom padding keeps the clipped background
- * from cropping descenders. Both lines are balanced, and the section closes on
- * the same hairline the cards and the header seam use, not a grey rule.
+ * the whole column. A clipped background only paints the span's own box, so the
+ * span carries vertical padding and a roomy line box — at a tight line height
+ * the taller CJK glyphs reach past the box and lose their fill, which is what
+ * made the heading look like it overflowed. The subtitle takes its colour from
+ * the semantic content scale rather than a grey picked here.
  */
 export function NextBanner() {
   const { t } = useTranslation();
 
   return (
     <section className="border-b border-cable-hairline pb-8">
-      <h1 className="text-4xl leading-[1.2] font-bold tracking-tight md:text-5xl">
-        <span className="text-cable-gradient inline-block pb-1">
+      <h1 className="max-w-4xl text-2xl leading-snug font-bold tracking-tight sm:text-3xl md:text-4xl">
+        <span className="text-cable-gradient inline-block max-w-full py-1">
           {t('header.heroTitle')}
         </span>
       </h1>
-      <p className="mt-4 max-w-3xl text-base text-balance text-cable-muted md:text-lg">
+      <p className="mt-3 max-w-3xl text-base text-balance text-content-secondary md:text-lg">
         {t('header.heroSubtitle')}
       </p>
     </section>
