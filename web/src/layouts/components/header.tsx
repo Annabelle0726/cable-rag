@@ -100,7 +100,11 @@ export function Header({
         </div>
 
         {!isCompact && (
-          <div className="flex min-w-0 flex-1 justify-center overflow-hidden">
+          // Clipped on the inline axis only: the nav must never widen the header
+          // while the compact/nav-overflow measurement settles, but a full
+          // `overflow: hidden` also clipped the nav pill's own drop shadow, which
+          // is what carries its ceramic elevation.
+          <div className="flex min-w-0 flex-1 justify-center overflow-x-clip">
             <DesktopNavbar />
           </div>
         )}
