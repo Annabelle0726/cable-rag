@@ -120,9 +120,9 @@
        Every value below is resolved per mode, so components never need
        hardcoded whites/blacks nor `dark:` duplicates for these surfaces. */
     /* The page canvas is the same luminous wash as the sign-in screen: a bright
-       base with one accent bloom low on the right and a cooler one bottom-left,
-       so the glass above it has something to glow through instead of sitting on
-       a flat grey field. */
+       base with a sky bloom low on the right and cooler indigo ones at the top
+       right and bottom left, so the glass above it has light to glow through
+       instead of sitting on a flat grey field. */
     --cable-page-from: #ffffff;
     --cable-page-to: #f7fafe;
     --cable-page-edge: #eaf1fc;
