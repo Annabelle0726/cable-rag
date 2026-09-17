@@ -201,6 +201,33 @@
        the accent instead — an edge-lit panel rather than a grey box. */
     --glass-highlight: rgba(2, 132, 199, 0.08);
 
+    /* Ceramic enamel: a raised shell built from an inner top highlight, a
+       hairline edge and a soft drop shadow. The header pill, the header/main
+       seam and the interactive cards all read from these, so the surface
+       quality is one theme swap instead of a per-component stack of shadows.
+       The light values reproduce the surface and edge the pill already had, so
+       switching it onto these tokens keeps the enamel it was praised for. */
+    --ceramic-surface: rgba(255, 255, 255, 0.66);
+    --ceramic-highlight: rgba(255, 255, 255, 0.9);
+    --ceramic-border: rgba(203, 216, 233, 0.9);
+    --ceramic-border-hover: rgba(2, 132, 199, 0.4);
+    --ceramic-shadow: 0 1px 2px rgba(15, 23, 42, 0.05),
+      0 12px 32px -20px rgba(15, 23, 42, 0.3);
+    --ceramic-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.07),
+      0 16px 36px -16px rgba(15, 23, 42, 0.34);
+    /* Header/main seam: a light line with a dark line under it, which is what
+       makes a 1px divider read as a recess rather than as a cut. */
+    --ceramic-groove-highlight: rgba(255, 255, 255, 0.9);
+    --ceramic-groove-shadow: rgba(15, 23, 42, 0.08);
+    /* Composed once: the var() references resolve against whichever theme is
+       active where the shadow is actually used, so `.dark` only overrides the
+       primitives above. Both elevations keep the same three-layer structure so
+       the browser can interpolate between them on hover. */
+    --ceramic-elevation: inset 0 1px 0 var(--ceramic-highlight),
+      var(--ceramic-shadow);
+    --ceramic-elevation-hover: inset 0 1px 0 var(--ceramic-highlight),
+      var(--ceramic-shadow-hover);
+
     /* Industrial category tones. One halo tint per knowledge-base class, plus
        the ink the icon is drawn in; the three inks that have no existing token
        live here, so the icon matrix colours nothing from a component. */
@@ -363,6 +390,18 @@
     --glass-border: rgba(56, 189, 248, 0.22);
     --glass-blur: 8px;
     --glass-highlight: rgba(255, 255, 255, 0.06);
+    /* Obsidian ceramic for the dark theme: a translucent graphite-navy shell
+       with a white rim light and a real drop shadow. The cable surfaces carry
+       `none` here on purpose, which is exactly why the dark pill and the dark
+       cards read flat without this set. */
+    --ceramic-surface: rgba(15, 23, 42, 0.72);
+    --ceramic-highlight: rgba(255, 255, 255, 0.12);
+    --ceramic-border: rgba(255, 255, 255, 0.08);
+    --ceramic-border-hover: rgba(56, 189, 248, 0.45);
+    --ceramic-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    --ceramic-shadow-hover: 0 8px 28px -6px rgba(0, 0, 0, 0.55);
+    --ceramic-groove-highlight: rgba(255, 255, 255, 0.08);
+    --ceramic-groove-shadow: rgba(0, 0, 0, 0.2);
     /* The halo alphas are theme-neutral; only the three inks that have to stay
        legible on navy are lifted. */
     --category-spec-ink: #818cf8;
@@ -480,6 +519,15 @@
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     box-shadow: inset 0 1px 0 var(--glass-highlight);
+  }
+
+  /* Ceramic enamel shell for the navigation pill: translucent surface, hairline
+     edge and the composed elevation, so the pill reads as a raised tile in both
+     themes rather than as a flat grey block in dark mode. */
+  .ceramic-pill {
+    background-color: var(--ceramic-surface);
+    border: 1px solid var(--ceramic-border);
+    box-shadow: var(--ceramic-elevation);
   }
 
   /* Category tone: sets the halo tint and the icon ink for one industrial

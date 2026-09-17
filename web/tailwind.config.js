@@ -156,6 +156,12 @@ module.exports = {
           DEFAULT: 'var(--surface-hover-bg)',
           border: 'var(--surface-hover-border)',
         },
+        /* Ceramic shell edge: the hairline that wraps the pill and the cards,
+           with a brighter variant for hover. */
+        'ceramic-border': {
+          DEFAULT: 'var(--ceramic-border)',
+          hover: 'var(--ceramic-border-hover)',
+        },
         'cable-nav': {
           DEFAULT: 'var(--cable-nav-text)',
           hover: 'var(--cable-nav-text-hover)',
@@ -222,6 +228,11 @@ module.exports = {
         /* Single-colour accent glow, for the few surfaces that should read as
            "energised" (primary actions, the active nav item). */
         'accent-glow': '0 4px 20px -2px var(--shadow-accent)',
+        /* Ceramic enamel: an inner top highlight plus a drop shadow, composed
+           from the ceramic tokens so light and dark keep the same shadow
+           structure and therefore interpolate smoothly on hover. */
+        ceramic: 'var(--ceramic-elevation)',
+        'ceramic-hover': 'var(--ceramic-elevation-hover)',
       },
       borderRadius: {
         px: '1px',

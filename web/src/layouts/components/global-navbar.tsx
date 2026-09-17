@@ -130,9 +130,10 @@ const DesktopNavbarWithAnchor = () => {
 
   return (
     <nav>
-      {/* The nav is a pill inside the bar: the extra padding on all four sides
-          keeps the items from pressing against the pill's own border. */}
-      <ul className="relative flex items-center gap-1 rounded-xl border border-cable-border bg-cable-surface-muted p-1.5">
+      {/* The nav is a pill inside the bar: the padding on all four sides keeps
+          the items from pressing against its own edge, and the ceramic shell
+          supplies the surface, the hairline and the elevation in both themes. */}
+      <ul className="ceramic-pill relative flex items-center gap-1 rounded-xl p-1.5">
         {menuItems.map(({ path, name, icon: Icon, ...props }) => {
           const isActive = path === activePath;
           const anchorName = `--${navbarAnchorNamePrefix}${path === Routes.Root ? '-root' : path.replace('/', '-')}`;
@@ -196,7 +197,7 @@ const DesktopNavbarFallback = () => {
 
   return (
     <nav>
-      <ul className="flex items-center gap-1 rounded-xl border border-cable-border bg-cable-surface-muted p-1.5">
+      <ul className="ceramic-pill flex items-center gap-1 rounded-xl p-1.5">
         {menuItems.map(({ path, name, icon: Icon, ...props }) => {
           const isActive = path === activePath;
 
