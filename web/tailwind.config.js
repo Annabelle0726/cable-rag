@@ -134,6 +134,10 @@ module.exports = {
         },
         'cable-divider': 'var(--cable-divider)',
         'cable-muted': 'var(--cable-muted)',
+        /* Data-table surfaces: the sunk header and the row sheen, resolved from
+           tokens so light and dark switch in one place. */
+        'table-header': 'var(--table-header-bg)',
+        'table-row-hover': 'var(--table-row-hover)',
         /* Semantic content scale: text is coloured by role, and both themes
            resolve it from the tokens declared in tailwind.css. */
         content: {
@@ -240,6 +244,10 @@ module.exports = {
            structure and therefore interpolate smoothly on hover. */
         ceramic: 'var(--ceramic-elevation)',
         'ceramic-hover': 'var(--ceramic-elevation-hover)',
+        /* Branded action capsule: the coloured drop shadow plus the rim light the
+           primary button presses into the surface with. */
+        'ceramic-cta': 'var(--ceramic-cta-elevation)',
+        'ceramic-cta-hover': 'var(--ceramic-cta-elevation-hover)',
       },
       borderRadius: {
         px: '1px',
