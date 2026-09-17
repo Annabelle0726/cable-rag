@@ -1,13 +1,13 @@
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { formatDate } from '@/utils/date';
 import { t } from 'i18next';
 import { ChevronRight } from 'lucide-react';
 
 /**
- * Card shell shared by the home page application tiles (chat / search / agent /
- * memory). Sizing is fluid so the tiles can live in the responsive grid.
+ * Shell for the see-all tile that closes a home card grid. A see-all tile is the
+ * only tile that is not a card, so it is the only thing left here: the real cards
+ * are the ones their list page renders, and the grid's equal rows size this tile
+ * to them.
  */
 const applicationCardClass = cn(
   // `card-interactive` supplies the pointer cursor and the colour-only hover
@@ -23,46 +23,6 @@ const applicationCardClass = cn(
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cable-accent',
 );
 
-type ApplicationCardProps = {
-  app: {
-    avatar?: string;
-    title: string;
-    update_time: number;
-  };
-  onClick?(): void;
-  moreDropdown: React.ReactNode;
-};
-
-export function ApplicationCard({
-  app,
-  onClick,
-  moreDropdown,
-}: ApplicationCardProps) {
-  return (
-    <Card className={applicationCardClass} onClick={onClick} as="article">
-      <CardContent className="flex w-full items-center justify-between gap-3 p-0">
-        <RAGFlowAvatar
-          className="size-12 shrink-0 rounded-xl"
-          avatar={app.avatar}
-          name={app.title || 'CN'}
-          aria-hidden="true"
-        />
-
-        <div className="min-w-0 flex-1">
-          <h3 className="mb-1 truncate text-sm font-medium text-text-primary">
-            {app.title}
-          </h3>
-          <p className="truncate text-xs text-cable-muted">
-            {formatDate(app.update_time)}
-          </p>
-        </div>
-
-        {moreDropdown}
-      </CardContent>
-    </Card>
-  );
-}
-
 export type SeeAllAppCardProps = {
   click(): void;
 };
@@ -72,7 +32,9 @@ export function SeeAllAppCard({ click }: SeeAllAppCardProps) {
     <Card
       className={cn(
         applicationCardClass,
-        'flex min-h-[76px] items-center justify-center',
+        // The same fixed size as a card, so the tile that closes a grid is never
+        // the odd one out in its row.
+        'flex h-[112px] items-center justify-center',
       )}
       onClick={click}
       tabIndex={0}

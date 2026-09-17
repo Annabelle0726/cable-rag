@@ -1,11 +1,8 @@
-import { HomeCard } from '@/components/home-card';
-import { MoreButton } from '@/components/more-button';
 import { RenameDialog } from '@/components/rename-dialog';
-import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
 import { useFetchChatList } from '@/hooks/use-chat-request';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChatDropdown } from '../next-chats/chat-dropdown';
+import { ChatCard } from '../next-chats/chat-card';
 import { useRenameChat } from '../next-chats/hooks/use-rename-chat';
 
 export function ChatList({
@@ -17,7 +14,6 @@ export function ChatList({
 }) {
   const { t } = useTranslation();
   const { data, loading } = useFetchChatList();
-  const { navigateToChat } = useNavigatePage();
 
   const {
     initialChatName,
@@ -33,20 +29,14 @@ export function ChatList({
   }, [data, setListLength, loading, setLoading]);
   return (
     <>
-      {data.chats.slice(0, 10).map((x) => (
-        <HomeCard
+      {data?.chats.slice(0, 10).map((x) => (
+        // The same card the chat list page renders, so a chat is the same size and
+        // shows the same lines on the home page and on its own page.
+        <ChatCard
           key={x.id}
-          data={{
-            avatar: x.icon,
-            ...x,
-          }}
-          onClick={navigateToChat(x.id)}
-          moreDropdown={
-            <ChatDropdown chat={x} showChatRenameModal={showChatRenameModal}>
-              <MoreButton></MoreButton>
-            </ChatDropdown>
-          }
-        ></HomeCard>
+          data={x}
+          showChatRenameModal={showChatRenameModal}
+        />
       ))}
       {chatRenameVisible && (
         <RenameDialog

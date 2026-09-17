@@ -19,11 +19,21 @@ import { PropsWithChildren } from 'react';
 
 type CardContainerProps = { className?: string } & PropsWithChildren;
 
+/**
+ * The one card grid: every card list in the app renders inside it, so a card on a
+ * home section is exactly the size of the same card on its list page.
+ *
+ * Rows are left to their contents on purpose. The uniform card size comes from the
+ * card itself — `HomeCard` is a fixed 112px and the see-all and create tiles match
+ * it — rather than from the grid, because sizing rows to the tallest card would
+ * stretch every card in the grid as soon as one of them carried an extra line.
+ * Cards that want a different size (compilation templates, skills) keep it.
+ */
 export function CardContainer({ children, className }: CardContainerProps) {
   return (
     <div
       className={cn(
-        'grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 auto-rows-auto content-start',
+        'grid auto-rows-auto grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 content-start',
         // The list pages scroll this grid, and paginating from a full page to a
         // short one removes the scrollbar: reserving its width keeps the columns
         // from jumping sideways between pages.

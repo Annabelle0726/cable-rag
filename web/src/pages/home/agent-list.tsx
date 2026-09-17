@@ -1,11 +1,12 @@
-import { HomeCard } from '@/components/home-card';
-import { MoreButton } from '@/components/more-button';
 import { RenameDialog } from '@/components/rename-dialog';
-import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
 import { useFetchAgentListByPage } from '@/hooks/use-agent-request';
-import { AgentListItem, AgentListItemType } from '@/interfaces/database/agent';
+import {
+  AgentListItem,
+  AgentListItemType,
+  IFlow,
+} from '@/interfaces/database/agent';
 import { useEffect, useMemo } from 'react';
-import { AgentDropdown } from '../agents/agent-dropdown';
+import { AgentCard } from '../agents/agent-card';
 import { useRenameAgent } from '../agents/use-rename-agent';
 
 export function Agents({
@@ -16,7 +17,6 @@ export function Agents({
   setLoading?: (loading: boolean) => void;
 }) {
   const { data, loading } = useFetchAgentListByPage();
-  const { navigateToAgent } = useNavigatePage();
   const {
     agentRenameLoading,
     initialAgentName,
@@ -43,19 +43,14 @@ export function Agents({
   return (
     <>
       {agentList.slice(0, 10).map((x) => (
-        <HomeCard
+        // The same card the agent list page renders: it carries the flow icon, the
+        // saved/published dates and the tag row, so the preview and the page agree
+        // on the card's height as well as its contents.
+        <AgentCard
           key={x.id}
-          data={{ name: x.title, ...x } as any}
-          onClick={navigateToAgent(x.id)}
-          moreDropdown={
-            <AgentDropdown
-              showAgentRenameModal={showAgentRenameModal}
-              agent={x}
-            >
-              <MoreButton></MoreButton>
-            </AgentDropdown>
-          }
-        ></HomeCard>
+          data={x as unknown as IFlow & { type?: AgentListItemType }}
+          showAgentRenameModal={showAgentRenameModal}
+        />
       ))}
       {agentRenameVisible && (
         <RenameDialog

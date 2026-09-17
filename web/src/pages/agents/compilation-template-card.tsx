@@ -35,10 +35,13 @@ export function CompilationTemplateCard({
 
   return (
     <Card
-      className="card-interactive group h-full bg-glass border border-cable-hairline shadow-ceramic hover:border-ceramic-border-hover hover:shadow-ceramic-hover transition-[background-color,border-color,box-shadow,opacity] duration-200 ease-in-out"
+      // The same fixed card as the agent card it shares the grid with: the badge
+      // row and the date share one line instead of stacking, which is what keeps
+      // a template group from standing taller than everything beside it.
+      className="card-interactive group h-[112px] overflow-hidden bg-glass border border-cable-hairline shadow-ceramic hover:border-ceramic-border-hover hover:shadow-ceramic-hover transition-[background-color,border-color,box-shadow,opacity] duration-200 ease-in-out"
       onClick={onClick}
     >
-      <CardContent className="py-4 px-2.5 flex gap-3">
+      <CardContent className="py-3 px-2.5 flex h-full gap-3 items-center">
         <RAGFlowAvatar
           avatar={data.avatar}
           name={data.name}
@@ -72,17 +75,19 @@ export function CompilationTemplateCard({
             {data.description}
           </TruncatedText>
 
-          <div className="flex flex-wrap gap-2 mt-2">
-            {kinds.map((kind) => (
-              <Badge key={kind} variant="secondary">
-                {formatKindLabel(t, kind)}
-              </Badge>
-            ))}
-          </div>
+          <div className="flex items-center gap-2 min-w-0 text-sm text-text-secondary">
+            {/* One clamped line of badges: the card is a fixed height, so a long
+                kind list is trimmed rather than allowed to grow the row. */}
+            <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-hidden">
+              {kinds.map((kind) => (
+                <Badge key={kind} variant="secondary" className="shrink-0">
+                  {formatKindLabel(t, kind)}
+                </Badge>
+              ))}
+            </div>
 
-          <div className="flex items-center gap-2 mt-1 min-w-0 text-sm text-text-secondary">
             <span className="whitespace-nowrap">{t('flow.lastSavedAt')}:</span>
-            <p className="truncate">{formatDate(data.update_time)}</p>
+            <p className="shrink-0 truncate">{formatDate(data.update_time)}</p>
           </div>
         </div>
       </CardContent>

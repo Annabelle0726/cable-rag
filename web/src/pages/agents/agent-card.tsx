@@ -68,7 +68,9 @@ function AgentTags({ tags }: { tags?: string }) {
   return (
     <Tooltip open={open} onOpenChange={handleOpenChange}>
       <TooltipTrigger asChild>
-        <div ref={containerRef} className="line-clamp-2 leading-6 mt-1">
+        {/* One clamped line: the card is a fixed height, so a long tag list is
+            trimmed there and the tooltip is what shows the rest. */}
+        <div ref={containerRef} className="line-clamp-1 leading-6">
           {list.map((tag) => (
             <Badge
               key={tag}

@@ -7,8 +7,9 @@ const classList = (element: HTMLElement) => element.className.split(/\s+/);
 
 /**
  * The create tiles are the page's only call to action. They have to be the same
- * size as the cards they stand in for, and hold their own centring: an icon, a
- * plus and a one-line prompt on a single row, in the middle of the tile.
+ * size as the cards they stand in for — the fixed 112px card — and hold their own
+ * centring: an icon, a plus and a one-line prompt on a single row, in the middle
+ * of the tile.
  */
 describe('empty create card', () => {
   it('keeps a card-sized footprint at every breakpoint', () => {
@@ -24,7 +25,8 @@ describe('empty create card', () => {
         'flex-col',
         'items-center',
         'justify-center',
-        'min-h-[104px]',
+        'h-[112px]',
+        'min-h-[112px]',
         'w-full',
       ]),
     );

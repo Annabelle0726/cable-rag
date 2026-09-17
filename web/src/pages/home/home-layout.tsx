@@ -1,33 +1,18 @@
+import { CardContainer } from '@/components/card-container';
 import { HomeIcon } from '@/components/svg-icon';
-import { cn } from '@/lib/utils';
 import { PropsWithChildren, ReactNode } from 'react';
 
 /**
- * Home page card grid: one column on phones, two on tablets, three from lg up.
- * Shared so the knowledge-base and application sections stay aligned.
- *
- * Rows are sized `minmax(112px, 1fr)`, which is what makes every card in the
- * section exactly the same size: the floor is one card tall (the card's own
- * padding, title row, description line and date line), the `1fr` makes all rows
- * share the tallest row's height, and the surrounding states — the see-all tile
- * and the dashed create tile — stretch to that same row instead of keeping their
- * own height. A card whose description is empty, or a grid holding nothing but
- * the create tile, therefore matches the full ones instead of sitting shorter.
+ * Home page card grid. It is the shared `CardContainer`, so a home section and the
+ * list page it previews render their cards in the same grid: same columns, same
+ * row height, therefore the same card. Kept as a named alias because the two home
+ * sections read better as "the home grid" than as a bare container.
  */
 export function HomeCardGrid({
   children,
   className,
 }: PropsWithChildren<{ className?: string }>) {
-  return (
-    <div
-      className={cn(
-        'grid auto-rows-[minmax(112px,1fr)] grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3',
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
+  return <CardContainer className={className}>{children}</CardContainer>;
 }
 
 type SectionHeadingProps = {

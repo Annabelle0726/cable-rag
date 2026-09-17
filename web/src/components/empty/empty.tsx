@@ -66,12 +66,10 @@ export const EmptyCard = (props: EmptyCardProps) => {
   return (
     <article
       className={cn(
-        // The same footprint as the cards it stands in for: the app card shell's
-        // padding and radius, plus a floor for its height so a grid that holds
-        // nothing but this tile still shows a card-sized slot instead of
-        // collapsing to the height of one row of text. The icon, the plus and the
-        // prompt share a single centred row inside it.
-        'flex min-h-[104px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-button px-4 py-4 text-center',
+        // The same footprint as the cards it stands in for: exactly the card's
+        // 112px so a grid holding nothing but this tile shows a card-sized slot,
+        // and a centred row for the icon, the plus and the prompt.
+        'flex h-[112px] min-h-[112px] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-dashed border-border-button px-4 py-4 text-center',
         className,
       )}
       {...restProps}

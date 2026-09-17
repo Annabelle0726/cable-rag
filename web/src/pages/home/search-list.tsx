@@ -1,11 +1,8 @@
-import { HomeCard } from '@/components/home-card';
 import { IconFont } from '@/components/icon-font';
-import { MoreButton } from '@/components/more-button';
 import { RenameDialog } from '@/components/rename-dialog';
-import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
 import { useEffect } from 'react';
 import { useFetchSearchList, useRenameSearch } from '../next-searches/hooks';
-import { SearchDropdown } from '../next-searches/search-dropdown';
+import { SearchCard } from '../next-searches/search-card';
 
 export function SearchList({
   setListLength,
@@ -15,7 +12,6 @@ export function SearchList({
   setLoading?: (loading: boolean) => void;
 }) {
   const { data, refetch: refetchList, isLoading } = useFetchSearchList();
-  const { navigateToSearch } = useNavigatePage();
   const {
     openCreateModal,
     showSearchRenameModal,
@@ -37,19 +33,12 @@ export function SearchList({
   return (
     <>
       {data?.data.search_apps.slice(0, 10).map((x) => (
-        <HomeCard
+        // The same card the search list page renders.
+        <SearchCard
           key={x.id}
           data={x}
-          onClick={navigateToSearch(x.id)}
-          moreDropdown={
-            <SearchDropdown
-              dataset={x}
-              showSearchRenameModal={showSearchRenameModal}
-            >
-              <MoreButton></MoreButton>
-            </SearchDropdown>
-          }
-        ></HomeCard>
+          showSearchRenameModal={showSearchRenameModal}
+        />
       ))}
       {openCreateModal && (
         <RenameDialog
