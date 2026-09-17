@@ -211,10 +211,11 @@
     --ceramic-highlight: rgba(255, 255, 255, 0.9);
     --ceramic-border: rgba(203, 216, 233, 0.9);
     --ceramic-border-hover: rgba(2, 132, 199, 0.4);
-    --ceramic-shadow: 0 1px 2px rgba(15, 23, 42, 0.05),
-      0 12px 32px -20px rgba(15, 23, 42, 0.3);
-    --ceramic-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.07),
-      0 16px 36px -16px rgba(15, 23, 42, 0.34);
+    --ceramic-shadow: 0 1px 2px rgba(15, 23, 42, 0.04),
+      0 6px 16px -8px rgba(15, 23, 42, 0.1), 0 20px 40px -24px rgba(15, 23, 42, 0.18);
+    --ceramic-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.05),
+      0 10px 24px -10px rgba(15, 23, 42, 0.14),
+      0 28px 56px -28px rgba(15, 23, 42, 0.22);
     /* Header/main seam: a light line with a dark line under it, which is what
        makes a 1px divider read as a recess rather than as a cut. */
     --ceramic-groove-highlight: rgba(255, 255, 255, 0.9);
@@ -236,6 +237,12 @@
     --scrollbar-track: transparent;
     --scrollbar-thumb: rgba(2, 132, 199, 0.3);
     --scrollbar-thumb-hover: rgba(2, 132, 199, 0.6);
+
+    /* Brand entry: one translucent capsule for the mark and the wordmark. Hover
+       lights a whisper of the accent on the edge and the icon instead of
+       swapping a heavy border, and focus paints the same outline inwards. */
+    --brand-hover-border: rgba(2, 132, 199, 0.3);
+    --brand-glow: rgba(2, 132, 199, 0.35);
 
     /* Industrial category tones. One halo tint per knowledge-base class, plus
        the ink the icon is drawn in; the three inks that have no existing token
@@ -409,14 +416,20 @@
     --ceramic-highlight: rgba(255, 255, 255, 0.12);
     --ceramic-border: rgba(255, 255, 255, 0.08);
     --ceramic-border-hover: rgba(56, 189, 248, 0.45);
-    --ceramic-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-    --ceramic-shadow-hover: 0 8px 28px -6px rgba(0, 0, 0, 0.55);
+    --ceramic-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
+      0 6px 18px -8px rgba(0, 0, 0, 0.4), 0 20px 44px -24px rgba(0, 0, 0, 0.5);
+    --ceramic-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35),
+      0 12px 28px -10px rgba(0, 0, 0, 0.5), 0 30px 60px -30px rgba(0, 0, 0, 0.6);
     --ceramic-groove-highlight: rgba(255, 255, 255, 0.08);
     --ceramic-groove-shadow: rgba(0, 0, 0, 0.2);
     /* The accent is lifted for the dark page, so the scrollbar follows it. */
     --scrollbar-track: transparent;
     --scrollbar-thumb: rgba(56, 189, 248, 0.32);
     --scrollbar-thumb-hover: rgba(56, 189, 248, 0.65);
+    /* #0ea5e9 at 30% is the accent the brand entry was specified with, which is
+       this theme's strong accent. */
+    --brand-hover-border: rgba(14, 165, 233, 0.3);
+    --brand-glow: rgba(14, 165, 233, 0.45);
     /* The halo alphas are theme-neutral; only the three inks that have to stay
        legible on navy are lifted. */
     --category-spec-ink: #818cf8;
@@ -538,6 +551,40 @@
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     box-shadow: inset 0 1px 0 var(--glass-highlight);
+  }
+
+  /* Brand entry: the mark and the wordmark share a single translucent capsule,
+     so there is no second box inside it. Hover lifts the surface with a whisper
+     of the accent instead of swapping a heavy border, and the mark itself picks
+     up the same glow; focus paints that outline inwards, so the browser's own
+     coarse ring never appears. */
+  .brand-entry {
+    border: 1px solid transparent;
+    transition:
+      background-color 200ms ease,
+      border-color 200ms ease,
+      box-shadow 200ms ease;
+  }
+
+  .brand-entry:hover {
+    background-color: var(--cable-brand-soft);
+    border-color: var(--brand-hover-border);
+    box-shadow: 0 2px 12px -6px var(--brand-glow);
+  }
+
+  .brand-entry:focus-visible {
+    outline: none;
+    border-color: var(--brand-hover-border);
+    box-shadow: inset 0 0 0 2px var(--brand-glow);
+  }
+
+  .brand-entry-mark {
+    transition: filter 200ms ease;
+  }
+
+  .brand-entry:hover .brand-entry-mark,
+  .brand-entry:focus-visible .brand-entry-mark {
+    filter: drop-shadow(0 0 6px var(--brand-glow));
   }
 
   /* Ceramic enamel shell for the navigation pill: translucent surface, hairline
