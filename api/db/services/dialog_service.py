@@ -2152,7 +2152,6 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
             answer = ans[1]
 
         idx = cited_chunk_indexes(answer, len(rag_tools.kbinfos["chunks"]))
-        normalized_answer = normalize_arabic_digits(answer) or ""
 
         answer, idx = repair_bad_citation_formats(answer, rag_tools.kbinfos, idx)
 
