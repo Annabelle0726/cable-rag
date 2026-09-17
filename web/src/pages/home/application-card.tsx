@@ -10,13 +10,16 @@ import { ChevronRight } from 'lucide-react';
  * memory). Sizing is fluid so the tiles can live in the responsive grid.
  */
 const applicationCardClass = cn(
-  // `card-interactive` supplies the pointer cursor and a colour-only hover
-  // (background tint + border highlight) — no elevation, no translate: the
-  // overflow-auto grid these tiles live in would clip a lifted card.
-  'card-interactive transition-colors duration-200 ease-in-out group h-full w-full rounded-xl px-4 py-3',
+  // `card-interactive` supplies the pointer cursor and the colour-only hover
+  // tint — no translate: the overflow-auto grid these tiles live in would clip
+  // a lifted card, so the lift is the ceramic shadow instead.
+  'card-interactive group h-full w-full rounded-xl px-4 py-3',
   // Translucent glass tint, matching the knowledge-base cards, so the page's
-  // glow reads through the tile instead of stopping at an opaque surface.
-  'border border-cable-border bg-glass shadow-cable-surface',
+  // glow reads through the tile instead of stopping at an opaque surface. The
+  // ceramic shell adds the inner rim light and the drop shadow per theme.
+  'border border-ceramic-border bg-glass shadow-ceramic',
+  'hover:border-ceramic-border-hover hover:shadow-ceramic-hover',
+  'transition-[background-color,border-color,box-shadow,opacity] duration-200 ease-in-out',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cable-accent',
 );
 

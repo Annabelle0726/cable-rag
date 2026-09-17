@@ -76,16 +76,20 @@ export function HomeCard({
       }}
       tabIndex={0}
       className={cn(
-        // `card-interactive` supplies the pointer cursor and a colour-only hover
-        // (background tint + border highlight). No transform or scale: these
-        // cards render inside `overflow-hidden` grids, which clip a lifted card.
+        // `card-interactive` supplies the pointer cursor and the colour-only
+        // hover tint. No transform or scale: these cards render inside
+        // `overflow-hidden` grids, which clip a lifted card, so the lift comes
+        // from the ceramic shadow rather than from a translate.
         'card-interactive group flex h-full w-full items-start gap-3 rounded-xl px-4 py-4',
         // Translucent glass tint, so the page's own glow reads through the card
-        // instead of stopping dead at an opaque surface.
-        'border border-cable-border bg-glass shadow-cable-surface',
+        // instead of stopping dead at an opaque surface. The ceramic shell adds
+        // the inner rim light and the drop shadow, in whichever theme is active.
+        'border border-ceramic-border bg-glass shadow-ceramic',
+        'hover:border-ceramic-border-hover hover:shadow-ceramic-hover',
         // Needed because `Card` ships `transition-shadow`, which would otherwise
         // pin transition-property to box-shadow and drop the colour transition.
-        'transition-colors duration-200 ease-in-out',
+        // The ceramic hover moves the shadow too, so both are named here.
+        'transition-[background-color,border-color,box-shadow,opacity] duration-200 ease-in-out',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cable-accent',
       )}
     >
