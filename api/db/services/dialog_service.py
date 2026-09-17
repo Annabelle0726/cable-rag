@@ -536,6 +536,27 @@ BAD_CITATION_PATTERNS = [
 CITATION_MARKER_PATTERN = re.compile(r"\[(?:ID:)?([0-9\u0660-\u0669\u06F0-\u06F9]+)\]")
 
 
+def cited_chunk_indexes(answer: str, chunk_count: int) -> set:
+    """The 0-based pool indexes of the chunks an answer cites.
+
+    ``kb_prompt`` labels the evidence blocks handed to the model 1-based
+    ("ID: 1" … "ID: n", see rag/prompts/generator.py), so a marker ``[ID:N]``
+    refers to chunk N and its pool index is ``N - 1``. Markers that resolve
+    outside the pool are dropped rather than clamped.
+
+    Only the chat and agentic answer paths use this: the search/ask flow must
+    not, because ``rag/nlp/search.py:insert_citations`` already emits 0-based
+    markers there.
+    """
+    indexes = set()
+    normalized = normalize_arabic_digits(answer) or ""
+    for match in CITATION_MARKER_PATTERN.finditer(normalized):
+        index = int(match.group(1)) - 1
+        if 0 <= index < chunk_count:
+            indexes.add(index)
+    return indexes
+
+
 def repair_bad_citation_formats(answer: str, kbinfos: dict, idx: set):
     max_index = len(kbinfos["chunks"])
     normalized_answer = normalize_arabic_digits(answer) or ""
@@ -878,10 +899,8 @@ async def async_chat(dialog, messages, stream=True, **kwargs):
                     vtweight=dialog.vector_similarity_weight,
                 )
             else:
-                for match in CITATION_MARKER_PATTERN.finditer(normalized_answer):
-                    i = int(match.group(1))
-                    if i < len(kbinfos["chunks"]):
-                        idx.add(i)
+                # The model's own markers are 1-based ("ID: 1" … "ID: n").
+                idx = cited_chunk_indexes(answer, len(kbinfos["chunks"]))
 
             answer, idx = repair_bad_citation_formats(answer, kbinfos, idx)
 
@@ -2131,12 +2150,8 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
             think = ans[0] + "</think>"
             answer = ans[1]
 
-        idx = set([])
+        idx = cited_chunk_indexes(answer, len(rag_tools.kbinfos["chunks"]))
         normalized_answer = normalize_arabic_digits(answer) or ""
-        for match in CITATION_MARKER_PATTERN.finditer(normalized_answer):
-            i = int(match.group(1))
-            if i < len(rag_tools.kbinfos["chunks"]):
-                idx.add(i)
 
         answer, idx = repair_bad_citation_formats(answer, rag_tools.kbinfos, idx)
 
