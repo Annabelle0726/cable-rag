@@ -35,6 +35,13 @@ interface IProps {
   moreDropdown: React.ReactNode;
   sharedBadge?: ReactNode;
   icon?: React.ReactNode;
+  /**
+   * Replaces the avatar block on the left of the card. Knowledge-base cards put
+   * their class icon here instead of the first letter of the name.
+   */
+  leading?: ReactNode;
+  /** Classification chip, rendered in the title row next to the actions. */
+  badge?: ReactNode;
   testId?: string;
   showReleaseTime?: boolean;
   extra?: ReactNode;
@@ -50,6 +57,8 @@ export function HomeCard({
   moreDropdown,
   sharedBadge,
   icon,
+  leading,
+  badge,
   testId,
   showReleaseTime = false,
   extra,
@@ -71,11 +80,9 @@ export function HomeCard({
         // (background tint + border highlight). No transform or scale: these
         // cards render inside `overflow-hidden` grids, which clip a lifted card.
         'card-interactive group flex h-full w-full items-start gap-3 rounded-xl px-4 py-4',
-        // The glass tint is 20-25% transparent and the blueprint micro-grid is
-        // painted on the card itself: an opaque `bg-cable-surface` covered both
-        // the page canvas behind the card and the lattice on top of it, which is
-        // why the texture was invisible here.
-        'blueprint-grid border border-cable-border bg-glass shadow-cable-surface',
+        // Translucent glass tint, so the page's own glow reads through the card
+        // instead of stopping dead at an opaque surface.
+        'border border-cable-border bg-glass shadow-cable-surface',
         // Needed because `Card` ships `transition-shadow`, which would otherwise
         // pin transition-property to box-shadow and drop the colour transition.
         'transition-colors duration-200 ease-in-out',
@@ -83,11 +90,13 @@ export function HomeCard({
       )}
     >
       <div>
-        <RAGFlowAvatar
-          className="w-[32px] h-[32px]"
-          avatar={data.avatar}
-          name={data.name}
-        />
+        {leading ?? (
+          <RAGFlowAvatar
+            className="w-[32px] h-[32px]"
+            avatar={data.avatar}
+            name={data.name}
+          />
+        )}
       </div>
 
       <div className="flex-1 w-0">
@@ -108,7 +117,10 @@ export function HomeCard({
             {icon}
           </CardTitle>
 
-          <div>{moreDropdown}</div>
+          <div className="flex shrink-0 items-center gap-1">
+            {badge}
+            {moreDropdown}
+          </div>
         </CardHeader>
 
         <CardContent className="p-0">

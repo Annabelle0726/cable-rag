@@ -34,9 +34,13 @@ export function Datasets() {
           </div>
         ) : (
           <>
-            {kbs?.length > 0 && (
+            {(kbs?.length ?? 0) > 0 && (
               <HomeCardGrid>
-                {kbs?.slice(0, 6).map((dataset) => (
+                {/* Flat by design: one tile per knowledge base, in a single
+                    grid. The section used to stop at the first six and lean on
+                    the see-all tile, which hid most of the plant's knowledge
+                    bases behind a second click. */}
+                {kbs?.map((dataset) => (
                   <DatasetCard
                     key={dataset.id}
                     dataset={dataset}

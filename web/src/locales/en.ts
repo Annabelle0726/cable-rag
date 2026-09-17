@@ -429,6 +429,23 @@ export default {
       parserRequired: 'Chunk method is required',
       dataFlowRequired: 'Data flow is required',
     },
+    datasetCategory: {
+      bom: 'BOM structures',
+      standard: 'GB/T standards',
+      spec: 'Technical specs',
+      quality: 'Quality rules',
+      general: 'General / other',
+      custom: 'Custom class',
+      empty: 'No knowledge base in this class yet',
+      chip: {
+        bom: 'BOM',
+        standard: 'GB/T',
+        spec: 'Spec',
+        quality: 'Quality',
+        general: 'General',
+        custom: 'Custom',
+      },
+    },
     knowledgeDetails: {
       continueUpload: 'Continue upload',
       goToConfiguration: 'Go to configuration',

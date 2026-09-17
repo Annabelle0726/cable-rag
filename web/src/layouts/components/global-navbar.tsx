@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { Routes } from '@/routes';
 import { supportsCssAnchor } from '@/utils/css-support';
 import { BrandMark } from './brand-mark';
+import { DatasetNavMenu } from './dataset-nav-menu';
 
 const PathMap = {
   [Routes.Datasets]: [Routes.Datasets, Routes.DatasetBase],
@@ -90,6 +91,31 @@ function useActivePath() {
   }, [pathname]);
 }
 
+/**
+ * One shape for both desktop variants: icon and label on one line, vertically
+ * centred, with an 8px gap. The row stays 32px tall, so the bar's own padding is
+ * what sets the header height. Shared with the knowledge-base menu, whose
+ * trigger is the same navigation link.
+ */
+const desktopNavLinkClass = (isActive: boolean) =>
+  cn(
+    'inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm',
+    'transition-colors duration-200 ease-in-out',
+    isActive
+      ? 'font-semibold text-cable-nav-active-text'
+      : 'text-cable-nav hover:text-cable-nav-hover focus-visible:text-cable-nav-hover',
+  );
+
+/** Variant for browsers without CSS anchor positioning: the item highlights itself. */
+const fallbackNavLinkClass = (isActive: boolean) =>
+  cn(
+    'inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm',
+    'transition-colors duration-200 ease-in-out',
+    isActive
+      ? 'border-b-2 border-b-cable-nav-indicator bg-cable-nav-active-bg font-semibold text-cable-nav-active-text shadow-accent-glow'
+      : 'text-cable-nav hover:bg-cable-nav-active-bg hover:text-cable-nav-hover focus-visible:text-cable-nav-hover',
+  );
+
 const DesktopNavbarWithAnchor = () => {
   const { t } = useTranslation();
   const activePath = useActivePath();
@@ -113,24 +139,28 @@ const DesktopNavbarWithAnchor = () => {
 
           return (
             <li key={path} className="relative" style={{ anchorName }}>
-              <Link
-                {...props}
-                to={path}
-                className={cn(
-                  // Icon and label sit on one line, vertically centred, with an
-                  // 8px gap; the row stays 32px tall so the bar's own vertical
-                  // padding is what sets the header height.
-                  'inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm',
-                  'transition-colors duration-200 ease-in-out',
-                  isActive
-                    ? 'font-semibold text-cable-nav-active-text'
-                    : 'text-cable-nav hover:text-cable-nav-hover focus-visible:text-cable-nav-hover',
-                )}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                <Icon className="size-4 shrink-0 stroke-[1.75]" />
-                <span>{t(name)}</span>
-              </Link>
+              {path === Routes.Datasets ? (
+                // The knowledge base carries the plant's own two-level menu:
+                // classification, then that class's knowledge bases.
+                <DatasetNavMenu
+                  to={path}
+                  label={t(name)}
+                  icon={Icon}
+                  isActive={isActive}
+                  testId={props['data-testid']}
+                  className={desktopNavLinkClass(isActive)}
+                />
+              ) : (
+                <Link
+                  {...props}
+                  to={path}
+                  className={desktopNavLinkClass(isActive)}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <Icon className="size-4 shrink-0 stroke-[1.75]" />
+                  <span>{t(name)}</span>
+                </Link>
+              )}
             </li>
           );
         })}
@@ -172,22 +202,27 @@ const DesktopNavbarFallback = () => {
 
           return (
             <li key={path}>
-              <Link
-                {...props}
-                to={path}
-                className={cn(
-                  'inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm',
-                  'transition-colors duration-200 ease-in-out',
-                  isActive
-                    ? 'border-b-2 border-b-cable-nav-indicator bg-cable-nav-active-bg font-semibold text-cable-nav-active-text shadow-accent-glow'
-                    : 'text-cable-nav hover:bg-cable-nav-active-bg hover:text-cable-nav-hover focus-visible:text-cable-nav-hover',
-                )}
-                aria-label={t(name)}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                <Icon className="size-4 shrink-0 stroke-[1.75]" />
-                <span>{t(name)}</span>
-              </Link>
+              {path === Routes.Datasets ? (
+                <DatasetNavMenu
+                  to={path}
+                  label={t(name)}
+                  icon={Icon}
+                  isActive={isActive}
+                  testId={props['data-testid']}
+                  className={fallbackNavLinkClass(isActive)}
+                />
+              ) : (
+                <Link
+                  {...props}
+                  to={path}
+                  className={fallbackNavLinkClass(isActive)}
+                  aria-label={t(name)}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <Icon className="size-4 shrink-0 stroke-[1.75]" />
+                  <span>{t(name)}</span>
+                </Link>
+              )}
             </li>
           );
         })}

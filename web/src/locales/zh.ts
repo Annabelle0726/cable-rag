@@ -386,6 +386,23 @@ export default {
       parserRequired: '分块方法必填',
       dataFlowRequired: '数据流必填',
     },
+    datasetCategory: {
+      bom: 'BOM 结构库',
+      standard: 'GB/T 标准规范',
+      spec: '技术规格书',
+      quality: '质检规则',
+      general: '通用 / 其他',
+      custom: '自定义分类',
+      empty: '该分类下暂无知识库',
+      chip: {
+        bom: 'BOM',
+        standard: '国标',
+        spec: '规格',
+        quality: '质检',
+        general: '通用',
+        custom: '自定义',
+      },
+    },
     knowledgeDetails: {
       continueUpload: '继续上传',
       goToConfiguration: '前往配置',

@@ -5,9 +5,12 @@ const { fontFamily } = require('tailwindcss/defaultTheme');
 module.exports = {
   darkMode: ['selector'],
   content: [
-    './src/pages/**/*.tsx',
-    './src/components/**/*.tsx',
-    './src/layouts/**/*.tsx',
+    // Every source file, not just the three folders that hold components: a
+    // class name can live in a shared constant (the industrial category tones
+    // do), and Tailwind tree-shakes @layer components against these globs — so a
+    // class referenced only from an unscanned folder is dropped from the bundle
+    // without a warning.
+    './src/**/*.{ts,tsx}',
   ],
   theme: {
     container: {

@@ -1,7 +1,12 @@
+import {
+  DatasetCategoryChip,
+  DatasetCategoryIcon,
+} from '@/components/dataset-category';
 import { HomeCard } from '@/components/home-card';
 import { MoreButton } from '@/components/more-button';
 import { SharedBadge } from '@/components/shared-badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { resolveDatasetCategory } from '@/constants/dataset-category';
 import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
 import { IDataset } from '@/interfaces/database/dataset';
 import { t } from 'i18next';
@@ -18,6 +23,7 @@ export function DatasetCard({
   showDatasetRenameModal,
 }: DatasetCardProps) {
   const { navigateToDataset } = useNavigatePage();
+  const { category } = resolveDatasetCategory(dataset);
 
   return (
     <HomeCard
@@ -25,6 +31,14 @@ export function DatasetCard({
         ...dataset,
         description: `${dataset.document_count} ${t('knowledgeDetails.files')}`,
       }}
+      // An uploaded avatar is the owner's own branding and stays; the
+      // first-letter placeholder it falls back to is replaced by the class icon,
+      // which says something about the knowledge base instead of repeating the
+      // first character of its name.
+      leading={
+        dataset.avatar ? undefined : <DatasetCategoryIcon category={category} />
+      }
+      badge={<DatasetCategoryChip dataset={dataset} />}
       moreDropdown={
         <DatasetDropdown
           showDatasetRenameModal={showDatasetRenameModal}
@@ -44,7 +58,7 @@ export function SeeAllCard() {
 
   return (
     <Card
-      className="card-interactive transition-colors duration-200 ease-in-out blueprint-grid w-full flex-none h-full border border-cable-border bg-glass"
+      className="card-interactive transition-colors duration-200 ease-in-out w-full flex-none h-full border border-cable-border bg-glass"
       onClick={() => navigateToDatasetList({ isCreate: false })}
     >
       <CardContent className="p-2.5 pt-1 w-full h-full flex items-center justify-center gap-1.5 text-text-secondary">

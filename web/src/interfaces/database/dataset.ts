@@ -14,6 +14,12 @@ export interface IConnector {
 
 export interface IDataset {
   avatar?: string;
+  /**
+   * Industrial class of the knowledge base. Optional: records created before
+   * this fork added the field, and records the backend leaves unclassified, are
+   * classified from the name instead (see `resolveDatasetCategory`).
+   */
+  category?: string;
   chunk_count: number;
   chunk_method: string;
   create_date: string;

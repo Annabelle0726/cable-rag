@@ -14,10 +14,9 @@ const applicationCardClass = cn(
   // (background tint + border highlight) — no elevation, no translate: the
   // overflow-auto grid these tiles live in would clip a lifted card.
   'card-interactive transition-colors duration-200 ease-in-out group h-full w-full rounded-xl px-4 py-3',
-  // Translucent glass tint plus the blueprint micro-grid, matching the
-  // knowledge-base cards: an opaque surface hid both the page canvas behind the
-  // tile and the lattice drawn on it.
-  'blueprint-grid border border-cable-border bg-glass shadow-cable-surface',
+  // Translucent glass tint, matching the knowledge-base cards, so the page's
+  // glow reads through the tile instead of stopping at an opaque surface.
+  'border border-cable-border bg-glass shadow-cable-surface',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cable-accent',
 );
 
