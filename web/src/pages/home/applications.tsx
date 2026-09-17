@@ -63,7 +63,10 @@ export function Applications() {
   };
 
   return (
-    <section className="mt-12 border-t border-cable-divider pt-10">
+    // The gap above the divider is deliberately smaller than it was: it stacks on
+    // top of the knowledge-base grid's own 24px filler, so 48px of margin plus
+    // 40px of padding left a hole under the last knowledge-base row.
+    <section className="mt-8 border-t border-cable-divider pt-8">
       {/* The heading and the tab control live outside the panel below, so a tab
           switch only swaps the panel's contents: the nav never unmounts and its
           highlight never flickers. */}

@@ -7,7 +7,10 @@ const Home = () => {
   return (
     <PageContainer>
       <PageContent>
-        <article className="pb-16">
+        {/* The page container already ends the scroll area with its own bottom
+            padding, and every card grid ends with a 24px filler, so this only has
+            to top those up: 64px here read as an empty screen below the last row. */}
+        <article className="pb-6">
           <header>
             <NextBanner />
           </header>
