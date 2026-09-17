@@ -75,10 +75,8 @@ function LoginFormContent({
       {/* Glass card: a translucent pane over the page gradient with a hairline
           accent border, which lights up while a field inside it has focus. The
           padding stays tight because the register face carries one field more
-          than the login face and both have to fit one screen. The CAD blueprint
-          micro-grid is the same one the app panes carry, so the card reads as a
-          drawing sheet rather than an empty tint. */}
-      <div className="glass-panel blueprint-grid w-full max-w-[440px] rounded-2xl px-6 py-5 transition-colors duration-200 ease-in-out focus-within:border-accent-color">
+          than the login face and both have to fit one screen. */}
+      <div className="glass-panel w-full max-w-[440px] rounded-2xl px-6 py-5 transition-colors duration-200 ease-in-out focus-within:border-accent-color">
         {!disablePasswordLogin && (
           <Form {...form}>
             <form

@@ -119,21 +119,26 @@
     /* Cable industry theme: page, surfaces, brand and accents.
        Every value below is resolved per mode, so components never need
        hardcoded whites/blacks nor `dark:` duplicates for these surfaces. */
-    /* The page canvas is a deep-ocean wash: a cool base that darkens towards the
-       edges, one accent bloom in the lower right and a fainter one bottom-left.
-       The blooms are what the glass panels above actually blur — over a flat
-       fill the backdrop filter has nothing to show. */
-    --cable-page-from: #f8fafc;
-    --cable-page-to: #f1f5f9;
-    --cable-page-edge: #e2e8f0;
-    --page-accent-bloom: rgba(2, 132, 199, 0.12);
-    --page-accent-bloom-soft: rgba(2, 132, 199, 0.07);
+    /* The page canvas is the same luminous wash as the sign-in screen: a bright
+       base with one accent bloom low on the right and a cooler one bottom-left,
+       so the glass above it has something to glow through instead of sitting on
+       a flat grey field. */
+    --cable-page-from: #ffffff;
+    --cable-page-to: #f7fafe;
+    --cable-page-edge: #eaf1fc;
+    --page-accent-bloom: rgba(2, 132, 199, 0.14);
+    --page-accent-bloom-soft: rgba(99, 102, 241, 0.1);
     --page-gradient:
       radial-gradient(
         circle at 15% 15%,
         var(--cable-page-from) 0%,
         var(--cable-page-to) 50%,
         var(--cable-page-edge) 100%
+      ),
+      radial-gradient(
+        circle at 82% 4%,
+        var(--page-accent-bloom-soft) 0%,
+        transparent 55%
       ),
       radial-gradient(
         circle at 85% 85%,
@@ -146,8 +151,10 @@
         transparent 55%
       );
     --cable-surface: #ffffff;
-    --cable-surface-muted: #f8fafc;
-    --cable-surface-border: rgba(226, 232, 240, 0.8);
+    /* Slightly translucent so the navigation pill reads as glass inside the
+       glass bar rather than as a grey block sitting on it. */
+    --cable-surface-muted: rgba(255, 255, 255, 0.66);
+    --cable-surface-border: rgba(203, 216, 233, 0.9);
     --cable-surface-border-hover: rgba(2, 132, 199, 0.45);
     --cable-brand: #1e3a8a;
     --cable-brand-soft: rgba(30, 58, 138, 0.08);
@@ -161,7 +168,10 @@
        border reads as a heavy outline, a low-alpha one keeps the surface soft in
        both themes. */
     --cable-hairline: rgba(15, 23, 42, 0.08);
-    --cable-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.06);
+    /* Two layers: a hairline contact shadow plus a wide, very light ambient one,
+       which is what keeps a translucent card from reading as a flat grey pane. */
+    --cable-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05),
+      0 12px 32px -20px rgba(15, 23, 42, 0.3);
     --cable-shadow-hover: 0 10px 15px -3px rgba(15, 23, 42, 0.1),
       0 4px 6px -4px rgba(15, 23, 42, 0.1);
     /* Slide-over drawer: the panel casts leftwards over the chat, and the
@@ -180,27 +190,29 @@
     --accent-color: #0284c7;
     --accent-color-strong: #0369a1;
     --accent-color-soft: rgba(2, 132, 199, 0.1);
-    --glass-bg: rgba(255, 255, 255, 0.8);
-    --glass-border: rgba(2, 132, 199, 0.18);
+    /* Light glass is bright, not grey: a near-white pane at 90% still lets the
+       canvas glow through, where the 80% pane over a pale base read as haze. */
+    --glass-bg: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(2, 132, 199, 0.2);
     --glass-blur: 8px;
     /* 1px inner highlight along the top edge of a glass surface: it is what
-       makes a translucent pane read as ice rather than as a flat tint. */
-    --glass-highlight: rgba(255, 255, 255, 0.75);
-    /* CAD blueprint micro-texture: a 16px dot matrix crossed by a 64px lattice,
-       drawn at 3-5% so a glass pane reads as engineering paper instead of an
-       empty tint. Defined once and shared by .blueprint-grid and
-       .glass-surface. */
-    --blueprint-dot: rgba(2, 132, 199, 0.05);
-    --blueprint-line: rgba(2, 132, 199, 0.035);
-    --blueprint-unit: 16px;
-    --blueprint-texture:
-      radial-gradient(var(--blueprint-dot) 1px, transparent 1px),
-      linear-gradient(to right, var(--blueprint-line) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--blueprint-line) 1px, transparent 1px);
-    --blueprint-texture-size:
-      var(--blueprint-unit) var(--blueprint-unit),
-      calc(var(--blueprint-unit) * 4) calc(var(--blueprint-unit) * 4),
-      calc(var(--blueprint-unit) * 4) calc(var(--blueprint-unit) * 4);
+       makes a translucent pane read as ice rather than as a flat tint. On a
+       white pane a white line would vanish, so the light theme uses a whisper of
+       the accent instead — an edge-lit panel rather than a grey box. */
+    --glass-highlight: rgba(2, 132, 199, 0.08);
+
+    /* Industrial category tones. One halo tint per knowledge-base class, plus
+       the ink the icon is drawn in; the three inks that have no existing token
+       live here, so the icon matrix colours nothing from a component. */
+    --category-bom-glow: rgba(217, 119, 6, 0.2);
+    --category-standard-glow: rgba(14, 165, 233, 0.2);
+    --category-spec-glow: rgba(99, 102, 241, 0.2);
+    --category-quality-glow: rgba(16, 185, 129, 0.2);
+    --category-general-glow: rgba(148, 163, 184, 0.2);
+    --category-custom-glow: rgba(168, 85, 247, 0.2);
+    --category-spec-ink: #6366f1;
+    --category-quality-ink: #10b981;
+    --category-custom-ink: #a855f7;
     --shadow-accent: rgba(2, 132, 199, 0.22);
     --surface-hover-bg: rgba(2, 132, 199, 0.06);
     --surface-hover-border: rgba(2, 132, 199, 0.45);
@@ -211,7 +223,7 @@
     --cable-nav-text: #64748b;
     --cable-nav-text-hover: #0f172a;
     --cable-nav-active-text: #1d4ed8;
-    --cable-nav-active-bg: rgba(239, 246, 255, 0.8);
+    --cable-nav-active-bg: rgba(2, 132, 199, 0.1);
     --cable-nav-indicator: #2563eb;
   }
 
@@ -351,11 +363,11 @@
     --glass-border: rgba(56, 189, 248, 0.22);
     --glass-blur: 8px;
     --glass-highlight: rgba(255, 255, 255, 0.06);
-    /* The same lattice on a dark pane: the dots turn sky-blue and the major
-       lines go neutral, because an accent grid at this alpha over navy reads as
-       colour noise rather than as a drawing. */
-    --blueprint-dot: rgba(56, 189, 248, 0.05);
-    --blueprint-line: rgba(148, 163, 184, 0.04);
+    /* The halo alphas are theme-neutral; only the three inks that have to stay
+       legible on navy are lifted. */
+    --category-spec-ink: #818cf8;
+    --category-quality-ink: #34d399;
+    --category-custom-ink: #c084fc;
     --shadow-accent: rgba(2, 132, 199, 0.35);
     --surface-hover-bg: rgba(56, 189, 248, 0.1);
     --surface-hover-border: rgba(56, 189, 248, 0.5);
@@ -460,37 +472,73 @@
   }
 
   /* Glass material without a frame of its own: it blurs the page canvas behind
-     it, keeps one highlight along its top edge and carries the CAD blueprint
-     micro-grid, leaving the outline to whichever edge actually needs a
-     hairline. Used by the panes that should meet edge to edge rather than float
-     as cards. */
+     it and keeps one highlight along its top edge, leaving the outline to
+     whichever edge actually needs a hairline. Used by the panes that should meet
+     edge to edge rather than float as cards. */
   .glass-surface {
     background-color: var(--glass-bg);
-    background-image: var(--blueprint-texture);
-    background-size: var(--blueprint-texture-size);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     box-shadow: inset 0 1px 0 var(--glass-highlight);
   }
 
-  /* The blueprint micro-grid on its own, for background bands that are not
-     glass surfaces — the home hero, for instance. */
-  .blueprint-grid {
-    background-image: var(--blueprint-texture);
-    background-size: var(--blueprint-texture-size);
+  /* Category tone: sets the halo tint and the icon ink for one industrial
+     class, so the card icon, the card chip and the navigation menu all
+     colour-code the same knowledge base the same way. */
+  .category-tone-bom {
+    --category-glow: var(--category-bom-glow);
+    --category-ink: var(--cable-copper);
+  }
+
+  .category-tone-standard {
+    --category-glow: var(--category-standard-glow);
+    --category-ink: var(--accent-color);
+  }
+
+  .category-tone-spec {
+    --category-glow: var(--category-spec-glow);
+    --category-ink: var(--category-spec-ink);
+  }
+
+  .category-tone-quality {
+    --category-glow: var(--category-quality-glow);
+    --category-ink: var(--category-quality-ink);
+  }
+
+  .category-tone-general {
+    --category-glow: var(--category-general-glow);
+    --category-ink: var(--cable-muted);
+  }
+
+  .category-tone-custom {
+    --category-glow: var(--category-custom-glow);
+    --category-ink: var(--category-custom-ink);
+  }
+
+  /* The halo itself: a soft single-colour bloom behind the class icon, never a
+     multi-colour gradient. */
+  .category-halo {
+    background-image: radial-gradient(
+      circle at 50% 50%,
+      var(--category-glow) 0%,
+      transparent 70%
+    );
+  }
+
+  .category-ink {
+    color: var(--category-ink);
   }
 
   /* The top bar keeps a translucent surface but only a bottom hairline, so it
-     reads as a bar rather than a floating card. It carries the same CAD
-     blueprint micro-grid as the panes below, which is what makes the shell read
-     as one drawing rather than a plain strip above textured content. */
+     reads as a bar rather than a floating card. Its top edge carries the same
+     highlight as the panes below, which is what makes the shell read as one
+     piece of glass. */
   .glass-header {
     background-color: var(--glass-bg);
-    background-image: var(--blueprint-texture);
-    background-size: var(--blueprint-texture-size);
     border-bottom: 1px solid var(--glass-border);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
   }
 
   /* Interactive card: pointer cursor plus a colour-only hover. Deliberately no
