@@ -77,6 +77,7 @@ from common.metadata_utils import convert_conditions, meta_filter, turn2jsonsche
 from common.misc_utils import get_uuid, thread_pool_exec, thread_pool_exec_long_time
 from api.utils.file_utils import filename_type, thumbnail
 from api.utils.file_response import apply_preview_file_response_headers
+from api.utils.office_conversion import convert_legacy_office_to_pdf, is_legacy_office_document
 from api.utils.web_utils import CONTENT_TYPE_MAP, html2pdf, is_valid_url, apply_safe_file_response_headers
 from common.ssrf_guard import assert_url_is_safe
 from rag.nlp import search
@@ -2100,6 +2101,11 @@ async def get(doc_id):
     The user must belong to the tenant that owns the document's knowledge base; otherwise
     the response is indistinguishable from a missing document to avoid cross-tenant ID
     enumeration.
+
+    With ``?format=pdf`` a legacy Office payload (Word/Excel/PowerPoint 97-2003, an OLE2
+    container no browser renderer reads) is exported to PDF with headless LibreOffice
+    first. The original bytes come back when that conversion is unavailable, so the client
+    can tell the two apart by the response content type.
     """
     try:
         if not DocumentService.accessible(doc_id, current_user.id):
@@ -2114,6 +2120,15 @@ async def get(doc_id):
         if data is None:
             logging.warning("get document preview: storage miss doc_id: %s, bucket: %s, key: %s", doc_id, b, n)
             return get_data_error_result(message="Document not found!")
+
+        if request.args.get("format", "").lower() == "pdf" and is_legacy_office_document(data):
+            pdf = await thread_pool_exec(convert_legacy_office_to_pdf, data, doc_id, doc.name)
+            if pdf is not None:
+                response = await make_response(pdf)
+                apply_preview_file_response_headers(response, "application/pdf", "pdf", f"{os.path.splitext(doc.name or 'document')[0]}.pdf")
+                return response
+            logging.warning("legacy Office preview stays unconverted doc_id: %s name: %s", doc_id, doc.name)
+
         response = await make_response(data)
 
         ext = re.search(r"\.([^.]+)$", doc.name.lower())
