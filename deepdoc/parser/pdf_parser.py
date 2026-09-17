@@ -1153,22 +1153,22 @@ class RAGFlowPdfParser:
         figure_results = []
         figure_positions = []
         for k, bxs in figures.items():
-            txt = "\n".join([b["text"] for b in bxs])
-            if not txt:
+            if not bxs:
                 continue
+            txt = "\n".join([b["text"] for b in bxs if b.get("text")])
 
             poss = []
             if separate_tables_figures:
                 img = cropout(bxs, "figure", poss)
                 if img is None:
                     continue
-                figure_results.append((img, [txt]))
+                figure_results.append((img, [txt] if txt else [""]))
                 figure_positions.append(poss)
             else:
                 img = cropout(bxs, "figure", poss)
                 if img is None:
                     continue
-                res.append((img, [txt]))
+                res.append((img, [txt] if txt else [""]))
                 positions.append(poss)
 
         for k, bxs in tables.items():
