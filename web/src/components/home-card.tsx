@@ -44,6 +44,11 @@ interface IProps {
   badge?: ReactNode;
   testId?: string;
   showReleaseTime?: boolean;
+  /**
+   * Rendered in the title row beside the name. Agent cards put their tag badges
+   * here: a card holds three lines (title, description, date row), so anything
+   * else has to share one of them and clamp instead of taking a line of its own.
+   */
   extra?: ReactNode;
 }
 
@@ -110,7 +115,7 @@ export function HomeCard({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-        <header className="flex flex-row items-center gap-2">
+        <header className="flex min-w-0 flex-row items-center gap-2">
           <TruncatedText
             as="h3"
             className="min-w-0 flex-1 truncate text-base font-bold leading-snug"
@@ -120,6 +125,11 @@ export function HomeCard({
             {data.name}
           </TruncatedText>
 
+          {/* Title-row extras (an agent's tags) sit beside the name and are
+              clamped, rather than taking a line of their own: a card holds three
+              lines, and the description and the date are the other two. */}
+          {extra}
+
           {icon}
 
           <div className="flex shrink-0 items-center gap-1">
@@ -128,20 +138,18 @@ export function HomeCard({
           </div>
         </header>
 
+        {/* The same 14/20 rhythm as the date below it, so the two lines sit at one
+            spacing instead of a 16px line box leaving a gap between them. */}
         <TruncatedText
-          className="min-h-5 whitespace-nowrap overflow-hidden text-ellipsis"
+          className="text-sm leading-5 whitespace-nowrap overflow-hidden text-ellipsis"
           tooltip={data.description}
         >
           {data.description}
         </TruncatedText>
 
-        {/* One line for everything that sits under the description: a card that
-            shows tags puts them beside the date instead of above it, which is
-            what keeps a richly annotated agent card the same height as a chat
-            card. Overflowing items are dropped by the line clamp. */}
+        {/* One row under the description, the same shape on every card: the date
+            or the two dates on the left, the owner badge on the right. */}
         <div className="flex justify-between items-center gap-2 min-w-0">
-          {extra && <div className="min-w-0 flex-1 truncate">{extra}</div>}
-
           {showReleaseTime ? (
             <section className="flex min-w-0 items-center gap-2 text-sm text-text-secondary">
               <span className="truncate whitespace-nowrap">

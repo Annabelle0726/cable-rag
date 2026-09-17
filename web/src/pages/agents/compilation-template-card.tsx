@@ -75,19 +75,23 @@ export function CompilationTemplateCard({
             {data.description}
           </TruncatedText>
 
-          <div className="flex items-center gap-2 min-w-0 text-sm text-text-secondary">
-            {/* One clamped line of badges: the card is a fixed height, so a long
-                kind list is trimmed rather than allowed to grow the row. */}
-            <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-hidden">
+          <div className="flex items-center justify-between gap-2 min-w-0 text-sm text-text-secondary">
+            {/* Same shape as the app cards: the date on the left, the kind badges
+                on the right, clamped to the one line the card has for them. */}
+            <section className="flex min-w-0 items-center gap-2">
+              <span className="truncate whitespace-nowrap">
+                {t('flow.lastSavedAt')}:
+              </span>
+              <p className="truncate">{formatDate(data.update_time)}</p>
+            </section>
+
+            <div className="flex min-w-0 shrink flex-nowrap gap-1 overflow-hidden">
               {kinds.map((kind) => (
                 <Badge key={kind} variant="secondary" className="shrink-0">
                   {formatKindLabel(t, kind)}
                 </Badge>
               ))}
             </div>
-
-            <span className="whitespace-nowrap">{t('flow.lastSavedAt')}:</span>
-            <p className="shrink-0 truncate">{formatDate(data.update_time)}</p>
           </div>
         </div>
       </CardContent>
