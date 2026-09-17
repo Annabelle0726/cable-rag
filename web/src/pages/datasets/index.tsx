@@ -106,7 +106,10 @@ export default function Datasets() {
               onChange={handleFilterSubmit}
               icon={'datasets'}
             >
-              <Button onClick={showModal}>
+              <Button
+                className="ceramic-cta h-10 rounded-full px-5"
+                onClick={showModal}
+              >
                 <Plus className="size-[1em]" />
                 {t('knowledgeList.createKnowledgeBase')}
               </Button>

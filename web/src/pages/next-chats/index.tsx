@@ -145,7 +145,11 @@ export default function ChatList() {
               value={filterValue}
               onChange={handleFilterSubmit}
             >
-              <Button data-testid="create-chat" onClick={handleShowCreateModal}>
+              <Button
+                className="ceramic-cta h-10 rounded-full px-5"
+                data-testid="create-chat"
+                onClick={handleShowCreateModal}
+              >
                 <Plus className="size-[1em]" />
                 {t('chat.createChat')}
               </Button>

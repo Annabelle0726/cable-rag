@@ -172,7 +172,7 @@ export default function Dataset() {
         >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="default">
+              <Button className="ceramic-cta h-10 rounded-full px-5">
                 <LucidePlus />
                 {t('knowledgeDetails.addFile')}
               </Button>

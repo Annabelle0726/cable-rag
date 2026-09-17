@@ -117,6 +117,7 @@ export default function SearchList() {
               filters={owners}
             >
               <Button
+                className="ceramic-cta h-10 rounded-full px-5"
                 data-testid="create-search"
                 onClick={() => openCreateModalFun()}
               >

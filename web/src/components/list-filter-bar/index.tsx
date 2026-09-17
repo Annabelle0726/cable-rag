@@ -43,10 +43,15 @@ export const FilterButton = React.forwardRef<
 >(({ count = 0, ...props }, ref) => {
   return (
     <Button
-      // Raised glass capsule, the same shape and material as the search field it
-      // sits beside, so the tool row reads as one row of controls.
-      className="ceramic-relief h-10 shrink-0 rounded-full px-4"
-      size={count > 0 ? 'default' : 'icon'}
+      // Raised glass capsule on the same 40px rail as the search field and the
+      // page's create button, with the funnel in the secondary ink rather than
+      // the primitive's ink-white. `size="auto"` keeps the primitive from
+      // imposing its own box, so the geometry comes from these utilities alone.
+      className={cn(
+        'ceramic-relief h-10 shrink-0 rounded-full text-text-secondary hover:text-text-primary',
+        count > 0 ? 'px-4' : 'w-10 px-0',
+      )}
+      size="auto"
       {...props}
       ref={ref}
     >
@@ -135,15 +140,18 @@ export default function ListFilterBar({
 
       <div
         className={cn(
+          // One control row on every list page: centred on the 40px rail and
+          // pushed to the right edge, so switching pages never moves the create
+          // button sideways or up.
           'min-w-0 w-full items-center gap-3',
           preChildren
-            ? 'flex flex-wrap md:flex-nowrap md:w-auto md:shrink-0'
+            ? 'flex flex-wrap md:flex-nowrap md:w-auto md:shrink-0 md:justify-end'
             : cn(
                 'grid',
                 hasFilter
                   ? 'grid-cols-[auto_minmax(0,1fr)_auto]'
                   : 'grid-cols-[minmax(0,1fr)_auto]',
-                'md:flex md:w-auto md:shrink-0',
+                'md:flex md:w-auto md:shrink-0 md:justify-end',
               ),
         )}
         role="toolbar"

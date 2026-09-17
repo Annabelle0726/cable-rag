@@ -661,61 +661,6 @@
     filter: drop-shadow(0 0 6px var(--brand-glow));
   }
 
-  /* Primary ceramic action: the branded fill, a rim light along the top edge and
-     a coloured drop shadow that widens under the pointer and contracts while the
-     control is held. The lift is shadow only, so nothing moves its own box. */
-  .ceramic-cta {
-    background-color: var(--accent-color);
-    color: var(--accent-contrast);
-    box-shadow: var(--ceramic-relief-elevation);
-    transition:
-      background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      color 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .ceramic-cta:hover,
-  .ceramic-cta:focus-visible {
-    background-color: var(--accent-color-strong);
-    box-shadow: var(--ceramic-relief-elevation-hover);
-  }
-
-  .ceramic-cta:active {
-    background-color: var(--accent-color-strong);
-    box-shadow: var(--ceramic-relief-elevation-active);
-  }
-
-  /* The same relief on a glass field: a search box or any other control that is
-     raised out of the surface without carrying the brand fill. Focus keeps the
-     relief and adds the accent ring on top of it, because a box-shadow cannot be
-     additive across two rules. */
-  .ceramic-relief {
-    background-color: var(--glass-bg);
-    border: 1px solid var(--cable-hairline);
-    box-shadow: var(--ceramic-relief-elevation);
-    transition:
-      background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .ceramic-relief:hover {
-    box-shadow: var(--ceramic-relief-elevation-hover);
-  }
-
-  .ceramic-relief:focus-visible,
-  .ceramic-relief:focus-within {
-    outline: none;
-    border-color: var(--accent-color);
-    box-shadow:
-      var(--ceramic-relief-elevation-hover),
-      0 0 0 3px var(--accent-color-soft);
-  }
-
-  .ceramic-relief:active {
-    box-shadow: var(--ceramic-relief-elevation-active);
-  }
-
   /* Ceramic enamel shell for the navigation pill: translucent surface, hairline
      edge and the composed elevation, so the pill reads as a raised tile in both
      themes rather than as a flat grey block in dark mode. */
@@ -914,6 +859,70 @@
 }
 
 @layer utilities {
+  /* The two ceramic surfaces that dress a primitive live here rather than in the
+     components layer, because `Button` and `Input` paint a surface of their own
+     (`bg-text-primary`, `bg-bg-input`). A class in the components layer has the
+     same specificity as those utilities but is emitted before them, so it loses:
+     that is exactly how the create buttons and the filter funnel came out as ink
+     black balls. Utilities are emitted after the generated ones, so these win
+     wherever they are applied while the size and shape still come from utilities
+     at the call site. */
+
+  /* Primary ceramic action: the branded fill, a rim light along the top edge and
+     a coloured drop shadow that widens under the pointer and contracts while the
+     control is held. The lift is shadow only, so nothing moves its own box. */
+  .ceramic-cta {
+    background-color: var(--accent-color);
+    color: var(--accent-contrast);
+    box-shadow: var(--ceramic-relief-elevation);
+    transition:
+      background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ceramic-cta:hover,
+  .ceramic-cta:focus-visible {
+    background-color: var(--accent-color-strong);
+    box-shadow: var(--ceramic-relief-elevation-hover);
+  }
+
+  .ceramic-cta:active {
+    background-color: var(--accent-color-strong);
+    box-shadow: var(--ceramic-relief-elevation-active);
+  }
+
+  /* The same relief on a glass field: a search box or any other control that is
+     raised out of the surface without carrying the brand fill. Focus keeps the
+     relief and adds the accent ring on top of it, because a box-shadow cannot be
+     additive across two rules. */
+  .ceramic-relief {
+    background-color: var(--glass-bg);
+    border: 1px solid var(--cable-hairline);
+    box-shadow: var(--ceramic-relief-elevation);
+    transition:
+      background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ceramic-relief:hover {
+    box-shadow: var(--ceramic-relief-elevation-hover);
+  }
+
+  .ceramic-relief:focus-visible,
+  .ceramic-relief:focus-within {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow:
+      var(--ceramic-relief-elevation-hover),
+      0 0 0 3px var(--accent-color-soft);
+  }
+
+  .ceramic-relief:active {
+    box-shadow: var(--ceramic-relief-elevation-active);
+  }
+
   /* Reserve the scrollbar's own width whether or not one is currently needed.
      Without it, a switch to a tab whose content is shorter removes the
      scrollbar, the content box grows by that width, and the whole layout jumps

@@ -143,7 +143,10 @@ export default function Agents() {
           >
             <DropdownMenu>
               <DropdownMenuTrigger data-testid="create-agent" asChild>
-                <Button>
+                {/* Primary action: the accent ceramic pill the other list pages
+                    use, so the same icon-only button lines up with their
+                    labelled ones at 40px. */}
+                <Button className="ceramic-cta h-10 rounded-full px-5">
                   <Plus className="size-[1em]" />
                 </Button>
               </DropdownMenuTrigger>

@@ -629,7 +629,10 @@ const SkillsPage: React.FC = () => {
                     { value: 'list', label: <List className="size-4" /> },
                   ]}
                 />
-                <Button onClick={() => setCreateSpaceModalOpen(true)}>
+                <Button
+                  className="ceramic-cta h-10 rounded-full px-5"
+                  onClick={() => setCreateSpaceModalOpen(true)}
+                >
                   <Plus className="size-[1em]" />
                   {t('skills.createSpace') || 'Create Skill Space'}
                 </Button>
@@ -917,13 +920,14 @@ const SkillsPage: React.FC = () => {
           icon="file"
         >
           <div className="flex items-center gap-2">
-            {/* Search skills */}
+            {/* Search skills: the same 40px ceramic field the list bar renders,
+                because this page hides the bar's own search box. */}
             <SearchInput
               placeholder={t('skills.searchPlaceholder') || 'Search skills...'}
               value={searchQuery}
               onChange={handleSearchInputChange}
               onKeyDown={handleSearchKeyDown}
-              className="w-[200px]"
+              className="ceramic-relief h-10 w-[200px] rounded-full px-4"
               rootClassName="relative"
             />
             {/* Sort order toggle */}
