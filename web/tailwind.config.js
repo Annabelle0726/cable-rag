@@ -244,10 +244,6 @@ module.exports = {
            structure and therefore interpolate smoothly on hover. */
         ceramic: 'var(--ceramic-elevation)',
         'ceramic-hover': 'var(--ceramic-elevation-hover)',
-        /* Branded action capsule: the coloured drop shadow plus the rim light the
-           primary button presses into the surface with. */
-        'ceramic-cta': 'var(--ceramic-cta-elevation)',
-        'ceramic-cta-hover': 'var(--ceramic-cta-elevation-hover)',
       },
       borderRadius: {
         px: '1px',

@@ -123,9 +123,9 @@ export default function Files() {
         >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              {/* Primary action: the branded ceramic capsule rather than the
-                  theme's ink-filled default button. */}
-              <Button className="ceramic-cta rounded-full">
+              {/* Primary action: the branded ceramic capsule, raised off the
+                  surface, rather than the theme's ink-filled default button. */}
+              <Button className="ceramic-cta h-10 rounded-full px-4">
                 <LucidePlus />
                 {t('knowledgeDetails.addFile')}
               </Button>

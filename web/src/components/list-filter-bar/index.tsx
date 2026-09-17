@@ -167,7 +167,7 @@ export default function ListFilterBar({
               preChildren ? 'flex-1 basis-32' : '',
               'md:w-32',
               searchVariant === 'capsule' &&
-                'focus-glow rounded-full border-cable-hairline bg-glass placeholder:text-content-secondary',
+                'ceramic-relief h-10 rounded-full px-4 placeholder:text-content-secondary',
             )}
             rootClassName={
               searchVariant === 'capsule'
