@@ -187,7 +187,7 @@ export default function McpServer() {
                 </div>
               </section>
             )}
-            <CardContainer>
+            <CardContainer className="xl:grid-cols-4 2xl:grid-cols-5">
               {data.mcp_servers.map((item) => (
                 <McpCard
                   key={item.id}

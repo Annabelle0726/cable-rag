@@ -109,7 +109,7 @@ export default function AgentTemplates() {
         ></SideBar>
 
         <main className="flex-1 bg-text-title-invert/50 h-dvh">
-          <CardContainer className="max-h-[94vh] overflow-auto px-8 pt-8">
+          <CardContainer className="max-h-[94vh] overflow-auto px-8 pt-8 xl:grid-cols-4 2xl:grid-cols-5">
             {tempListFilter?.map((x) => {
               return (
                 <TemplateCard
