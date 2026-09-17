@@ -143,11 +143,12 @@ export default function Agents() {
           >
             <DropdownMenu>
               <DropdownMenuTrigger data-testid="create-agent" asChild>
-                {/* Primary action: the accent ceramic pill the other list pages
-                    use, so the same icon-only button lines up with their
-                    labelled ones at 40px. */}
+                {/* Primary action: the same accent ceramic pill as the other list
+                    pages, label included — an icon-only pill next to their
+                    labelled ones never lines up. */}
                 <Button className="ceramic-cta h-10 rounded-full px-5">
                   <Plus className="size-[1em]" />
+                  {t('flow.createAgentApp')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent data-testid="agent-create-menu">

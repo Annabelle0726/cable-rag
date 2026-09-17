@@ -2960,6 +2960,7 @@ export default {
       lastPublished: '上次发布时间',
       createFromBlank: '从空白创建',
       createFromTemplate: '从模板创建',
+      createAgentApp: '创建智能体',
       importJsonFile: '导入 JSON 文件',
       duplicate: '复制',
       copyOfAgentName: '{{name}} (副本)',

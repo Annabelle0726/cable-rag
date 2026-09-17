@@ -3408,6 +3408,7 @@ export default {
       lastPublished: 'Last published',
       createFromBlank: 'Create from blank',
       createFromTemplate: 'Create from template',
+      createAgentApp: 'Create agent',
       importJsonFile: 'Import JSON file',
       duplicate: 'Duplicate',
       copyOfAgentName: '{{name}} (copy)',

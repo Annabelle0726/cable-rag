@@ -64,6 +64,12 @@ describe('list toolbar controls', () => {
         'md:shrink-0',
       ]),
     );
+
+    // The search field keeps the create action at arm's length: on the bare
+    // 12px rhythm the two read as a single control.
+    expect(screen.getByRole('searchbox').parentElement?.className).toMatch(
+      /me-2/,
+    );
   });
 });
 

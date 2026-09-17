@@ -179,11 +179,13 @@ export default function ListFilterBar({
               searchVariant === 'capsule' &&
                 'ceramic-relief h-10 rounded-full px-4 placeholder:text-content-secondary',
             )}
-            rootClassName={
-              searchVariant === 'capsule'
-                ? '[&>span]:text-content-secondary'
-                : undefined
-            }
+            rootClassName={cn(
+              // A little more air before the create action: on the bare 12px
+              // rhythm the field and the pill read as one control, and the field
+              // sits a touch left of where the eye expects it.
+              'me-2',
+              searchVariant === 'capsule' && '[&>span]:text-content-secondary',
+            )}
             role="searchbox"
           />
         )}
