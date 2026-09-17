@@ -16,15 +16,22 @@
 
 import { UploadResponseDataType } from '@/interfaces/database/chat';
 import { IDocumentInfo } from '@/interfaces/database/document';
-import { currentReg, parseCitationIndex } from '@/utils/chat';
+import { citedChunkIndex, currentReg } from '@/utils/chat';
 import { getExtension } from '@/utils/document-util';
 
+/**
+ * The chunks cited by an answer, as 0-based reference-pool indexes.
+ *
+ * Markers are 1-based in the chat/agentic flows (`kb_prompt` renders "ID: 1" …
+ * "ID: n"), so `[ID:5]` yields index 4 — the index into `reference.chunks` (see
+ * citedChunkIndex). The name is retained for its existing importer.
+ */
 export const extractNumbersFromMessageContent = (content: string) => {
   const matches = content?.match(currentReg);
   if (matches) {
     const list = matches
       .map((match) => {
-        const parsed = parseCitationIndex(match);
+        const parsed = citedChunkIndex(match);
         return Number.isNaN(parsed) ? null : parsed;
       })
       .filter((num) => num !== null) as number[];

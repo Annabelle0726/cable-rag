@@ -42,9 +42,9 @@ import 'katex/dist/katex.min.css'; // `rehype-katex` does not import the CSS for
 import { useFetchDocumentThumbnailsByIds } from '@/hooks/use-document-request';
 import { useLoadingPause } from '@/hooks/use-loading-pause';
 import {
+  citedChunkIndex,
   currentReg,
   escapeUnmatchedAngleBrackets,
-  parseCitationIndex,
   preprocessLaTeX,
   promoteCaretExponentsToLaTeX,
   replaceAgenticLogsToSection,
@@ -69,7 +69,11 @@ import styles from './index.module.less';
 import { sanitizeHtmlWithImagesAsText } from '@/utils/dom-util';
 import { SafeImg } from '@/components/safe-img';
 
-const getChunkIndex = (match: string) => parseCitationIndex(match);
+// Chat citations are 1-based (`kb_prompt` labels blocks "ID: 1" … "ID: n"), so a
+// marker has to be converted to a 0-based array index before it is used to read
+// the reference pool — see citedChunkIndex.
+const getChunkIndex = (match: string, poolSize: number) =>
+  citedChunkIndex(match, poolSize);
 
 // Wraps every text node so citation markers can be replaced by React elements.
 // Defined at module scope: react-markdown rebuilds its whole processor whenever
@@ -334,8 +338,9 @@ const MarkdownContent = ({
 
   const renderReference = useCallback(
     (text: string) => {
+      const poolSize = reference?.chunks?.length ?? 0;
       const replacedText = reactStringReplace(text, currentReg, (match, i) => {
-        const chunkIndex = getChunkIndex(match);
+        const chunkIndex = getChunkIndex(match, poolSize);
 
         return (
           <HoverCard key={i}>
@@ -353,7 +358,7 @@ const MarkdownContent = ({
 
       return replacedText;
     },
-    [getPopoverContent, t],
+    [getPopoverContent, reference?.chunks?.length, t],
   );
 
   const dir = getDirAttribute(content.replace(citationMarkerReg, ''));

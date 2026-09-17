@@ -27,6 +27,7 @@ import { omit } from 'lodash';
 import { v4 as uuid } from 'uuid';
 import {
   citationMarkerReg,
+  citedChunkIndex,
   normalizeCitationDigits,
   parseCitationIndex,
 } from './citation-utils';
@@ -526,7 +527,7 @@ export function setChatVariableEnabledFieldValuePage() {
 
 const oldReg = /(#{2}[0-9\u0660-\u0669\u06F0-\u06F9]+\${2})/g;
 export const currentReg = citationMarkerReg;
-export { normalizeCitationDigits, parseCitationIndex };
+export { citedChunkIndex, normalizeCitationDigits, parseCitationIndex };
 
 // To be compatible with the old index matching mode
 export const replaceTextByOldReg = (text: string) => {

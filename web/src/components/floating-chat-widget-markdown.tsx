@@ -25,8 +25,8 @@ import {
 } from '@/hooks/use-document-request';
 import { IReference, IReferenceChunk } from '@/interfaces/database/chat';
 import {
+  citedChunkIndex,
   currentReg,
-  parseCitationIndex,
   preprocessLaTeX,
   promoteCaretExponentsToLaTeX,
   replaceAgenticLogsToSection,
@@ -66,8 +66,9 @@ import { Button } from './ui/button';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from './ui/hover-card';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
-const getChunkIndex = (match: string) =>
-  parseCitationIndex(match.replace(/\[|\]/g, ''));
+// Chat citations are 1-based; convert before reading the reference pool.
+const getChunkIndex = (match: string, poolSize: number) =>
+  citedChunkIndex(match.replace(/\[|\]/g, ''), poolSize);
 
 const FloatingChatWidgetMarkdown = ({
   reference,
@@ -278,8 +279,9 @@ const FloatingChatWidgetMarkdown = ({
 
   const renderReference = useCallback(
     (text: string) => {
+      const poolSize = reference?.chunks?.length ?? 0;
       return reactStringReplace(text, currentReg, (match, i) => {
-        const chunkIndex = getChunkIndex(match);
+        const chunkIndex = getChunkIndex(match, poolSize);
         const info = getReferenceInfo(chunkIndex);
 
         if (!info) {
@@ -336,6 +338,7 @@ const FloatingChatWidgetMarkdown = ({
       getReferenceInfo,
       handleDocumentButtonClick,
       loading,
+      reference?.chunks?.length,
       t,
     ],
   );

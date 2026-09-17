@@ -23,6 +23,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { IReference, IReferenceChunk } from '@/interfaces/database/chat';
+import { citedChunkIndex } from '@/utils/chat';
 import { getExtension } from '@/utils/document-util';
 import { useCallback } from 'react';
 
@@ -88,7 +89,9 @@ export const ImageCarousel = ({
   fileThumbnails,
   onImageClick,
 }: ImageCarouselProps) => {
-  const getChunkIndex = (match: string) => Number(match);
+  // Citations are 1-based in this flow; convert before reading the pool.
+  const getChunkIndex = (match: string) =>
+    citedChunkIndex(match, reference?.chunks?.length ?? 0);
 
   const handleImageClick = useCallback(
     (

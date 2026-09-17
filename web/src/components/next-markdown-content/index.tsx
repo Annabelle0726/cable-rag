@@ -41,9 +41,9 @@ import { useTranslation } from 'react-i18next';
 import 'katex/dist/katex.min.css'; // `rehype-katex` does not import the CSS for you
 
 import {
+  citedChunkIndex,
   currentReg,
   escapeUnmatchedAngleBrackets,
-  parseCitationIndex,
   preprocessLaTeX,
   promoteCaretExponentsToLaTeX,
   replaceAgenticLogsToSection,
@@ -73,7 +73,10 @@ import {
 import message from '../ui/message';
 import styles from './index.module.less';
 
-const getChunkIndex = (match: string) => parseCitationIndex(match);
+// Chat/agentic citations are 1-based; convert to a 0-based pool index (see
+// citedChunkIndex).
+const getChunkIndex = (match: string, poolSize: number) =>
+  citedChunkIndex(match, poolSize);
 
 const isArtifactUrl = (url?: string) =>
   Boolean(url && url.includes('/api/v1/documents/artifact/'));
@@ -383,8 +386,12 @@ function MarkdownContent({
 
   const renderReference = useCallback(
     (text: string) => {
+      const pool = reference?.chunks;
+      const poolSize = Array.isArray(pool)
+        ? pool.length
+        : Object.keys(pool ?? {}).length;
       const replacedText = reactStringReplace(text, currentReg, (match, i) => {
-        const chunkIndex = getChunkIndex(match);
+        const chunkIndex = getChunkIndex(match, poolSize);
 
         return (
           <HoverCard key={i}>
@@ -402,7 +409,7 @@ function MarkdownContent({
 
       return replacedText;
     },
-    [renderPopoverContent, t],
+    [reference?.chunks, renderPopoverContent, t],
   );
 
   const dir = getDirAttribute(content.replace(citationMarkerReg, ''));

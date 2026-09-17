@@ -15,7 +15,7 @@
  */
 
 import { IReference } from '@/interfaces/database/chat';
-import { currentReg, normalizeCitationDigits, showImage } from '@/utils/chat';
+import { citedChunkIndex, currentReg, normalizeCitationDigits, showImage } from '@/utils/chat';
 
 export interface ReferenceMatch {
   id: string;
@@ -75,8 +75,11 @@ export const shouldShowCarousel = (
 ): boolean => {
   if (group.length < 2) return false; // Need at least 2 images for carousel
 
+  const poolSize = reference?.chunks?.length ?? 0;
+
   return group.every((ref) => {
-    const chunkIndex = Number(ref.id);
+    // 1-based citation marker -> 0-based pool index (see citedChunkIndex).
+    const chunkIndex = citedChunkIndex(ref.id, poolSize);
     const chunk = reference.chunks[chunkIndex];
     return chunk && showImage(chunk.doc_type);
   });
