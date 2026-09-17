@@ -228,6 +228,15 @@
     --ceramic-elevation-hover: inset 0 1px 0 var(--ceramic-highlight),
       var(--ceramic-shadow-hover);
 
+    /* Scrollbars: the theme accent at a low alpha over a transparent track, so
+       every scroll container reads as part of the same surface instead of
+       falling back to the operating system's grey. Both the `scrollbar-color`
+       path (Chromium 121+, Firefox) and the ::-webkit-scrollbar path read
+       these, which is why the pair is declared once per theme. */
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: rgba(2, 132, 199, 0.3);
+    --scrollbar-thumb-hover: rgba(2, 132, 199, 0.6);
+
     /* Industrial category tones. One halo tint per knowledge-base class, plus
        the ink the icon is drawn in; the three inks that have no existing token
        live here, so the icon matrix colours nothing from a component. */
@@ -404,6 +413,10 @@
     --ceramic-shadow-hover: 0 8px 28px -6px rgba(0, 0, 0, 0.55);
     --ceramic-groove-highlight: rgba(255, 255, 255, 0.08);
     --ceramic-groove-shadow: rgba(0, 0, 0, 0.2);
+    /* The accent is lifted for the dark page, so the scrollbar follows it. */
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: rgba(56, 189, 248, 0.32);
+    --scrollbar-thumb-hover: rgba(56, 189, 248, 0.65);
     /* The halo alphas are theme-neutral; only the three inks that have to stay
        legible on navy are lifted. */
     --category-spec-ink: #818cf8;
@@ -463,9 +476,13 @@
 
 @layer base {
   * {
-    /* Make this default */
+    /* One thin, themed scrollbar everywhere. The pair of colours comes from the
+       scrollbar tokens; engines that honour `scrollbar-color` (Chromium 121+ and
+       Firefox) ignore the ::-webkit-scrollbar rules below, so both paths have to
+       name the same tokens rather than one carrying the theme and the other a
+       hard-coded grey. */
     scrollbar-width: thin;
-    scrollbar-color: var(--border-default) var(--bg-card);
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
 
   /* The whole app inherits the native stack declared in global.less; Tailwind's
@@ -698,9 +715,8 @@
   }
 
   .scrollbar-auto {
-    /* hide scrollbar */
     scrollbar-width: thin;
-    scrollbar-color: var(--border-default) var(--bg-card);
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
 
   .scrollbar-auto::-webkit-scrollbar {
@@ -709,11 +725,11 @@
   }
 
   .scrollbar-auto::-webkit-scrollbar-track {
-    background: transparent;
+    background: var(--scrollbar-track);
   }
 
   .scrollbar-auto::-webkit-scrollbar-thumb {
-    background-color: transparent;
+    background-color: var(--scrollbar-thumb);
     border-radius: 3px;
     transition: background-color 0.2s ease;
   }
@@ -721,12 +737,6 @@
   .scrollbar-auto:hover::-webkit-scrollbar-thumb,
   .scrollbar-auto:focus::-webkit-scrollbar-thumb,
   .scrollbar-auto:active::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.3);
-  }
-
-  .dark .scrollbar-auto:hover::-webkit-scrollbar-thumb,
-  .dark .scrollbar-auto:focus::-webkit-scrollbar-thumb,
-  .dark .scrollbar-auto:active::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.3);
+    background-color: var(--scrollbar-thumb-hover);
   }
 }

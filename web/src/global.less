@@ -67,7 +67,9 @@ body,
   }
 }
 
-/* Scroll bar stylings */
+/* Scroll bar stylings: the same scrollbar tokens the Tailwind base layer names
+   for `scrollbar-color`, so engines that still paint ::-webkit-scrollbar produce
+   the identical bar instead of the browser's default grey. */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -75,18 +77,18 @@ body,
 
 /* Track */
 ::-webkit-scrollbar-track {
-  background: var(--cable-surface-muted);
+  background: var(--scrollbar-track);
 }
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-  background: var(--cable-divider);
+  background: var(--scrollbar-thumb);
   border-radius: 5px;
 }
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--cable-accent);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Collapsible reasoning / progress panels produced by the markdown pipeline
