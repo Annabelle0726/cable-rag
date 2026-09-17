@@ -186,6 +186,21 @@
     /* 1px inner highlight along the top edge of a glass surface: it is what
        makes a translucent pane read as ice rather than as a flat tint. */
     --glass-highlight: rgba(255, 255, 255, 0.75);
+    /* CAD blueprint micro-texture: a 16px dot matrix crossed by a 64px lattice,
+       drawn at 3-5% so a glass pane reads as engineering paper instead of an
+       empty tint. Defined once and shared by .blueprint-grid and
+       .glass-surface. */
+    --blueprint-dot: rgba(2, 132, 199, 0.05);
+    --blueprint-line: rgba(2, 132, 199, 0.035);
+    --blueprint-unit: 16px;
+    --blueprint-texture:
+      radial-gradient(var(--blueprint-dot) 1px, transparent 1px),
+      linear-gradient(to right, var(--blueprint-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--blueprint-line) 1px, transparent 1px);
+    --blueprint-texture-size:
+      var(--blueprint-unit) var(--blueprint-unit),
+      calc(var(--blueprint-unit) * 4) calc(var(--blueprint-unit) * 4),
+      calc(var(--blueprint-unit) * 4) calc(var(--blueprint-unit) * 4);
     --shadow-accent: rgba(2, 132, 199, 0.22);
     --surface-hover-bg: rgba(2, 132, 199, 0.06);
     --surface-hover-border: rgba(2, 132, 199, 0.45);
@@ -336,6 +351,11 @@
     --glass-border: rgba(56, 189, 248, 0.22);
     --glass-blur: 8px;
     --glass-highlight: rgba(255, 255, 255, 0.06);
+    /* The same lattice on a dark pane: the dots turn sky-blue and the major
+       lines go neutral, because an accent grid at this alpha over navy reads as
+       colour noise rather than as a drawing. */
+    --blueprint-dot: rgba(56, 189, 248, 0.05);
+    --blueprint-line: rgba(148, 163, 184, 0.04);
     --shadow-accent: rgba(2, 132, 199, 0.35);
     --surface-hover-bg: rgba(56, 189, 248, 0.1);
     --surface-hover-border: rgba(56, 189, 248, 0.5);
@@ -440,14 +460,24 @@
   }
 
   /* Glass material without a frame of its own: it blurs the page canvas behind
-     it and keeps one highlight along its top edge, leaving the outline to
-     whichever edge actually needs a hairline. Used by the panes that should
-     meet edge to edge rather than float as cards. */
+     it, keeps one highlight along its top edge and carries the CAD blueprint
+     micro-grid, leaving the outline to whichever edge actually needs a
+     hairline. Used by the panes that should meet edge to edge rather than float
+     as cards. */
   .glass-surface {
     background-color: var(--glass-bg);
+    background-image: var(--blueprint-texture);
+    background-size: var(--blueprint-texture-size);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     box-shadow: inset 0 1px 0 var(--glass-highlight);
+  }
+
+  /* The blueprint micro-grid on its own, for background bands that are not
+     glass surfaces — the home hero, for instance. */
+  .blueprint-grid {
+    background-image: var(--blueprint-texture);
+    background-size: var(--blueprint-texture-size);
   }
 
   /* The top bar keeps a translucent surface but only a bottom hairline, so it
