@@ -43,7 +43,9 @@ export const FilterButton = React.forwardRef<
 >(({ count = 0, ...props }, ref) => {
   return (
     <Button
-      variant="outline"
+      // Raised glass capsule, the same shape and material as the search field it
+      // sits beside, so the tool row reads as one row of controls.
+      className="ceramic-relief h-10 shrink-0 rounded-full px-4"
       size={count > 0 ? 'default' : 'icon'}
       {...props}
       ref={ref}
@@ -133,15 +135,15 @@ export default function ListFilterBar({
 
       <div
         className={cn(
-          'min-w-0 w-full items-center gap-2',
+          'min-w-0 w-full items-center gap-3',
           preChildren
-            ? 'flex flex-wrap md:flex-nowrap md:w-auto md:shrink-0 md:gap-4'
+            ? 'flex flex-wrap md:flex-nowrap md:w-auto md:shrink-0'
             : cn(
                 'grid',
                 hasFilter
                   ? 'grid-cols-[auto_minmax(0,1fr)_auto]'
                   : 'grid-cols-[minmax(0,1fr)_auto]',
-                'md:flex md:w-auto md:shrink-0 md:gap-4',
+                'md:flex md:w-auto md:shrink-0',
               ),
         )}
         role="toolbar"

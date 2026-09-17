@@ -96,8 +96,14 @@ export default function MemoryList() {
               filters={filters}
               onChange={handleFilterSubmit}
               value={filterValue}
+              searchVariant="capsule"
             >
-              <Button onClick={() => openCreateModalFun()}>
+              {/* The primary action matches the file manager: the branded ceramic
+                  capsule rather than the theme's ink-filled default button. */}
+              <Button
+                className="ceramic-cta h-10 rounded-full px-5"
+                onClick={() => openCreateModalFun()}
+              >
                 <Plus className="size-[1em]" />
                 {t('createMemory')}
               </Button>
