@@ -123,7 +123,6 @@ export default {
       /* Sign-in hero: the brand column beside the form. */
       hero: {
         slogan: '新一代企业级 RAG 智能知识库引擎',
-        intro: '基于混合检索与大模型推理，毫秒级激活企业私域数据价值。',
         featureHybridSearch: '精准混合检索',
         featureHybridSearchDesc:
           '向量语义 + 全文检索双引擎，检索准确率提升 85%+',

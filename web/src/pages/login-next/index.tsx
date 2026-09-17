@@ -32,6 +32,7 @@ import { NICKNAME_PATTERN } from '../user-setting/profile/constants';
 import { BgSvg } from './bg';
 import FlipCard3D, { FlipFaceContext } from './card';
 import { LoginHero } from './hero';
+import { LoginLanguageToggle } from './language-toggle';
 import './index.less';
 
 type LoginFormContentProps = {
@@ -75,10 +76,10 @@ function LoginFormContent({
         </h2>
       </div>
       {/* The focal point of the page: a ceramic shell (surface, rim light and
-          elevation) with the accent edge and one wide accent bloom under it. Its
-          padding stays tight because the register face carries one field more
-          than the login face and both have to fit one screen. */}
-      <div className="ceramic-pill w-full max-w-[440px] rounded-2xl border-login-card-edge px-6 py-5 shadow-login-card transition-colors duration-200 ease-in-out focus-within:border-accent-color">
+          elevation) with the accent edge and one wide accent bloom under it. It
+          is the widest element on the page, and its fields are a step taller
+          than the app default so the card reads as the thing to act on. */}
+      <div className="ceramic-pill w-full max-w-[520px] rounded-2xl border-login-card-edge px-8 py-7 shadow-login-card transition-colors duration-200 ease-in-out focus-within:border-accent-color">
         {!disablePasswordLogin && (
           <Form {...form}>
             <form
@@ -98,7 +99,7 @@ function LoginFormContent({
                         data-testid="auth-email"
                         placeholder={t('emailPlaceholder')}
                         autoComplete="email"
-                        className="focus-glow transition-colors duration-200 ease-in-out"
+                        className="focus-glow h-10 px-4 transition-colors duration-200 ease-in-out"
                         {...field}
                       />
                     </FormControl>
@@ -118,7 +119,7 @@ function LoginFormContent({
                           data-testid="auth-nickname"
                           placeholder={t('nicknamePlaceholder')}
                           autoComplete="username"
-                          className="focus-glow transition-colors duration-200 ease-in-out"
+                          className="focus-glow h-10 px-4 transition-colors duration-200 ease-in-out"
                           {...field}
                         />
                       </FormControl>
@@ -145,7 +146,7 @@ function LoginFormContent({
                               ? 'current-password'
                               : 'new-password'
                           }
-                          className="focus-glow transition-colors duration-200 ease-in-out"
+                          className="focus-glow h-10 px-4 transition-colors duration-200 ease-in-out"
                           {...field}
                         />
                       </div>
@@ -189,7 +190,7 @@ function LoginFormContent({
                 data-testid="auth-submit"
                 type="submit"
                 loading={loading}
-                className="ceramic-cta my-1 w-full"
+                className="ceramic-cta h-10 my-1 w-full"
               >
                 {title === 'login' ? t('login') : t('continue')}
               </ButtonLoading>
@@ -397,6 +398,12 @@ const Login = () => {
       <Spotlight opcity={0.3} coverage={12} X={'90%'} Y={'-10%'} />
       <div className="bg-cable-page relative flex h-screen w-screen items-center justify-center overflow-hidden">
         <BgSvg isPaused />
+
+        {/* The sign-in route has no app header, so the language switch lives on
+            the page instead of in the top bar. */}
+        <div className="absolute right-5 top-5 z-20">
+          <LoginLanguageToggle />
+        </div>
 
         {/* Two columns from `lg` up, 5 / 7: the brand column takes two fifths
             and the form three, so the card has room to sit as the focal point.

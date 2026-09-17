@@ -159,6 +159,11 @@ module.exports = {
           strong: 'var(--accent-color-strong)',
           soft: 'var(--accent-color-soft)',
         },
+        /* Ink that sits on the accent itself. The class `text-accent-contrast` is
+           already used by the theme switch and the sign-in language switch, but
+           the colour key was never declared, so the utility was missing from the
+           generated CSS and those controls silently inherited their text colour. */
+        'accent-contrast': 'var(--accent-contrast)',
         glass: {
           DEFAULT: 'var(--glass-bg)',
           border: 'var(--glass-border)',

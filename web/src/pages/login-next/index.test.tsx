@@ -1,4 +1,5 @@
 import { useSystemConfig } from '@/hooks/use-system-request';
+import { changeLanguageAsync } from '@/locales/config';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Login from './index';
 
@@ -22,7 +23,21 @@ jest.mock('react-router', () => ({
 }));
 
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    i18n: { resolvedLanguage: 'zh-Hans', language: 'zh-Hans' },
+    t: (key: string) => key,
+  }),
+}));
+
+// The page renders its own language switch, which goes through the real
+// `changeLanguageAsync` to lazy-load the bundle for the chosen language. Mocked
+// here so the assertions can check the call instead of a network of resources.
+jest.mock('@/locales/config', () => ({
+  supportedLanguages: [
+    { code: 'zh-Hans', displayName: '简体中文' },
+    { code: 'en', displayName: 'English' },
+  ],
+  changeLanguageAsync: jest.fn(),
 }));
 
 jest.mock('@/utils', () => ({ rsaPsw: jest.fn() }));
@@ -36,6 +51,7 @@ jest.mock('./card', () => ({
 }));
 
 const MockUseSystemConfig = jest.mocked(useSystemConfig);
+const MockChangeLanguageAsync = jest.mocked(changeLanguageAsync);
 const OriginalResizeObserver = globalThis.ResizeObserver;
 
 beforeAll(() => {
@@ -111,4 +127,28 @@ describe('login registration entry', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('auth-submit')).toBeEnabled();
   });
+});
+
+describe('login language switch', () => {
+  beforeEach(() => {
+    MockUseSystemConfig.mockReturnValue({ config: undefined, loading: false });
+    MockChangeLanguageAsync.mockClear();
+  });
+
+  it.each([
+    ['English', 'en'],
+    ['简体中文', 'zh-Hans'],
+  ])(
+    'loads the %s bundle when that language is picked',
+    (label, code) => {
+      render(<Login />);
+
+      fireEvent.click(screen.getByRole('button', { name: label }));
+
+      // `changeLanguageAsync` and not `i18n.changeLanguage`: it is the call that
+      // actually fetches the bundle, which is what keeps the login and register
+      // copy translated instead of falling back to raw keys.
+      expect(MockChangeLanguageAsync).toHaveBeenCalledWith(code);
+    },
+  );
 });

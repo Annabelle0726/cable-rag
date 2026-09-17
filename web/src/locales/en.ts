@@ -141,8 +141,6 @@ export default {
       /* Sign-in hero: the brand column beside the form. */
       hero: {
         slogan: 'A next-generation enterprise RAG knowledge engine',
-        intro:
-          'Hybrid retrieval and large-model reasoning bring private company data to life in milliseconds.',
         featureHybridSearch: 'Precise hybrid retrieval',
         featureHybridSearchDesc:
           'Vector semantics and full-text search in one engine, lifting retrieval accuracy by 85%+.',
