@@ -28,11 +28,27 @@ const ThemeSwitch = forwardRef<
   const { setTheme } = useTheme();
   const isDark = useIsDarkTheme();
 
+  /**
+   * The selected icon sits on the brand-blue slider, so it takes the ink that
+   * reads on the accent and a faint bloom; the other one keeps the secondary
+   * text colour and brightens under the pointer.
+   */
+  const iconClass = (isSelected: boolean) =>
+    cn(
+      'size-[1em] transition-colors duration-300 ease-in-out',
+      isSelected
+        ? 'text-accent-contrast drop-shadow-[0_0_6px_var(--ceramic-switch-icon-glow)]'
+        : 'text-text-secondary group-hover/theme-switch:text-text-primary',
+    );
+
   return (
     <Root
       ref={ref}
       className={cn(
-        'group/theme-switch relative rounded-full outline-none self-center focus-visible:ring-1 focus-visible:ring-accent-primary',
+        // Ceramic tray: a glass recess with the hairline edge, held down onto the
+        // footer by a tight contact shadow and the accent ring on focus.
+        'ceramic-switch group/theme-switch relative rounded-full outline-none self-center',
+        'focus-visible:ring-2 focus-visible:ring-accent-color-soft',
         className,
       )}
       {...props}
@@ -41,21 +57,17 @@ const ThemeSwitch = forwardRef<
         setTheme(value ? ThemeEnum.Dark : ThemeEnum.Light)
       }
     >
-      <div className="self-center p-3 py-2 rounded-full bg-bg-card transition-[background-color]">
-        <div className="h-full flex items-center justify-between gap-4 relative z-[1] text-text-disabled transition-[text-color]">
-          <LucideSun
-            className={cn('size-[1em]', !isDark && 'text-text-primary')}
-          />
-          <LucideMoon
-            className={cn('size-[1em]', isDark && 'text-text-primary')}
-          />
+      <div className="self-center rounded-full px-2.5 py-1.5 transition-colors duration-300 ease-in-out">
+        <div className="relative z-[1] flex h-full items-center justify-between gap-3">
+          <LucideSun className={iconClass(!isDark)} />
+          <LucideMoon className={iconClass(isDark)} />
         </div>
       </div>
 
       <Thumb
         className={cn(
           'absolute top-0 left-0 w-[calc(50%+.25rem)] p-0.5 h-full rounded-full overflow-hidden',
-          'transition-all ease-out',
+          'transition-all duration-300 ease-in-out',
           'group-hover/theme-switch:w-[calc(50%+.66rem)] group-focus-visible/theme-switch:w-[calc(50%+.66rem)]',
           {
             'left-[calc(50%-.25rem)] group-hover/theme-switch:left-[calc(50%-.66rem)] group-focus-visible/theme-switch:left-[calc(50%-.66rem)]':
@@ -63,7 +75,7 @@ const ThemeSwitch = forwardRef<
           },
         )}
       >
-        <div className="size-full rounded-full bg-bg-base shadow-md transition-colors ease-out" />
+        <div className="ceramic-switch-thumb size-full rounded-full" />
       </Thumb>
     </Root>
   );
