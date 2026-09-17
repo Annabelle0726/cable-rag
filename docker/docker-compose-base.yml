@@ -76,6 +76,7 @@ services:
   infinity:
     profiles:
       - infinity
+    container_name: my-cable-infinity
     image: infiniflow/infinity:v0.7.3-x64-v3
     volumes:
       - infinity_data:/var/infinity

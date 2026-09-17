@@ -86,7 +86,6 @@ from multiprocessing.context import TimeoutError
 from timeit import default_timer as timer
 import signal
 import exceptiongroup
-import faulthandler
 import numpy as np
 from peewee import DoesNotExist
 from common.constants import LLMType, ParserType, PipelineTaskType
@@ -2008,15 +2007,13 @@ async def main():
             await asyncio.sleep(startup_delay)
     except (ValueError, IndexError):
         pass  # Non-standard consumer name, skip delay
-
     logging.info(r"""
-    ____                      __  _
-   /  _/___  ____ ____  _____/ /_(_)___  ____     ________  ______   _____  _____
-   / // __ \/ __ `/ _ \/ ___/ __/ / __ \/ __ \   / ___/ _ \/ ___/ | / / _ \/ ___/
- _/ // / / / /_/ /  __(__  ) /_/ / /_/ / / / /  (__  )  __/ /   | |/ /  __/ /
-/___/_/ /_/\__, /\___/____/\__/_/\____/_/ /_/  /____/\___/_/    |___/\___/_/
-          /____/
-    """)
+       ______      __  __     ____  ___   ______   _____                               
+      / ____/___  / /_/ /    / __ \/   | / ____/  / ___/___  ______   _____  _____     
+     / /   / __ \/ __/ /    / /_/ / /| |/ / __    \__ \/ _ \/ ___/ | / / _ \/ ___/     
+    / /___/ /_/ / /_/ /___ / _, _/ ___ / /_/ /   ___/ /  __/ /   | |/ /  __/ /         
+    \____/\__,_/\__/_____//_/ |_/_/  |_\____/   /____/\___/_/    |___/\___/_/          
+        """)
     logging.info(f"RAGFlow ingestion version: {get_ragflow_version()}")
     show_configs()
     settings.init_settings()
