@@ -34,58 +34,80 @@ import (
 // it in the Python module. In Go this lives next to search.go so the only two
 // consumers (HybridSearch and the structure-nav grepper) both reach it.
 
-// NarrowOrKeep mirrors Python text_processing._narrow_or_keep: narrow chunks to
-// keyword-bearing sentences, but keep the originals when narrowing would drop
-// everything.
+// NarrowOrKeep mirrors Python text_processing._narrow_or_keep: shrink each
+// retrieved passage to the sentences carrying the query keywords, and drop none
+// of them.
 //
-// The all-or-nothing behaviour is the point: no keyword overlap does NOT mean
-// irrelevant. The retriever already ranked these chunks, and a sub-question's
-// wording need not contain the parent question's keywords. Dropping them all
-// produced empty results, unverified claims and pointless retry cycles.
+// No keyword overlap does NOT mean irrelevant: the retriever already ranked
+// these chunks, and the keywords come from a rewrite of the question, so a
+// sub-question's wording need not contain them. Dropping the non-matching
+// passages is also asymmetric with the structured-text exemption in
+// narrowContent, which kept tables whole regardless of keywords: on
+// 《柔性拖链技术规格书》 the page-2 HTML table survived every question while the
+// page-1 prose passage (jacket material, colour, outer diameter, marking) was
+// discarded unless the wording overlapped it verbatim, so the model answered
+// "知识库无相关资料" for facts that passage states outright.
+//
+// The log line names the keywords: without them a thin pool is indistinguishable
+// from keywords that never matched anything.
 func NarrowOrKeep(chunks []map[string]any, keywords, label string, logger *log.Logger) []map[string]any {
-	if strings.TrimSpace(keywords) == "" || len(chunks) == 0 {
+	kwds := SplitKeywords(keywords)
+	if len(kwds) == 0 || len(chunks) == 0 {
 		return chunks
 	}
 	if logger == nil {
 		logger = _LOG
 	}
-	narrowed := NarrowByKeywords(chunks, keywords)
-	if len(narrowed) > 0 {
-		logger.Printf("[%s] Kept %d of %d passage(s) that actually mention the keywords.", label, len(narrowed), len(chunks))
-		return narrowed
-	}
-	logger.Printf("[%s] Keyword narrowing matched nothing — keeping all %d retrieved passage(s).", label, len(chunks))
-	return chunks
+	kept, counts := rewritePayloads(chunks, kwds, false)
+	logger.Printf(
+		"[%s] %d passage(s) -> %d kept (%d narrowed to keyword sentences, %d short kept whole, "+
+			"%d kept whole without a keyword hit, %d structured kept whole); keywords=[%s]",
+		label, len(chunks), len(kept), counts[narrowedMode], counts[shortWholeMode], counts[noKeywordMode], counts[tableMode], keywords,
+	)
+	return kept
 }
 
-// NarrowByKeywords narrows each chunk to the sentences mentioning any keyword
-// (+/-1 neighbour) and drops keyword-less chunks.
+// NarrowByKeywords keeps only the chunks a keyword occurs in, narrowed to that
+// keyword's sentences.
 //
-// Mirrors Python _narrow_by_keywords. Unlike NarrowOrKeep this is the strict
-// form: it may return an empty slice, and callers that must not lose evidence
-// should use NarrowOrKeep instead.
+// This is the FILTERING form, for callers whose contract is a keyword filter
+// (graph exploration, wiki lookup, the grep fallback). Retrieval must not use it:
+// see NarrowOrKeep for why a keyword miss says nothing about relevance.
+//
+// Mirrors Python _narrow_by_keywords. Like that function it returns the input
+// unchanged when there is nothing to narrow on (`if not kwds or not chunks:
+// return chunks`); a nil return would wipe the whole evidence pool.
 func NarrowByKeywords(chunks []map[string]any, keywords string) []map[string]any {
 	kwds := SplitKeywords(keywords)
-	// Python _narrow_by_keywords returns the input
-	// unchanged when there is nothing to narrow on: `if not kwds or not chunks:
-	// return chunks`. A nil return would wipe the whole evidence pool, so return
-	// the original chunks verbatim instead.
 	if len(kwds) == 0 || len(chunks) == 0 {
 		return chunks
 	}
+	kept, _ := rewritePayloads(chunks, kwds, true)
+	return kept
+}
+
+// rewritePayloads narrows each chunk's payload and writes it back, returning the
+// chunks to keep and a per-mode count.
+//
+// dropUnmatched is for the callers whose contract IS a keyword filter (see
+// NarrowByKeywords). Retrieval passes false so a passage is never lost to a
+// keyword miss. Mirrors Python _rewrite_payloads.
+func rewritePayloads(chunks []map[string]any, kwds []string, dropUnmatched bool) ([]map[string]any, map[string]int) {
 	out := make([]map[string]any, 0, len(chunks))
 	seen := make(map[string]bool, len(chunks))
+	counts := make(map[string]int, 4)
 	for _, c := range chunks {
 		if c == nil {
 			continue
 		}
-		narrowed, ok := NarrowContent(ChunkTextOf(c), kwds)
-		if !ok {
+		payload, matched, mode := NarrowContent(ChunkTextOf(c), kwds)
+		counts[mode]++
+		if dropUnmatched && !matched {
 			continue
 		}
-		// Dedup identical narrowed passages (mirrors Python _narrow_by_keywords,
-		// which drops chunks whose narrowed text hashes the same).
-		h := md5.Sum([]byte(narrowed))
+		// Dedup identical payloads (mirrors Python _rewrite_payloads, which drops
+		// chunks whose payload hashes the same).
+		h := md5.Sum([]byte(payload))
 		key := fmt.Sprintf("%x", h)
 		if seen[key] {
 			continue
@@ -95,20 +117,20 @@ func NarrowByKeywords(chunks []map[string]any, keywords string) []map[string]any
 		for k, v := range c {
 			cp[k] = v
 		}
-		// Mirror Python _narrow_by_keywords exactly: content_with_weight is
-		// always overwritten with the narrowed text, "content" is mirrored ONLY
-		// when the original chunk already carried a "content" key, and the
-		// pre-narrow "highlight" spans are dropped because they no longer apply.
+		// Mirror Python _rewrite_payloads exactly: content_with_weight is always
+		// overwritten with the narrowed text, "content" is mirrored ONLY when the
+		// original chunk already carried a "content" key, and the pre-narrow
+		// "highlight" spans are dropped because they no longer apply.
 		// (withNarrowedText in grep_sed_narrow.go applies the identical rule for
 		// the term path; keep the two in lock-step.)
-		cp["content_with_weight"] = narrowed
+		cp["content_with_weight"] = payload
 		if _, ok := cp["content"]; ok {
-			cp["content"] = narrowed
+			cp["content"] = payload
 		}
 		delete(cp, "highlight")
 		out = append(out, cp)
 	}
-	return out
+	return out, counts
 }
 
 // SplitKeywords normalizes a keyword string into search terms. When fewer than
@@ -256,21 +278,56 @@ func sentenceMatches(low string, stems, verbatim []string, stemmed [][]string) b
 	return false
 }
 
-// NarrowContent returns the keyword-bearing sentences (+/-2 neighbours) with
-// the keywords highlighted, or ("", false) when no keyword occurs.
+// Modes: how narrowContent treated a payload. They are reported so a filtering
+// caller knows whether a keyword occurred, and so the narrowing log can say what
+// actually happened to each passage.
+const (
+	narrowedMode   = "narrowed"    // long prose cut to its keyword sentences
+	shortWholeMode = "short_whole" // short prose, handed over whole
+	noKeywordMode  = "no_keyword"  // no keyword occurs in the payload
+	tableMode      = "table"       // structured payload, always whole
+)
+
+// shortPlainTextChars: plain-text chunks at or below this size are handed over
+// whole instead of being cut down to their keyword sentences. A short chunk IS
+// the evidence — the 605-char page-1 chunk of 《柔性拖链技术规格书》 carries the
+// jacket material, its colour and the outer diameter in adjacent lines, and
+// window-narrowing around one keyword hit dropped the rest of it (the "印字/屏蔽"
+// lines sat outside the window). Token cost is bounded by the chunk itself.
+// Mirrors Python _SHORT_PLAIN_TEXT_CHARS.
+const shortPlainTextChars = 1200
+
+// mentionsAnyKeyword reports whether text contains a keyword, stem-tolerant.
+// Mirrors Python _mentions_any_keyword.
+func mentionsAnyKeyword(text string, kwds []string) bool {
+	verbatim, stemmed := keywordForms(kwds)
+	if len(verbatim) == 0 && len(stemmed) == 0 {
+		return false
+	}
+	return sentenceMatches(strings.ToLower(text), sentenceStems(text), verbatim, stemmed)
+}
+
+// NarrowContent returns the payload to use, whether a keyword occurred in it, and
+// the mode that describes the treatment. It never returns nothing to use.
+//
 // Mirrors Python _narrow_content: matching keeps keyword sentences within a
 // +/-2 window, AND fact-dense sentences (numbers / years / percentages / proper
 // nouns) are kept within a +/-1 window even without a keyword hit, so numeric or
 // named-entity answers survive narrowing. Block-level tables and markdown
 // pipe-tables (>=3 rows) are returned whole — keyword-window narrowing would
-// otherwise truncate them.
-func NarrowContent(content string, kwds []string) (string, bool) {
+// otherwise truncate them. Short prose is likewise returned whole, because a
+// short passage IS the evidence and the window used to cut away the lines that
+// did not sit next to a keyword hit.
+//
+// matched is what a FILTERING caller drops on; the retrieval tools keep the
+// payload whatever the mode (see NarrowOrKeep).
+func NarrowContent(content string, kwds []string) (string, bool, string) {
 	if strings.TrimSpace(content) == "" || len(kwds) == 0 {
-		return "", false
+		return content, false, noKeywordMode
 	}
 	lowContent := strings.ToLower(content)
 	if strings.Contains(lowContent, "<table") || strings.Contains(lowContent, "<tr") || strings.Contains(lowContent, "<td") {
-		return "..." + HighlightKeywords(content, kwds) + "...", true
+		return "..." + HighlightKeywords(content, kwds) + "...", true, tableMode
 	}
 	pipeRows := 0
 	for _, line := range strings.Split(content, "\n") {
@@ -279,13 +336,22 @@ func NarrowContent(content string, kwds []string) (string, bool) {
 		}
 	}
 	if pipeRows >= 3 {
-		return "..." + HighlightKeywords(content, kwds) + "...", true
+		return "..." + HighlightKeywords(content, kwds) + "...", true, tableMode
+	}
+	// Short prose is the evidence in full, exactly like a table row. A keyword-less
+	// payload comes back byte-identical: nothing was cut, so there is nothing to
+	// mark with the ellipsis convention.
+	if len(content) <= shortPlainTextChars {
+		if !mentionsAnyKeyword(content, kwds) {
+			return content, false, shortWholeMode
+		}
+		return "..." + HighlightKeywords(content, kwds) + "...", true, shortWholeMode
 	}
 	sents := SplitSentences(content)
-	if len(sents) == 0 {
-		return "", false
-	}
 	verbatim, stemmed := keywordForms(kwds)
+	if len(sents) == 0 || (len(verbatim) == 0 && len(stemmed) == 0) {
+		return content, false, noKeywordMode
+	}
 	keep := make(map[int]bool, len(sents))
 	matched := false
 	for i, s := range sents {
@@ -305,7 +371,9 @@ func NarrowContent(content string, kwds []string) (string, bool) {
 		}
 	}
 	if !matched {
-		return "", false
+		// No keyword anywhere: hand the payload over as it is. A keyword-filtering
+		// caller drops it on the false flag; retrieval keeps it.
+		return content, false, noKeywordMode
 	}
 	var b strings.Builder
 	for i := range sents {
@@ -313,7 +381,7 @@ func NarrowContent(content string, kwds []string) (string, bool) {
 			b.WriteString(sents[i])
 		}
 	}
-	return "..." + HighlightKeywords(b.String(), kwds) + "...", true
+	return "..." + HighlightKeywords(b.String(), kwds) + "...", true, narrowedMode
 }
 
 // HighlightKeywords stars keyword occurrences, longest term first so a longer

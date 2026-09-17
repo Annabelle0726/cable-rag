@@ -197,11 +197,12 @@ async def hybrid_search(
         _memory_add(tools, kbinfos.get("chunks", []) or [])
     except Exception:
         pass  # memory is best-effort; never fail the search over it.
-    # Narrow-or-keep: if the query keywords match any chunk, keep only the
-    # matching passages (shrinking the evidence handed to the LLM so a single
-    # full-context call stays small and fast); if nothing matches, keep ALL
-    # chunks intact so no evidence is silently dropped. This bounds per-claim
-    # analysis size without losing the numeric/entity rows when keywords hit.
+    # Narrow-or-keep: shrink each passage to the sentences that carry the query
+    # keywords so a single full-context call stays small and fast. A passage no
+    # keyword occurs in is handed over whole, never dropped — the retriever
+    # already ranked it, and structured passages are exempt from narrowing, so
+    # dropping prose on a keyword miss discarded exactly the evidence those
+    # questions needed.
     kbinfos["chunks"] = _narrow_or_keep(kbinfos.get("chunks", []), keywords, "hybrid_search")
     if use_compiled and kbinfos.get("chunks"):
         _LOG.info("[Hybrid search] Compiled expansion enabled — enriching with page_index/tree/KG navigation.")
@@ -215,7 +216,9 @@ async def hybrid_search(
             _s[0] += 1
             _s[1] += len(str(_c.get("content") or _c.get("content_with_weight") or ""))
         _detail = "; ".join(f"{d}:{n}chunk({sz}chars)" for d, (n, sz) in sorted(_doc_stats.items()))
-        _LOG.info(f'[Hybrid search] "{query[:80]}" -> {len(chunks_now)} chunk(s): {_detail}')
+        # The keywords are part of the line: a run whose evidence looks thin is
+        # otherwise indistinguishable from one whose keywords never matched.
+        _LOG.info(f'[Hybrid search] "{query[:80]}" -> {len(chunks_now)} chunk(s): {_detail}; keywords=[{keywords}]')
     else:
         # A zero-result search used to log nothing at all, so a query that missed
         # was indistinguishable from one that never ran.

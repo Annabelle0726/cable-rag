@@ -331,14 +331,53 @@ def _is_fact_dense_sentence(sent: str) -> bool:
     return False
 
 
-def _narrow_content(content: str, kwds: list[str]) -> str | None:
-    """Return ``content`` narrowed to keyword sentences +/- 2 neighbours.
+#: Plain-text chunks at or below this size are handed over whole instead of being
+#: cut down to their keyword sentences. A short chunk IS the evidence: the 605-char
+#: page-1 chunk of 《柔性拖链技术规格书》 carries the jacket material, its colour and
+#: the outer diameter in adjacent lines, and window-narrowing around one keyword
+#: hit dropped the rest of it (the "印字/屏蔽" lines sat outside the window).
+#: Token cost is bounded by the chunk itself, so keeping it whole is cheap.
+_SHORT_PLAIN_TEXT_CHARS = 1200
+
+#: How ``_narrow_content`` treated a payload: long prose reduced to its keyword
+#: sentences, short prose handed over whole, prose no keyword occurs in, or a
+#: structured payload (always whole).
+_NARROWED = "narrowed"
+_SHORT_WHOLE = "short_whole"
+_NO_KEYWORD = "no_keyword"
+_TABLE = "table"
+
+
+def _mentions_any_keyword(text: str, kwds: list[str]) -> bool:
+    """True when ``text`` contains a keyword, stem-tolerant (see ``_sentence_matches``)."""
+    verbatim, stemmed = _keyword_forms(kwds)
+    if not verbatim and not stemmed:
+        return False
+    return _sentence_matches(text.lower(), _sentence_stems(text), verbatim, stemmed)
+
+
+def _narrow_content(content: str, kwds: list[str]) -> tuple[str, bool, str]:
+    """Return ``(payload, keyword_matched, mode)``; never returns nothing to use.
+
+    ``mode`` is ``_NARROWED`` (long prose reduced to its keyword sentences),
+    ``_SHORT_WHOLE`` (short prose, handed over as it is), ``_NO_KEYWORD`` (no
+    keyword occurs in the payload) or ``_TABLE`` (structured text, always whole).
 
     Matching is stem-tolerant: a keyword matches any word sharing its stem, so
     "nominations" finds "nominated". Sentences that are fact-dense (numbers /
     years / percentages / proper nouns) are kept regardless of keyword distance,
-    so numeric or named-entity answers survive narrowing. Returns ``None`` when
-    no keyword occurs anywhere in ``content``.
+    so numeric or named-entity answers survive narrowing.
+
+    ``keyword_matched`` is what a *filtering* caller drops on. Callers that must
+    not lose evidence (the retrieval tools) keep the payload whatever the mode:
+    retrieval already ranked the chunk, and the keyword list comes from a rewrite
+    of the question, so no overlap says the phrasing differs, not that the chunk
+    is irrelevant. That asymmetry is what emptied the evidence on
+    《柔性拖链技术规格书》: the page-2 HTML table was kept whole for every question
+    while the page-1 prose chunk was discarded unless the wording overlapped it
+    verbatim, so the jacket / colour / diameter / marking questions reached the
+    model with no evidence for them (`[hybrid_search] Kept 2 of 5 passage(s)` in
+    the server log). Being dropped also renumbered every later citation.
     """
     # Structured tables must be returned whole. A keyword hit anywhere in a big
     # table (e.g. the capitals-by-latitude table) otherwise narrows to the hit
@@ -351,19 +390,25 @@ def _narrow_content(content: str, kwds: list[str]) -> str | None:
     # table), and sentence-window narrowing truncates them to a header-only snippet.
     low_content = content.lower()
     if "<table" in low_content or "<tr" in low_content or "<td" in low_content:
-        return "..." + _highlight_keywords(content, kwds) + "..."
+        return "..." + _highlight_keywords(content, kwds) + "...", True, _TABLE
     pipe_rows = sum(1 for line in content.splitlines() if line.count("|") >= 2)
     if pipe_rows >= 3:
-        return "..." + _highlight_keywords(content, kwds) + "..."
+        return "..." + _highlight_keywords(content, kwds) + "...", True, _TABLE
+
+    # Short prose is the evidence in full, exactly like a table row. A keyword-less
+    # payload comes back byte-identical: nothing was cut, so there is nothing to
+    # mark with the ellipsis convention.
+    if len(content) <= _SHORT_PLAIN_TEXT_CHARS:
+        if not _mentions_any_keyword(content, kwds):
+            return content, False, _SHORT_WHOLE
+        return "..." + _highlight_keywords(content, kwds) + "...", True, _SHORT_WHOLE
 
     sents = _split_sentences(content)
-    if not sents:
-        return None
     # Stem-tolerant matching: a keyword matches any word sharing its stem, so
     # "nominations" finds "nominated" and "company" finds "companies".
     verbatim, stemmed = _keyword_forms(kwds)
-    if not verbatim and not stemmed:
-        return None
+    if not sents or (not verbatim and not stemmed):
+        return content, False, _NO_KEYWORD
     keep: set[int] = set()
     matched = False
     for i, s in enumerate(sents):
@@ -378,9 +423,12 @@ def _narrow_content(content: str, kwds: list[str]) -> str | None:
             for j in range(max(0, i - 1), min(len(sents), i + 2)):
                 keep.add(j)
     if not matched:
-        return None
+        # No keyword anywhere: hand the payload over as it is. A caller that only
+        # wants keyword-bearing passages drops it on ``keyword_matched``; the
+        # retrieval tools keep it (see the docstring).
+        return content, False, _NO_KEYWORD
     narrowed = "".join(sents[i] for i in sorted(keep)).strip()
-    return "..." + _highlight_keywords(narrowed, kwds) + "..."
+    return "..." + _highlight_keywords(narrowed, kwds) + "...", True, _NARROWED
 
 
 def _highlight_keywords(text: str, kwds: list[str]) -> str:
@@ -410,56 +458,92 @@ def _highlight_keywords(text: str, kwds: list[str]) -> str:
     return pattern.sub(lambda m: f"*{m.group(0)}*", text)
 
 
-def _narrow_by_keywords(chunks: list[dict], keywords: str) -> list[dict]:
-    """Narrow each chunk to its keyword-bearing sentences (+/- 1 neighbour) and
-    drop keyword-less chunks.
+def _split_keyword_terms(keywords: str) -> list[str]:
+    """Normalize a keyword string into match terms.
 
-    Keywords are the comma-separated terms (with close synonyms) produced by
-    ``formalize``; matching is stem-tolerant (a keyword matches any word sharing
-    its stem).
+    Comma-separated terms are used as they are; fewer than three of them falls
+    back to space-split bigrams, because a bare keyword blob ("finale run time")
+    is more discriminative as bigrams than as single words. Mirrors the term
+    construction the Go port uses (``SplitKeywords``).
     """
     kwds = [k.strip().lower() for k in (keywords or "").split(",") if k.strip()]
-    if not kwds or not chunks:
-        return chunks
+    if not kwds:
+        return []
     if len(kwds) < 3:
-        kwds = [k.strip().lower() for k in (keywords or "").split(" ") if k.strip()]
-        _kwds = []
-        for i in range(len(kwds) - 1):
-            _kwds.append(kwds[i] + " " + kwds[i + 1])
-        kwds = _kwds
+        words = [k.strip().lower() for k in (keywords or "").split(" ") if k.strip()]
+        bigrams = [f"{words[i]} {words[i + 1]}" for i in range(len(words) - 1)]
+        if bigrams:
+            return bigrams
+    return kwds
 
-    scored = [(ck, _narrow_content(ck.get("content_with_weight") or ck.get("content") or "", kwds)) for ck in chunks]
+
+def _rewrite_payloads(chunks: list[dict], kwds: list[str], *, drop_unmatched: bool) -> tuple[list[dict], dict[str, int]]:
+    """Write each chunk's narrowed payload back in place; returns (chunks, counts).
+
+    ``drop_unmatched`` is for the callers whose contract IS a keyword filter
+    (graph exploration, wiki lookup, the grep fallback): they keep only payloads a
+    keyword occurs in. The retrieval tools pass ``False`` so a passage is never
+    lost to a keyword miss (``_narrow_content`` explains why that matters).
+    """
+    counts: dict[str, int] = {}
     out: list[dict] = []
     dedup: set[str] = set()
-    for ck, nc in scored:
-        if nc is not None:
-            nc_hash = hashlib.md5(nc.encode("utf-8")).hexdigest()
-            if nc_hash in dedup:
-                continue
-            dedup.add(nc_hash)
-            ck["content_with_weight"] = nc
-            if "content" in ck:
-                ck["content"] = nc
-            ck.pop("highlight", None)
-            out.append(ck)
-    return out
+    for ck in chunks:
+        payload, matched, mode = _narrow_content(ck.get("content_with_weight") or ck.get("content") or "", kwds)
+        counts[mode] = counts.get(mode, 0) + 1
+        if drop_unmatched and not matched:
+            continue
+        payload_hash = hashlib.md5(payload.encode("utf-8")).hexdigest()
+        if payload_hash in dedup:
+            continue
+        dedup.add(payload_hash)
+        ck["content_with_weight"] = payload
+        if "content" in ck:
+            ck["content"] = payload
+        ck.pop("highlight", None)
+        out.append(ck)
+    return out, counts
+
+
+def _narrow_by_keywords(chunks: list[dict], keywords: str) -> list[dict]:
+    """Keep only the chunks a keyword occurs in, narrowed to its sentences.
+
+    The filtering form, for callers whose contract is a keyword filter (graph
+    exploration, wiki lookup, grep). Retrieval must not use it: see
+    ``_narrow_or_keep``.
+    """
+    kwds = _split_keyword_terms(keywords)
+    if not kwds or not chunks:
+        return chunks
+    kept, _counts = _rewrite_payloads(chunks, kwds, drop_unmatched=True)
+    return kept
 
 
 def _narrow_or_keep(chunks: list[dict], keywords: str, label: str) -> list[dict]:
-    """Narrow chunks to keyword sentences, but keep the originals when
-    narrowing would drop everything.
+    """Shrink each retrieved chunk to its keyword sentences; drop none of them.
 
     No keyword overlap does not mean irrelevant — the retriever already ranked
-    these chunks, and a sub-question's wording need not contain the parent
-    question's keywords. Dropping them all produced empty results, unverified
-    claims and pointless retry cycles.
+    these chunks, and the keywords come from a rewrite of the question, so the
+    wording of the chunk need not repeat them. Dropping the non-matching chunks
+    emptied the evidence exactly when the answer lived in prose while a sibling
+    table chunk survived (structured text is exempt from narrowing), which is how
+    the jacket / marking questions on 《柔性拖链技术规格书》 lost their only source.
+    The log line names the keywords: without them, a thin pool is indistinguishable
+    from keywords that never matched anything.
     """
-    if not keywords or not chunks:
+    kwds = _split_keyword_terms(keywords)
+    if not kwds or not chunks:
         return chunks
-    length = len(chunks)
-    narrowed = _narrow_by_keywords(chunks, keywords)
-    if narrowed:
-        _LOG.info(f"[{label}] Kept {len(narrowed)} of {length} passage(s) that actually mention the keywords.")
-        return narrowed
-    _LOG.info(f"[{label}] Keyword narrowing matched nothing — keeping all {length} retrieved passage(s).")
-    return chunks
+    kept, counts = _rewrite_payloads(chunks, kwds, drop_unmatched=False)
+    _LOG.info(
+        "[%s] %d passage(s) -> %d kept (%d narrowed, %d short kept whole, %d no keyword hit, %d structured kept whole); keywords=[%s]",
+        label,
+        len(chunks),
+        len(kept),
+        counts.get(_NARROWED, 0),
+        counts.get(_SHORT_WHOLE, 0),
+        counts.get(_NO_KEYWORD, 0),
+        counts.get(_TABLE, 0),
+        keywords,
+    )
+    return kept

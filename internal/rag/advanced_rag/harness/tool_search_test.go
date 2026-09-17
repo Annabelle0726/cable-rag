@@ -270,23 +270,40 @@ func TestHybridSearchReturnsEmptyOnBackendError(t *testing.T) {
 // Narrowing
 // ---------------------------------------------------------------------------
 
-func TestNarrowOrKeepIsAllOrNothing(t *testing.T) {
+// TestNarrowOrKeepNeverDropsAPassage pins the fix for the prose/table asymmetry.
+//
+// A passage no keyword occurs in used to be dropped, while a structured passage
+// was kept whole regardless of the keywords — so on 《柔性拖链技术规格书.pdf》 the
+// page-2 HTML table survived every question while the page-1 prose passage
+// (jacket material, colour, outer diameter, marking) was discarded unless the
+// wording overlapped it verbatim, and the model answered "知识库无相关资料" for
+// facts that passage states outright.
+func TestNarrowOrKeepNeverDropsAPassage(t *testing.T) {
 	chunks := []map[string]any{
 		{"content": "Culdcept was made by OmiyaSoft."},
 		{"content": "It was released in 1999."},
 	}
-	// Keywords hit -> narrowed subset (the non-matching chunk is dropped).
+	// Keyword hit in one passage -> BOTH kept: the hit one narrowed, the other whole.
 	got := NarrowOrKeep(chunks, "culdcept", "test", nil)
-	if len(got) != 1 || !strings.Contains(ChunkTextOf(got[0]), "Culdcept") {
-		t.Errorf("narrowed = %v, want only the matching chunk", got)
+	if len(got) != len(chunks) {
+		t.Fatalf("kept %d passage(s), want both: %v", len(got), got)
+	}
+	if !strings.Contains(ChunkTextOf(got[0]), "*Culdcept*") {
+		t.Errorf("the matching passage was not narrowed+highlighted: %q", ChunkTextOf(got[0]))
+	}
+	if ChunkTextOf(got[1]) != ChunkTextOf(chunks[1]) {
+		t.Errorf("a passage without the keyword must be returned whole, got %q", ChunkTextOf(got[1]))
 	}
 
-	// No keyword overlap -> ALL chunks kept (this is the whole point: the
-	// retriever already ranked them, and dropping everything produced empty
-	// results and unverified claims).
+	// No keyword overlap -> every passage kept, byte-identical.
 	got = NarrowOrKeep(chunks, "zzz-no-match", "test", nil)
 	if len(got) != len(chunks) {
 		t.Errorf("no-match kept %d, want all %d", len(got), len(chunks))
+	}
+	for i := range got {
+		if ChunkTextOf(got[i]) != ChunkTextOf(chunks[i]) {
+			t.Errorf("passage %d was altered without a keyword hit: %q", i, ChunkTextOf(got[i]))
+		}
 	}
 
 	// Empty keywords -> untouched.
@@ -295,24 +312,44 @@ func TestNarrowOrKeepIsAllOrNothing(t *testing.T) {
 	}
 }
 
+// TestNarrowByKeywordsStillFilters pins the other half of the contract: the
+// callers whose purpose IS a keyword filter (graph exploration, wiki lookup, the
+// grep fallback) still lose the passages no keyword occurs in.
+func TestNarrowByKeywordsStillFilters(t *testing.T) {
+	chunks := []map[string]any{
+		{"content": "Culdcept was made by OmiyaSoft."},
+		{"content": "It was released in 1999."},
+	}
+	got := NarrowByKeywords(chunks, "culdcept")
+	if len(got) != 1 || !strings.Contains(ChunkTextOf(got[0]), "Culdcept") {
+		t.Errorf("filtering form = %v, want only the matching passage", got)
+	}
+}
+
 func TestNarrowContentKeepsNeighboursAndHighlights(t *testing.T) {
 	content := "Alpha filler. Culdcept was made by OmiyaSoft. Omega filler."
-	got, ok := NarrowContent(content, []string{"culdcept"})
-	if !ok {
-		t.Fatal("NarrowContent must match")
+	got, matched, mode := NarrowContent(content, []string{"culdcept"})
+	if !matched {
+		t.Fatal("NarrowContent must report the match")
+	}
+	if mode != shortWholeMode {
+		t.Errorf("mode = %q, want %q for a passage below the short-text limit", mode, shortWholeMode)
 	}
 	if !strings.Contains(got, "*Culdcept*") {
 		t.Errorf("keyword not highlighted: %q", got)
 	}
-	// +/-1 neighbour window: Alpha and Omega should be present.
+	// A short passage is handed over whole, so its neighbours are present.
 	if !strings.Contains(got, "Alpha") || !strings.Contains(got, "Omega") {
 		t.Errorf("neighbour sentences missing: %q", got)
 	}
 	if !strings.HasPrefix(got, "...") || !strings.HasSuffix(got, "...") {
 		t.Errorf("narrowed text must be wrapped in ellipses: %q", got)
 	}
-	if _, ok := NarrowContent("nothing relevant here", []string{"culdcept"}); ok {
-		t.Error("no match must return false")
+	// No match -> the payload comes back byte-identical, with matched=false.
+	if payload, matched, mode := NarrowContent("nothing relevant here", []string{"culdcept"}); matched || mode != shortWholeMode {
+		t.Errorf("no match must report matched=false, got matched=%v mode=%q", matched, mode)
+	} else if payload != "nothing relevant here" {
+		t.Errorf("an untouched payload must not be rewritten: %q", payload)
 	}
 }
 
@@ -724,16 +761,30 @@ func TestGrepSearchDerivesKeywordsHint(t *testing.T) {
 	if ptrFloat(t, req.VectorSimilarityWeight) != 0 || !req.ExcludeCompiled {
 		t.Error("grep must stay keyword-only (weight 0) and exclude compiled rows")
 	}
-	// The derived hint also drives the narrowing stage: a prose candidate whose
-	// sentences miss those terms is dropped, while a >=3-row pipe table is kept
-	// whole (Python _narrow_by_keywords + _narrow_content's table branch).
+	// The derived hint also drives the narrowing stage, which shrinks each
+	// passage but keeps all of them: a prose candidate whose sentences miss those
+	// terms is handed over whole, and a >=3-row pipe table is kept whole as well
+	// (Python _narrow_or_keep + _narrow_content's table branch).
 	prose := map[string]any{"chunk_id": "p1", "content": "Unrelated sentence about weather."}
 	table := map[string]any{"chunk_id": "t1", "content": "a | b | c\nd | e | f\ng | h | i"}
 	r2 := &stubRetriever{chunks: []map[string]any{prose, table}}
 	deps2, _ := newTestSearchDeps(r2)
 	got, _ := GrepSearch(context.Background(), deps2, SearchParams{Question: "who made Culdcept?"})
-	if len(got) != 1 || got[0]["chunk_id"] != "t1" {
-		t.Errorf("chunks = %v, want only the table chunk", got)
+	if len(got) != 2 {
+		t.Fatalf("chunks = %v, want both candidates kept", got)
+	}
+	// Located by id: the grep leg reorders (table chunks first).
+	var proseOut map[string]any
+	for _, c := range got {
+		if c["chunk_id"] == "p1" {
+			proseOut = c
+		}
+	}
+	if proseOut == nil {
+		t.Fatalf("the keyword-less prose candidate was dropped: %v", got)
+	}
+	if ChunkTextOf(proseOut) != ChunkTextOf(prose) {
+		t.Errorf("the keyword-less prose passage must be returned whole, got %q", ChunkTextOf(proseOut))
 	}
 
 	// An explicit hint wins over the derived terms.
