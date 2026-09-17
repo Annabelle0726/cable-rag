@@ -31,9 +31,7 @@ import { TFunction } from 'i18next';
 import {
   LucideBox,
   LucideLogOut,
-  LucideMessagesSquare,
   LucideServer,
-  LucideUnplug,
   LucideUser,
   LucideUsers,
 } from 'lucide-react';
@@ -54,11 +52,6 @@ const menuItems = (t: TFunction) => [
     key: Routes.DataSource,
   },
   {
-    icon: <LucideMessagesSquare className="size-[1em]" />,
-    label: t('setting.chatChannels'),
-    key: Routes.ChatChannel,
-  },
-  {
     icon: <IconFontFill name="mcp" className="size-[1em]" />,
     label: 'MCP',
     key: Routes.Mcp,
@@ -72,11 +65,6 @@ const menuItems = (t: TFunction) => [
     icon: <LucideUser className="size-[1em]" />,
     label: t('setting.profile'),
     key: Routes.Profile,
-  },
-  {
-    icon: <LucideUnplug className="size-[1em]" />,
-    label: t('setting.api'),
-    key: Routes.Api,
   },
 ];
 
