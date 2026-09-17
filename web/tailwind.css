@@ -221,6 +221,24 @@
     --ceramic-highlight: rgba(255, 255, 255, 0.9);
     --ceramic-border: rgba(203, 216, 233, 0.9);
     --ceramic-border-hover: rgba(2, 132, 199, 0.4);
+    /* The segmented control is the one ceramic surface with its own, flatter
+       palette: a pale icy tray rather than the raised shell, so the selected tab
+       is the only thing in it that looks lifted. The dark theme keeps the obsidian
+       shell values, since that step is what stops the tray sinking into the bar. */
+    --ceramic-track-surface: rgba(241, 245, 249, 0.75);
+    --ceramic-track-border: rgba(226, 232, 240, 0.8);
+    --ceramic-track-inset: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+    /* The raised tab: plain ceramic white, with a brand-tinted diffusion under it
+       and no edge line of its own — the tint and the contact shadow are what
+       separate it from the tray. */
+    --ceramic-pill-surface: #ffffff;
+    --ceramic-pill-edge: transparent;
+    --ceramic-pill-shadow:
+      0 2px 8px -1px rgba(14, 165, 233, 0.18),
+      0 1px 3px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 #ffffff;
+    /* Frosted hint under an unselected tab: enough to answer the pointer without
+       putting a second raised surface next to the selected one. */
+    --ceramic-hover-surface: rgba(255, 255, 255, 0.5);
     --ceramic-shadow: 0 1px 2px rgba(15, 23, 42, 0.04),
       0 6px 16px -8px rgba(15, 23, 42, 0.1), 0 20px 40px -24px rgba(15, 23, 42, 0.18);
     --ceramic-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.05),
@@ -431,6 +449,19 @@
     --ceramic-highlight: rgba(255, 255, 255, 0.12);
     --ceramic-border: rgba(255, 255, 255, 0.08);
     --ceramic-border-hover: rgba(56, 189, 248, 0.45);
+    /* The raised tab: graphite with a blue cast, one step lighter than the shell
+       it was lifted out of, so the selected tab stays legible on navy. It keeps a
+       white rim light here because on graphite the surface alone does not read as
+       an edge, and the obsidian elevation is what gives it depth. */
+    --ceramic-pill-surface: rgba(51, 65, 85, 0.92);
+    --ceramic-pill-edge: rgba(255, 255, 255, 0.08);
+    --ceramic-pill-shadow: var(--ceramic-elevation);
+    --ceramic-track-surface: rgba(30, 41, 59, 0.72);
+    --ceramic-track-border: rgba(255, 255, 255, 0.08);
+    --ceramic-track-inset:
+      inset 0 2px 4px var(--ceramic-groove-shadow),
+      inset 0 -1px 0 var(--ceramic-groove-highlight);
+    --ceramic-hover-surface: rgba(148, 163, 184, 0.14);
     --ceramic-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
       0 6px 18px -8px rgba(0, 0, 0, 0.4), 0 20px 44px -24px rgba(0, 0, 0, 0.5);
     --ceramic-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35),
@@ -608,6 +639,62 @@
     background-color: var(--ceramic-surface);
     border: 1px solid var(--ceramic-border);
     box-shadow: var(--ceramic-elevation);
+  }
+
+  /* Ceramic segmented control: the navigation pill's recessed twin. The shell is
+     a capsule with the surface pressed *into* it — the top edge is shaded and the
+     bottom edge catches the light, the opposite of `.ceramic-pill` — so the tabs
+     read as sitting in a groove rather than on a tile.
+     The radius is set here as well as on the element, so the track is a capsule
+     even if a call site forgets the utility. It clips instead of hiding: the
+     selected tab floats on a three-layer drop shadow, and `hidden` would slice
+     that shadow off at the 4px padding line — the same cut the navigation pill
+     already had to be rescued from. `overflow-clip-margin` lets the shadow paint
+     into the margin while the box itself never overflows or scrolls. */
+  .ceramic-segmented {
+    background-color: var(--ceramic-track-surface);
+    border: 1px solid var(--ceramic-track-border);
+    border-radius: 9999px;
+    overflow: clip;
+    overflow-clip-margin: 14px;
+    box-shadow: var(--ceramic-track-inset);
+  }
+
+  /* An unselected tab answers the pointer with a frosted sheen: a hint of the
+     material, never a second raised surface competing with the selected tab. Its
+     radius is part of the class as well, so the sheen is a capsule wherever the
+     class is used. */
+  .ceramic-segment-idle {
+    border-radius: 9999px;
+    transition:
+      background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ceramic-segment-idle:hover {
+    background-color: var(--ceramic-hover-surface);
+  }
+
+  /* The selected tab: the piece lifted back out of the groove. It is a small
+     capsule of its own — the radius belongs to this class, not only to the tab
+     button, because the sliding highlight is a separate element and a square one
+     inside a round track is exactly the corner that used to poke out. It carries
+     the ceramic elevation and animates its own geometry, so re-anchoring to
+     another tab slides it where the browser can interpolate anchor functions and
+     fades its surfaces where it cannot. */
+  .ceramic-segment-pill {
+    background-color: var(--ceramic-pill-surface);
+    border: 1px solid var(--ceramic-pill-edge);
+    border-radius: 9999px;
+    box-shadow: var(--ceramic-pill-shadow);
+    transition:
+      top 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      left 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      width 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      height 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Category tone: sets the halo tint and the icon ink for one industrial

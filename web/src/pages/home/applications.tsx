@@ -1,6 +1,6 @@
+import { CeramicSegmented, CeramicSegmentedValue } from '@/components/ceramic-segmented';
 import { EmptyCardType } from '@/components/empty/constant';
 import { EmptyAppCard } from '@/components/empty/empty';
-import { Segmented, SegmentedValue } from '@/components/ui/segmented';
 import { Routes } from '@/routes';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -54,7 +54,7 @@ export function Applications() {
     [t],
   );
 
-  const handleChange = (path: SegmentedValue) => {
+  const handleChange = (path: CeramicSegmentedValue) => {
     setVal(path as Routes);
     setListLength(0);
     setLoading(true);
@@ -69,8 +69,7 @@ export function Applications() {
         iconName={IconMap[val as keyof typeof IconMap]}
         label={options.find((x) => x.value === val)?.label ?? ''}
       >
-        <Segmented
-          buttonSize="sm"
+        <CeramicSegmented
           options={options}
           value={val}
           onChange={handleChange}

@@ -171,6 +171,7 @@ module.exports = {
         },
         'cable-nav': {
           DEFAULT: 'var(--cable-nav-text)',
+          'text-hover': 'var(--cable-nav-text-hover)',
           'active-text': 'var(--cable-nav-active-text)',
           'active-bg': 'var(--cable-nav-active-bg)',
           indicator: 'var(--cable-nav-indicator)',
