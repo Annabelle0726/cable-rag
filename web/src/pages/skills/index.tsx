@@ -613,6 +613,7 @@ const SkillsPage: React.FC = () => {
         >
           <header className="page-gutter mb-4 pt-8">
             <ListFilterBar
+              searchVariant="capsule"
               leftPanel={hubListBreadcrumb}
               searchString={spaceSearchString}
               onSearchChange={handleHubSearchChange}
@@ -659,7 +660,7 @@ const SkillsPage: React.FC = () => {
               </div>
             ) : filteredSpaces.length ? (
               spaceViewMode === 'grid' ? (
-                <CardContainer className="flex-1 overflow-auto">
+                <CardContainer className="flex-1 overflow-auto xl:grid-cols-4 2xl:grid-cols-5">
                   {filteredSpaces.map((space) => (
                     <Card
                       key={space.id}
@@ -838,7 +839,7 @@ const SkillsPage: React.FC = () => {
             ) : (
               // Grid item in the same container the skill-space cards use, so the
               // create tile is exactly a card's size.
-              <CardContainer className="flex-1 overflow-auto">
+              <CardContainer className="flex-1 overflow-auto xl:grid-cols-4 2xl:grid-cols-5">
                 {spaceSearchString ? (
                   <EmptyAppCard
                     showIcon
@@ -909,6 +910,7 @@ const SkillsPage: React.FC = () => {
     <article className="size-full flex flex-col" data-testid="skills-list">
       <header className="page-gutter mb-4 pt-8">
         <ListFilterBar
+          searchVariant="capsule"
           leftPanel={skillsListBreadcrumb}
           showFilter={false}
           showSearch={false}
@@ -1035,7 +1037,7 @@ const SkillsPage: React.FC = () => {
             )}
           </div>
         ) : viewMode === 'grid' ? (
-          <CardContainer className="flex-1 overflow-auto">
+          <CardContainer className="flex-1 overflow-auto xl:grid-cols-4 2xl:grid-cols-5">
             {displayedSkills.map((skill) => (
               <SkillCard
                 key={skill.id}

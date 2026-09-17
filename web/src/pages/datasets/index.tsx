@@ -97,6 +97,7 @@ export default function Datasets() {
         >
           <header className="page-gutter mb-4 min-w-0 pt-8">
             <ListFilterBar
+              searchVariant="capsule"
               title={t('header.dataset')}
               searchString={searchString}
               onSearchChange={handleInputChange}

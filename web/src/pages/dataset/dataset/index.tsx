@@ -150,6 +150,7 @@ export default function Dataset() {
     >
       <CardHeader as="header" className="p-5 space-y-0">
         <ListFilterBar
+          searchVariant="capsule"
           onSearchChange={handleInputChange}
           searchString={searchString}
           value={filterValue}
