@@ -287,7 +287,9 @@ const SettingModelV2: FC = () => {
     // lets the scroll areas inside actually scroll rather than stretching the
     // panel past the viewport.
     <div className="glass-surface relative flex h-full min-h-0 w-full overflow-hidden">
-      <section className="flex flex-col gap-4 w-[320px] shrink-0 px-5 border-r border-cable-hairline overflow-auto scrollbar-auto">
+      {/* The provider list is its own rail: the glass tint, then the ceramic seam
+          that separates it from the configuration panel. */}
+      <section className="ceramic-rail ceramic-seam-r flex flex-col gap-4 w-[320px] shrink-0 px-5 overflow-auto scrollbar-auto">
         <Sidebar selection={selection} onSelect={setSelection} />
       </section>
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">

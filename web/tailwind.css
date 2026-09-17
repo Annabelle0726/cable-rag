@@ -264,12 +264,13 @@
     /* Frosted hint under an unselected tab: enough to answer the pointer without
        putting a second raised surface next to the selected one. */
     --ceramic-hover-surface: rgba(255, 255, 255, 0.5);
-    /* The theme switch is the segmented control's groove one size down, with the
-       brand fill as its moving highlight: the same recess (the groove pair above
-       resolves per theme), the tight contact shadow a small control needs to sit
-       on the footer, and a slider elevation tighter than the create pill's
-       because it is a third of the size. */
-    --ceramic-switch-inset: inset 0 2px 4px var(--ceramic-groove-shadow),
+    /* The recess one size down from the segmented control's tray, shared by every
+       small sunk surface (the theme switch, the active row in the provider list);
+       the groove pair above resolves per theme, so one definition serves both.
+       The theme switch keeps the brand fill as its moving highlight, with a
+       slider elevation tighter than the create pill's because it is a third of
+       the size. */
+    --ceramic-recess: inset 0 2px 4px var(--ceramic-groove-shadow),
       inset 0 -1px 0 var(--ceramic-groove-highlight);
     --ceramic-switch-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
     --ceramic-switch-thumb-surface: var(--accent-color);
@@ -277,6 +278,15 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.35),
       inset 0 -1px 1px rgba(2, 132, 199, 0.32);
     --ceramic-switch-icon-glow: rgba(255, 255, 255, 0.6);
+    /* Mini ceramic badge for inline labels (model types, counts): the accent at a
+       whisper of alpha with a rim light, instead of a flat grey chip. */
+    --badge-surface: rgba(14, 165, 233, 0.15);
+    --badge-border: rgba(14, 165, 233, 0.3);
+    --badge-ink: #0369a1;
+    --badge-shadow: rgba(2, 132, 199, 0.18);
+    /* Live status: the success colour with a diffuse bloom, so a "configured" dot
+       reads as a breathing indicator rather than a flat green pixel. */
+    --dot-live-glow: 0 0 8px rgb(var(--state-success) / 0.6);
     --ceramic-shadow: 0 1px 2px rgba(15, 23, 42, 0.04),
       0 6px 16px -8px rgba(15, 23, 42, 0.1), 0 20px 40px -24px rgba(15, 23, 42, 0.18);
     --ceramic-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.05),
@@ -560,6 +570,13 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.22),
       inset 0 -1px 1px rgba(2, 6, 23, 0.45);
     --ceramic-switch-icon-glow: rgba(255, 255, 255, 0.45);
+    /* The badge keeps its accent tint on navy but takes a lighter ink, since the
+       light-theme navy would vanish into the tint. */
+    --badge-surface: rgba(14, 165, 233, 0.18);
+    --badge-border: rgba(56, 189, 248, 0.35);
+    --badge-ink: #7dd3fc;
+    --badge-shadow: rgba(2, 6, 23, 0.35);
+    --dot-live-glow: 0 0 9px rgb(var(--state-success) / 0.55);
     --ceramic-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
       0 6px 18px -8px rgba(0, 0, 0, 0.4), 0 20px 44px -24px rgba(0, 0, 0, 0.5);
     --ceramic-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35),
@@ -1036,12 +1053,110 @@
   .ceramic-switch {
     background-color: var(--glass-bg);
     border: 1px solid var(--cable-hairline);
-    box-shadow: var(--ceramic-switch-inset), var(--ceramic-switch-shadow);
+    box-shadow: var(--ceramic-recess), var(--ceramic-switch-shadow);
   }
 
   .ceramic-switch-thumb {
     background-color: var(--ceramic-switch-thumb-surface);
     box-shadow: var(--ceramic-switch-thumb-elevation);
+  }
+
+  /* Settings chrome. A rail is a glass column, and the seam between two rails is
+     the hairline plus the groove's lit edge, so the divider reads as a recess
+     rather than as a cut. */
+  .ceramic-rail {
+    background-color: var(--glass-bg);
+  }
+
+  .ceramic-seam-r {
+    border-right: 1px solid var(--cable-hairline);
+    box-shadow: 1px 0 0 var(--ceramic-groove-highlight);
+  }
+
+  /* Left navigation row: frosted under the pointer, and a soft ceramic block with
+     the brand edge — plus the 1px rim light — when it is the current page. Only
+     backgrounds and shadows change, so nothing moves its own box. */
+  .ceramic-nav-item {
+    color: var(--text-secondary);
+    transition:
+      background-color 200ms ease-in-out,
+      border-color 200ms ease-in-out,
+      color 200ms ease-in-out,
+      box-shadow 200ms ease-in-out;
+  }
+
+  .ceramic-nav-item:hover {
+    background-color: var(--ceramic-hover-surface);
+    color: var(--text-primary);
+  }
+
+  .ceramic-nav-item-active {
+    background-color: var(--ceramic-surface);
+    border-color: var(--ceramic-border-hover);
+    box-shadow:
+      inset 0 1px 0.5px var(--ceramic-relief-highlight),
+      0 2px 8px -2px var(--shadow-accent);
+    color: var(--text-primary);
+  }
+
+  /* A row in the provider list: the pointer frosts it, and the current provider
+     sinks into the surface, so the list shows where you are without a second
+     raised tile competing with the navigation block beside it. */
+  .ceramic-list-row {
+    color: var(--text-secondary);
+    transition:
+      background-color 200ms ease-in-out,
+      color 200ms ease-in-out,
+      box-shadow 200ms ease-in-out;
+  }
+
+  .ceramic-list-row:hover {
+    background-color: var(--ceramic-hover-surface);
+    color: var(--text-primary);
+  }
+
+  .ceramic-list-row-active {
+    background-color: var(--glass-bg);
+    box-shadow: var(--ceramic-recess);
+    color: var(--text-primary);
+  }
+
+  /* Mini ceramic badge for inline labels (model types, overflow counts): the
+     accent at a whisper of alpha, a rim light along the top edge and a micro drop
+     shadow, where a flat grey chip used to be. */
+  .ceramic-badge {
+    background-color: var(--badge-surface);
+    border: 1px solid var(--badge-border);
+    box-shadow:
+      inset 0 1px 0 var(--ceramic-relief-highlight),
+      0 1px 2px var(--badge-shadow);
+    color: var(--badge-ink);
+  }
+
+  /* A field in the settings forms: a glass well with a 12px radius, the shared
+     hairline and the accent ring on focus, so a select matches the search fields
+     it sits next to. */
+  .ceramic-field {
+    background-color: var(--glass-bg);
+    border: 1px solid var(--cable-hairline);
+    border-radius: 0.75rem;
+    transition:
+      background-color 200ms ease-in-out,
+      border-color 200ms ease-in-out,
+      box-shadow 200ms ease-in-out;
+  }
+
+  .ceramic-field:focus-visible,
+  .ceramic-field:focus-within {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-color-soft);
+  }
+
+  /* A live status dot: the success colour with a diffuse bloom. */
+  .ceramic-dot-live {
+    background-color: rgb(var(--state-success));
+    box-shadow: var(--dot-live-glow);
   }
 
   /* Reserve the scrollbar's own width whether or not one is currently needed.

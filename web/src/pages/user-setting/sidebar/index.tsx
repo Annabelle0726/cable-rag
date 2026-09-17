@@ -96,11 +96,13 @@ export function SideBar() {
     // `h-full min-h-0` matches the settings panel next to it: the rail is the
     // same height as the content area, and the menu list is the only part that
     // scrolls. `shrink-0` used to be here to protect the width in a flex parent;
-    // the parent is a grid now, where it does nothing. The right hairline is the
-    // rail's own edge, so the panel beside it needs no border of its own.
-    <aside className="flex h-full min-h-0 w-16 flex-col overflow-hidden border-r border-cable-hairline bg-bg-base md:w-[303px]">
-      <header className="px-2 pt-5 md:px-6 md:pt-6">
-        <h1 className="flex gap-2.5 items-center justify-center md:justify-start font-normal">
+    // the parent is a grid now, where it does nothing. The right edge is the
+    // rail's own ceramic seam, so the panel beside it needs no border of its own.
+    <aside className="ceramic-rail ceramic-seam-r flex h-full min-h-0 w-16 flex-col overflow-hidden md:w-[303px]">
+      <header className="px-2 pt-5 md:px-4 md:pt-5">
+        {/* The account block sits in its own relief capsule, so the rail reads as
+            a canvas with a card on it rather than as one flat slab. */}
+        <h1 className="ceramic-relief flex items-center justify-center gap-2.5 rounded-full px-2 py-2 font-normal md:justify-start md:px-3">
           <RAGFlowAvatar
             avatar={userInfo?.avatar}
             name={userInfo?.nickname}
@@ -127,8 +129,10 @@ export function SideBar() {
                   variant="ghost"
                   aria-label={label}
                   className={cn(
-                    'relative h-10 text-base max-md:size-10 max-md:p-0 max-md:justify-center justify-start gap-2.5 px-2 md:px-3',
-                    activeItemKey === key && 'bg-bg-card text-text-primary',
+                    // 40px row on the shared rail; the ceramic block and the brand
+                    // edge mark the current page, the pointer frosts the rest.
+                    'ceramic-nav-item relative h-10 text-base max-md:size-10 max-md:p-0 max-md:justify-center justify-start gap-2.5 px-2 md:px-3',
+                    activeItemKey === key && 'ceramic-nav-item-active',
                   )}
                   onClick={handleMenuClick(key)}
                 >
@@ -155,7 +159,9 @@ export function SideBar() {
           size="lg"
           variant="transparent"
           aria-label={t('setting.logout')}
-          className="max-md:size-10 max-md:p-0 max-md:mx-auto max-md:justify-center"
+          // Outline ceramic capsule: the relief reads as a raised control, the
+          // ink turns to the error colour under the pointer.
+          className="ceramic-relief h-10 rounded-full text-text-secondary hover:text-state-error max-md:size-10 max-md:p-0 max-md:mx-auto max-md:justify-center"
           onClick={() => logout()}
         >
           <LucideLogOut className="size-[1em] md:hidden" />

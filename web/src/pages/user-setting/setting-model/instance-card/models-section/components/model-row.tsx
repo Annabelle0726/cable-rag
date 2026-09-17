@@ -15,6 +15,7 @@
  */
 
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import { cn } from '@/lib/utils';
 import { Minus, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ModelRowProps } from '../interface';
@@ -42,7 +43,11 @@ export function ModelRow({
   const toggleButton = (
     <button
       type="button"
-      className="size-6 flex items-center justify-center rounded-md transition-colors text-text-secondary"
+      className={cn(
+        'size-6 flex items-center justify-center rounded-full transition-colors text-text-secondary',
+        // Removing a model: the ink turns to the error colour under the pointer.
+        isAdded && 'hover:bg-state-error-5 hover:text-state-error',
+      )}
       onClick={isAdded ? undefined : onAdd}
       aria-label={isAdded ? `Remove ${model.name}` : `Add ${model.name}`}
     >
@@ -53,7 +58,7 @@ export function ModelRow({
   return (
     <li
       key={model.name}
-      className="group flex items-center justify-between gap-3 p-3 border-b border-border-button last:border-b-0 hover:bg-bg-input transition-colors"
+      className="ceramic-list-row group flex items-center justify-between gap-3 p-3 border-b border-cable-hairline last:border-b-0"
       data-testid={`models-row-${model.name}`}
     >
       <div className="flex gap-1 min-w-0">

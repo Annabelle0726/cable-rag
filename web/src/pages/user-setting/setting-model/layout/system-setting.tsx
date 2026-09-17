@@ -74,6 +74,9 @@ function ModelFieldItem({
           placeholder={t('selectModelPlaceholder')}
           showSearch
           allowClear={id !== 'llm_id'}
+          // Glass well with the shared hairline: the accent ring on focus comes
+          // with the class, so the select matches the search fields.
+          className="ceramic-field h-10"
         />
       </div>
     </div>

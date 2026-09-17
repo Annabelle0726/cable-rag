@@ -17,6 +17,10 @@
 import { LlmIcon } from '@/components/svg-icon';
 import { SearchInput } from '@/components/ui/input';
 import {
+  ceramicSearchFieldClassName,
+  ceramicSearchFieldRootClassName,
+} from '@/components/list-filter-bar';
+import {
   useFetchAddedProviders,
   useFetchAvailableProviders,
 } from '@/hooks/use-llm-request';
@@ -82,10 +86,10 @@ export function Sidebar({ selection, onSelect }: SidebarProps) {
       <button
         type="button"
         className={cn(
-          'flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors border border-border-button',
+          'flex items-center justify-between px-3 py-2 rounded-xl text-sm',
           selection === 'default'
-            ? 'bg-bg-input text-text-primary'
-            : 'text-text-secondary hover:bg-bg-input hover:text-text-primary',
+            ? 'ceramic-list-row ceramic-list-row-active'
+            : 'ceramic-list-row',
         )}
         onClick={() => onSelect('default')}
         data-testid="sidebar-default-models"
@@ -103,7 +107,8 @@ export function Sidebar({ selection, onSelect }: SidebarProps) {
         onChange={(e) => setSearch(e.target.value)}
         placeholder={t('setting.search')}
         data-testid="sidebar-provider-search"
-        className="w-full border-none"
+        className={ceramicSearchFieldClassName}
+        rootClassName={ceramicSearchFieldRootClassName}
       />
 
       <div className="flex flex-col gap-1 overflow-auto scrollbar-auto">
@@ -117,10 +122,8 @@ export function Sidebar({ selection, onSelect }: SidebarProps) {
               onClick={() => onSelect(provider.name)}
               data-testid={`sidebar-provider-${provider.name}`}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors',
-                isActive
-                  ? 'bg-bg-input text-text-primary'
-                  : 'text-text-secondary hover:bg-bg-input hover:text-text-primary',
+                'ceramic-list-row flex items-center gap-3 px-3 py-2 rounded-xl text-left',
+                isActive && 'ceramic-list-row-active',
               )}
             >
               <LlmIcon
@@ -133,7 +136,7 @@ export function Sidebar({ selection, onSelect }: SidebarProps) {
               {isAdded && (
                 <span
                   aria-label="configured"
-                  className="size-2 rounded-full bg-state-success shrink-0"
+                  className="ceramic-dot-live size-2 rounded-full shrink-0"
                   data-testid={`sidebar-provider-dot-${provider.name}`}
                 />
               )}

@@ -28,10 +28,10 @@ export function TagFilterButton({
     <button
       type="button"
       className={cn(
-        'px-2 py-0.5 text-xs rounded-md border border-border-button transition-colors',
-        active
-          ? 'bg-text-primary text-bg-base'
-          : 'bg-bg-card text-text-secondary hover:text-text-primary',
+        'px-2.5 py-1 text-xs rounded-full',
+        // The selected tag is the page's brand fill, the rest are mini ceramic
+        // badges: neither state paints the ink or a flat grey chip any more.
+        active ? 'ceramic-cta' : 'ceramic-badge hover:text-text-primary',
       )}
       onClick={onClick}
     >

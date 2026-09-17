@@ -15,11 +15,16 @@
  */
 
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import {
+  ceramicSearchFieldClassName,
+  ceramicSearchFieldRootClassName,
+} from '@/components/list-filter-bar';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/input';
 import { useCommonTranslation, useTranslate } from '@/hooks/common-hooks';
 import { useFetchInstanceModels } from '@/hooks/use-llm-request';
 import { IProviderModelItem } from '@/interfaces/request/llm';
+import { cn } from '@/lib/utils';
 import { Loader2, Plus, Search, ShieldCheck } from 'lucide-react';
 import {
   useCallback,
@@ -312,7 +317,8 @@ export function ModelsSection(props: ModelsSectionProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('setting.search')}
-              rootClassName="flex-1"
+              rootClassName={cn('flex-1', ceramicSearchFieldRootClassName)}
+              className={ceramicSearchFieldClassName}
             />
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -378,7 +384,7 @@ export function ModelsSection(props: ModelsSectionProps) {
           )}
         </div>
 
-        <div className="bg-bg-card max-h-80 overflow-auto scrollbar-auto border border-border-button">
+        <div className="glass-panel max-h-80 overflow-auto scrollbar-auto rounded-xl">
           {filteredModels.length === 0 ? (
             <div className="flex items-center justify-center text-text-secondary text-sm py-6 gap-2">
               <Search className="size-4" />
