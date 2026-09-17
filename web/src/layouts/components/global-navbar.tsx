@@ -96,14 +96,20 @@ function useActivePath() {
  * centred, with an 8px gap. The row stays 32px tall, so the bar's own padding is
  * what sets the header height. Shared with the knowledge-base menu, whose
  * trigger is the same navigation link.
+ *
+ * Interaction ink is the brand accent throughout — hover, open and keyboard
+ * focus all colour the label the same way. The near-black hover ink it used to
+ * switch to read as an accident in the light theme, and keyboard focus now
+ * draws its own 2px accent ring instead of relying on the browser's outline.
  */
 const desktopNavLinkClass = (isActive: boolean) =>
   cn(
     'inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm',
     'transition-colors duration-200 ease-in-out',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cable-nav-indicator',
     isActive
       ? 'font-semibold text-cable-nav-active-text'
-      : 'text-cable-nav hover:text-cable-nav-hover focus-visible:text-cable-nav-hover',
+      : 'text-cable-nav hover:text-cable-nav-active-text focus-visible:text-cable-nav-active-text',
   );
 
 /** Variant for browsers without CSS anchor positioning: the item highlights itself. */
@@ -111,9 +117,10 @@ const fallbackNavLinkClass = (isActive: boolean) =>
   cn(
     'inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm',
     'transition-colors duration-200 ease-in-out',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cable-nav-indicator',
     isActive
       ? 'border-b-2 border-b-cable-nav-indicator bg-cable-nav-active-bg font-semibold text-cable-nav-active-text shadow-accent-glow'
-      : 'text-cable-nav hover:bg-cable-nav-active-bg hover:text-cable-nav-hover focus-visible:text-cable-nav-hover',
+      : 'text-cable-nav hover:bg-cable-nav-active-bg hover:text-cable-nav-active-text focus-visible:text-cable-nav-active-text',
   );
 
 const DesktopNavbarWithAnchor = () => {
@@ -260,8 +267,8 @@ function MobileNavItem({
       onClick={onClick}
       className={cn(
         'flex w-full items-center gap-3.5 px-4 py-3.5 text-base',
-        'text-cable-nav transition-colors hover:bg-cable-nav-active-bg hover:text-cable-nav-hover',
-        'focus-visible:bg-cable-nav-active-bg focus-visible:text-cable-nav-hover',
+        'text-cable-nav transition-colors hover:bg-cable-nav-active-bg hover:text-cable-nav-active-text',
+        'focus-visible:outline-none focus-visible:bg-cable-nav-active-bg focus-visible:text-cable-nav-active-text',
         isActive &&
           'border-l-2 border-cable-nav-indicator bg-cable-nav-active-bg font-semibold text-cable-nav-active-text',
       )}

@@ -264,7 +264,6 @@
 
     /* Top navigation states: quiet by default, brand-blue and bold when active. */
     --cable-nav-text: #64748b;
-    --cable-nav-text-hover: #0f172a;
     --cable-nav-active-text: #1d4ed8;
     --cable-nav-active-bg: rgba(2, 132, 199, 0.1);
     --cable-nav-indicator: #2563eb;
@@ -441,7 +440,6 @@
     --accent-contrast: #ffffff;
 
     --cable-nav-text: #94a3b8;
-    --cable-nav-text-hover: #f1f5f9;
     --cable-nav-active-text: #38bdf8;
     --cable-nav-active-bg: rgba(23, 37, 84, 0.4);
     --cable-nav-indicator: #38bdf8;

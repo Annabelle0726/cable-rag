@@ -110,7 +110,12 @@ export function DatasetNavMenu({
           aria-current={isActive ? 'page' : undefined}
           aria-haspopup="true"
           aria-expanded={open}
-          className={className}
+          // While the panel is open the trigger keeps the same accent tint and
+          // ink as hover, so the item never reads as inert next to its own menu.
+          className={cn(
+            className,
+            'data-[state=open]:bg-cable-nav-active-bg data-[state=open]:text-cable-nav-active-text',
+          )}
           onMouseEnter={handleOpen}
           onMouseLeave={scheduleClose}
           onFocus={handleOpen}
@@ -127,7 +132,7 @@ export function DatasetNavMenu({
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
         onOpenAutoFocus={handlePreventAutoFocus}
-        className="glass-panel w-[min(92vw,34rem)] rounded-2xl p-0"
+        className="glass-panel w-[min(92vw,34rem)] rounded-2xl p-0 outline-none"
         data-testid="nav-dataset-menu"
       >
         <DatasetNavMenuPanel onNavigate={scheduleClose} />
