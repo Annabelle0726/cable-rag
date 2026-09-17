@@ -134,6 +134,13 @@ module.exports = {
         },
         'cable-divider': 'var(--cable-divider)',
         'cable-muted': 'var(--cable-muted)',
+        /* Semantic content scale: text is coloured by role, and both themes
+           resolve it from the tokens declared in tailwind.css. */
+        content: {
+          primary: 'var(--content-primary)',
+          secondary: 'var(--content-secondary)',
+          tertiary: 'var(--content-tertiary)',
+        },
         'cable-hairline': 'var(--cable-hairline)',
         'cable-backdrop': 'var(--cable-backdrop)',
         'cable-avatar': {

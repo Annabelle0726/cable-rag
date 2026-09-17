@@ -116,6 +116,16 @@
     --text-primary-inverse: 246 246 247;
     --text-secondary-inverse: 178 181 183;
 
+    /* Semantic content palette: the inks text is drawn in, by role rather than
+       by hue, so a page never picks a grey out of the air. The upstream
+       `--text-*` pair is a warm neutral that fights the cool canvas, which is
+       why the theme states its own three-step scale and the cable tokens alias
+       into it — `--cable-muted` is the tertiary step, so the metadata greys read
+       from here too. */
+    --content-primary: #0f172a;
+    --content-secondary: #475569;
+    --content-tertiary: #64748b;
+
     /* Cable industry theme: page, surfaces, brand and accents.
        Every value below is resolved per mode, so components never need
        hardcoded whites/blacks nor `dark:` duplicates for these surfaces. */
@@ -163,7 +173,7 @@
     --cable-icon-surface: #eff6ff;
     --cable-icon-foreground: #2563eb;
     --cable-divider: rgba(148, 163, 184, 0.35);
-    --cable-muted: #64748b;
+    --cable-muted: var(--content-tertiary);
     /* Translucent hairline for chat bubbles and markdown tables: a hard 1px
        border reads as a heavy outline, a low-alpha one keeps the surface soft in
        both themes. */
@@ -367,6 +377,12 @@
     --text-secondary-inverse: 117 120 122;
 
     /* Cable industry theme in dark mode: industrial black-blue instead of pure black. */
+    /* The semantic content scale, lifted for a dark page: the same three roles,
+       brighter, because a mid grey on near-black reads as haze. */
+    --content-primary: #f1f5f9;
+    --content-secondary: #cbd5e1;
+    --content-tertiary: #94a3b8;
+
     /* Deep ocean in the dark theme: the same three-stop wash, with the bloom
        lifted because a navy glow on near-black needs the extra alpha. */
     --cable-page-from: #0f172a;
@@ -385,7 +401,7 @@
     --cable-icon-surface: rgba(23, 37, 84, 0.5);
     --cable-icon-foreground: #60a5fa;
     --cable-divider: rgba(148, 163, 184, 0.2);
-    --cable-muted: #94a3b8;
+    --cable-muted: var(--content-tertiary);
     --cable-hairline: rgba(255, 255, 255, 0.08);
     --cable-shadow: none;
     --cable-shadow-hover: none;
