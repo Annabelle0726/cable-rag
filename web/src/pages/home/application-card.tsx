@@ -17,7 +17,7 @@ const applicationCardClass = cn(
   // Translucent glass tint, matching the knowledge-base cards, so the page's
   // glow reads through the tile instead of stopping at an opaque surface. The
   // ceramic shell adds the inner rim light and the drop shadow per theme.
-  'border border-ceramic-border bg-glass shadow-ceramic',
+  'border border-cable-hairline bg-glass shadow-ceramic',
   'hover:border-ceramic-border-hover hover:shadow-ceramic-hover',
   'transition-[background-color,border-color,box-shadow,opacity] duration-200 ease-in-out',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cable-accent',

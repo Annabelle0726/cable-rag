@@ -663,7 +663,7 @@ const SkillsPage: React.FC = () => {
                   {filteredSpaces.map((space) => (
                     <Card
                       key={space.id}
-                      className="card-interactive group flex flex-col bg-glass border border-ceramic-border shadow-ceramic hover:border-ceramic-border-hover hover:shadow-ceramic-hover transition-[background-color,border-color,box-shadow,opacity] duration-200 ease-in-out"
+                      className="card-interactive group flex flex-col bg-glass border border-cable-hairline shadow-ceramic hover:border-ceramic-border-hover hover:shadow-ceramic-hover transition-[background-color,border-color,box-shadow,opacity] duration-200 ease-in-out"
                       onClick={() => {
                         setSelectedSpaceId(space.id);
                         setSelectedSpaceName(space.name);

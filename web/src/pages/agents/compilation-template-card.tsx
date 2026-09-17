@@ -35,7 +35,7 @@ export function CompilationTemplateCard({
 
   return (
     <Card
-      className="card-interactive group h-full bg-glass border border-ceramic-border shadow-ceramic hover:border-ceramic-border-hover hover:shadow-ceramic-hover transition-[background-color,border-color,box-shadow,opacity] duration-200 ease-in-out"
+      className="card-interactive group h-full bg-glass border border-cable-hairline shadow-ceramic hover:border-ceramic-border-hover hover:shadow-ceramic-hover transition-[background-color,border-color,box-shadow,opacity] duration-200 ease-in-out"
       onClick={onClick}
     >
       <CardContent className="py-4 px-2.5 flex gap-3">

@@ -58,7 +58,7 @@ export function SeeAllCard() {
 
   return (
     <Card
-      className="card-interactive w-full flex-none h-full border border-ceramic-border bg-glass shadow-ceramic hover:border-ceramic-border-hover hover:shadow-ceramic-hover transition-[background-color,border-color,box-shadow,opacity] duration-200 ease-in-out"
+      className="card-interactive w-full flex-none h-full border border-cable-hairline bg-glass shadow-ceramic hover:border-ceramic-border-hover hover:shadow-ceramic-hover transition-[background-color,border-color,box-shadow,opacity] duration-200 ease-in-out"
       onClick={() => navigateToDatasetList({ isCreate: false })}
     >
       <CardContent className="p-2.5 pt-1 w-full h-full flex items-center justify-center gap-1.5 text-text-secondary">

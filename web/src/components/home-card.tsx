@@ -84,7 +84,7 @@ export function HomeCard({
         // Translucent glass tint, so the page's own glow reads through the card
         // instead of stopping dead at an opaque surface. The ceramic shell adds
         // the inner rim light and the drop shadow, in whichever theme is active.
-        'border border-ceramic-border bg-glass shadow-ceramic',
+        'border border-cable-hairline bg-glass shadow-ceramic',
         'hover:border-ceramic-border-hover hover:shadow-ceramic-hover',
         // Needed because `Card` ships `transition-shadow`, which would otherwise
         // pin transition-property to box-shadow and drop the colour transition.
