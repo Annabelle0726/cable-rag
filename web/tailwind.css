@@ -580,13 +580,17 @@
   /* The top bar keeps a translucent surface but only a bottom hairline, so it
      reads as a bar rather than a floating card. Its top edge carries the same
      highlight as the panes below, which is what makes the shell read as one
-     piece of glass. */
+     piece of glass. The bottom edge is the header/main seam: a light line with
+     its own shadow line under it, so the bar sits on the page instead of being
+     cut off from it. */
   .glass-header {
     background-color: var(--glass-bg);
-    border-bottom: 1px solid var(--glass-border);
+    border-bottom: 1px solid var(--ceramic-groove-highlight);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
-    box-shadow: inset 0 1px 0 var(--glass-highlight);
+    box-shadow:
+      inset 0 1px 0 var(--glass-highlight),
+      0 1px 0 var(--ceramic-groove-shadow);
   }
 
   /* Interactive card: pointer cursor plus a colour-only hover. Deliberately no
