@@ -565,6 +565,11 @@ class CreateDatasetReq(Base):
     name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=DATASET_NAME_LIMIT), Field(...)]
     avatar: Annotated[str | None, Field(default=None, max_length=65535)]
     description: Annotated[str | None, Field(default=None, max_length=65535)]
+    # Industrial class of the dataset in the plant's own filing scheme. Any short
+    # label is accepted: the client offers the five built-in classes, and a label
+    # outside them is shown back to the user as their own class. An empty string
+    # clears the manual class so the client derives one from the name again.
+    category: Annotated[str | None, StringConstraints(strip_whitespace=True, max_length=32), Field(default=None)]
     embedding_model: Annotated[str | None, Field(default=None, max_length=255, serialization_alias="embd_id")]
     permission: Annotated[Literal["me", "team"], Field(default="me", min_length=1, max_length=16)]
     parse_type: Annotated[int | None, Field(default=None, ge=0, le=64)]

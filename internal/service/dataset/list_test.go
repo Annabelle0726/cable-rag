@@ -74,6 +74,46 @@ func TestDatasetServiceListDatasetsIDsAccessibleViaTeamTenant(t *testing.T) {
 	}
 }
 
+func TestDatasetServiceListDatasetsCarriesCategory(t *testing.T) {
+	db := setupDatasetUpdateTestDB(t)
+	pushServiceDB(t, db)
+	insertDatasetUpdateKB(t, "kb-1", "tenant-1", "Alpha")
+	insertDatasetUpdateKB(t, "kb-2", "tenant-1", "Beta")
+	if err := dao.DB.Model(&entity.Knowledgebase{}).
+		Where("id = ?", "kb-1").
+		Update("category", "bom").Error; err != nil {
+		t.Fatalf("set kb category: %v", err)
+	}
+
+	ctx := t.Context()
+	data, _, code, err := testDatasetListService(t).ListDatasets(ctx,
+		"", "", 1, 30, []dao.OrderTerm{{Column: "create_time", Desc: true}},
+		"", nil, "", "tenant-1", []string{"kb-1", "kb-2"},
+	)
+	if err != nil {
+		t.Fatalf("ListDatasets failed: %v", err)
+	}
+	if code != common.CodeSuccess {
+		t.Fatalf("expected success code, got %d", code)
+	}
+	if len(data) != 2 {
+		t.Fatalf("expected two datasets, got %d", len(data))
+	}
+	byID := make(map[string]map[string]interface{}, len(data))
+	for _, item := range data {
+		id, _ := item["id"].(string)
+		byID[id] = item
+	}
+	if byID["kb-1"]["category"] != "bom" {
+		t.Fatalf("expected kb-1 category %q, got %#v", "bom", byID["kb-1"]["category"])
+	}
+	// An unclassified dataset keeps the key with a null value, like Python's
+	// full-row dict response.
+	if value, ok := byID["kb-2"]["category"]; !ok || value != nil {
+		t.Fatalf("expected kb-2 category key with nil value, got %#v (present=%v)", value, ok)
+	}
+}
+
 func TestDatasetServiceListDatasetsRejectsIDAndIDsTogether(t *testing.T) {
 	db := setupDatasetUpdateTestDB(t)
 	pushServiceDB(t, db)

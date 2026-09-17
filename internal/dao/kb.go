@@ -224,7 +224,8 @@ func (dao *KnowledgebaseDAO) GetByTenantIDs(ctx context.Context, db *gorm.DB, te
 
 	query := db.WithContext(ctx).Model(&entity.Knowledgebase{}).
 		Select(`knowledgebase.id, knowledgebase.avatar, knowledgebase.name,
-			knowledgebase.language, knowledgebase.description, knowledgebase.tenant_id,
+			knowledgebase.language, knowledgebase.description, knowledgebase.category,
+			knowledgebase.tenant_id,
 			knowledgebase.permission, knowledgebase.doc_num, knowledgebase.token_num,
 			knowledgebase.chunk_num, knowledgebase.parser_id, knowledgebase.parser_config,
 			knowledgebase.pagerank, knowledgebase.embd_id,
@@ -314,7 +315,8 @@ func (dao *KnowledgebaseDAO) GetDetail(ctx context.Context, db *gorm.DB, kbID st
 
 	err := db.WithContext(ctx).Table("knowledgebase").
 		Select(`knowledgebase.id, knowledgebase.embd_id, knowledgebase.avatar, knowledgebase.name,
-			knowledgebase.language, knowledgebase.description, knowledgebase.permission,
+			knowledgebase.language, knowledgebase.description, knowledgebase.category,
+			knowledgebase.permission,
 			knowledgebase.doc_num, knowledgebase.token_num, knowledgebase.chunk_num,
 			knowledgebase.parser_id, knowledgebase.pipeline_id,
 			user_canvas.title as pipeline_name, user_canvas.avatar as pipeline_avatar,

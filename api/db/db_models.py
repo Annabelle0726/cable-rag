@@ -1274,6 +1274,10 @@ class Knowledgebase(DataBaseModel):
     # locale, so the same create call produced different data per deployment.
     language = CharField(max_length=32, null=True, default="Chinese", help_text="English|Chinese", index=True)
     description = TextField(null=True, help_text="KB description")
+    # Industrial class of the knowledge base in the plant's own filing scheme
+    # ("bom", "standard", "spec", "quality", "general"). NULL or "" means no
+    # class was set by hand and the client derives one from the name.
+    category = CharField(max_length=32, null=True, help_text="industrial class of the knowledge base", index=True)
     # A dataset may inherit an application-level empty string. GaussDB stores it
     # as NULL and restores it to "" when read.
     embd_id = EmptyStringCharField(max_length=128, null=False, help_text="default embedding model ID", index=True)
@@ -2434,6 +2438,7 @@ def migrate_db():
     alter_db_add_column(migrator, "canvas_template", "canvas_category", CharField(max_length=32, null=False, default="agent_canvas", help_text="agent_canvas|dataflow_canvas", index=True))
     alter_db_add_column(migrator, "canvas_template", "canvas_types", ListField(null=True, default=list, help_text="Canvas types"))
     alter_db_add_column(migrator, "knowledgebase", "pipeline_id", CharField(max_length=32, null=True, help_text="Pipeline ID", index=True))
+    alter_db_add_column(migrator, "knowledgebase", "category", CharField(max_length=32, null=True, help_text="industrial class of the knowledge base", index=True))
     alter_db_add_column(migrator, "chat_channel", "dialog_id", CharField(max_length=32, null=True, help_text="connected dialog id", index=True))
     alter_db_add_column(migrator, "document", "pipeline_id", CharField(max_length=32, null=True, help_text="Pipeline ID", index=True))
     alter_db_add_column(migrator, "knowledgebase", "graphrag_task_id", CharField(max_length=32, null=True, help_text="Gragh RAG task ID", index=True))

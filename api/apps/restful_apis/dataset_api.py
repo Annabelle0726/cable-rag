@@ -261,6 +261,10 @@ async def update(tenant_id, dataset_id):
             description:
               type: string
               description: Updated description of the dataset.
+            category:
+              type: string
+              maxLength: 32
+              description: Industrial class of the dataset (e.g. "bom", "standard", "spec", "quality", "general"). An empty string clears the class so the client files the dataset by its name again.
             language:
               type: string
               minLength: 1

@@ -154,6 +154,7 @@ var knowledgebaseOrderableColumns = map[string]struct{}{
 	"tenant_id":      {},
 	"name":           {},
 	"language":       {},
+	"category":       {},
 	"permission":     {},
 	"doc_num":        {},
 	"token_num":      {},

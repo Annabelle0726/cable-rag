@@ -693,6 +693,77 @@ func TestDatasetServiceUpdateDatasetPreservesUnmodifiedFields(t *testing.T) {
 	}
 }
 
+func TestDatasetServiceUpdateDatasetAppliesCategory(t *testing.T) {
+	db := setupDatasetUpdateTestDB(t)
+	pushServiceDB(t, db)
+	insertDatasetUpdateKB(t, "kb-1", "tenant-1", "Original")
+
+	ctx := t.Context()
+	category := "  bom  "
+	result, code, err := testDatasetUpdateService(t).UpdateDataset(ctx, "kb-1", "tenant-1", service.UpdateDatasetRequest{
+		Category: &category,
+	})
+	if err != nil {
+		t.Fatalf("UpdateDataset failed: %v", err)
+	}
+	if code != common.CodeSuccess {
+		t.Fatalf("expected success code, got %d", code)
+	}
+	if result["category"] != "bom" {
+		t.Fatalf("expected trimmed category in response, got %#v", result["category"])
+	}
+
+	persisted, err := dao.NewKnowledgebaseDAO().GetByID(ctx, db, "kb-1")
+	if err != nil {
+		t.Fatalf("get updated kb: %v", err)
+	}
+	if persisted.Category == nil || *persisted.Category != "bom" {
+		t.Fatalf("expected persisted category %q, got %#v", "bom", persisted.Category)
+	}
+
+	// An empty class clears the manual class instead of leaving the old one.
+	empty := ""
+	result, code, err = testDatasetUpdateService(t).UpdateDataset(ctx, "kb-1", "tenant-1", service.UpdateDatasetRequest{
+		Category: &empty,
+	})
+	if err != nil {
+		t.Fatalf("UpdateDataset failed: %v", err)
+	}
+	if code != common.CodeSuccess {
+		t.Fatalf("expected success code, got %d", code)
+	}
+	if result["category"] != "" {
+		t.Fatalf("expected empty category in response, got %#v", result["category"])
+	}
+	persisted, err = dao.NewKnowledgebaseDAO().GetByID(ctx, db, "kb-1")
+	if err != nil {
+		t.Fatalf("get updated kb: %v", err)
+	}
+	if persisted.Category == nil || *persisted.Category != "" {
+		t.Fatalf("expected persisted empty category, got %#v", persisted.Category)
+	}
+}
+
+func TestDatasetServiceUpdateDatasetRejectsTooLongCategory(t *testing.T) {
+	db := setupDatasetUpdateTestDB(t)
+	pushServiceDB(t, db)
+	insertDatasetUpdateKB(t, "kb-1", "tenant-1", "Original")
+
+	category := strings.Repeat("a", 33)
+	_, code, err := testDatasetUpdateService(t).UpdateDataset(t.Context(), "kb-1", "tenant-1", service.UpdateDatasetRequest{
+		Category: &category,
+	})
+	if err == nil {
+		t.Fatal("expected category length error")
+	}
+	if code != common.CodeDataError {
+		t.Fatalf("expected data error code, got %d", code)
+	}
+	if err.Error() != "String should have at most 32 characters" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestDatasetServiceUpdateDatasetPreservesParserConfigOnEmptyUpdate(t *testing.T) {
 	db := setupDatasetUpdateTestDB(t)
 	pushServiceDB(t, db)

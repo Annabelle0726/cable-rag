@@ -16,14 +16,15 @@ import (
 )
 
 func datasetListItemToMap(kb *entity.KnowledgebaseListItem) map[string]interface{} {
-	// avatar/language/description keys are always present (null when unset),
-	// matching Python's full-row dict response.
+	// avatar/language/description/category keys are always present (null when
+	// unset), matching Python's full-row dict response.
 	item := map[string]interface{}{
 		"id":              kb.ID,
 		"name":            kb.Name,
 		"avatar":          stringPointerValue(kb.Avatar),
 		"language":        stringPointerValue(kb.Language),
 		"description":     stringPointerValue(kb.Description),
+		"category":        stringPointerValue(kb.Category),
 		"tenant_id":       kb.TenantID,
 		"permission":      kb.Permission,
 		"document_count":  kb.DocNum,
@@ -70,6 +71,9 @@ func datasetToMap(kb *entity.Knowledgebase) map[string]interface{} {
 	}
 	if kb.Description != nil {
 		item["description"] = *kb.Description
+	}
+	if kb.Category != nil {
+		item["category"] = *kb.Category
 	}
 	if kb.PipelineID != nil {
 		item["pipeline_id"] = *kb.PipelineID

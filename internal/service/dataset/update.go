@@ -87,6 +87,15 @@ func (d *DatasetService) UpdateDataset(ctx context.Context, datasetID, tenantID 
 		}
 		simpleUpdates["description"] = *req.Description
 	}
+	if req.Category != nil {
+		category := strings.TrimSpace(*req.Category)
+		// "" is a valid value: it clears the manual class, so the client falls
+		// back to deriving one from the name.
+		if len(category) > 32 {
+			return nil, common.CodeDataError, errors.New("String should have at most 32 characters")
+		}
+		simpleUpdates["category"] = category
+	}
 	if req.Language != nil {
 		language, err := normalizeDatasetLanguage(*req.Language)
 		if err != nil {

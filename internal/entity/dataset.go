@@ -97,6 +97,10 @@ const (
 )
 
 // Knowledgebase represents the knowledge base model
+//
+// Category is the plant's industrial class ("bom", "standard", "spec",
+// "quality", "general"). NULL or "" means no class was set by hand, so the
+// client derives one from the name.
 type Knowledgebase struct {
 	ID                     string     `gorm:"column:id;primaryKey;size:32" json:"id"`
 	Avatar                 *string    `gorm:"column:avatar;type:longtext" json:"avatar,omitempty"`
@@ -104,6 +108,7 @@ type Knowledgebase struct {
 	Name                   string     `gorm:"column:name;size:128;not null;index" json:"name"`
 	Language               *string    `gorm:"column:language;size:32;index;default:'Chinese'" json:"language,omitempty"`
 	Description            *string    `gorm:"column:description;type:longtext" json:"description,omitempty"`
+	Category               *string    `gorm:"column:category;size:32;index" json:"category,omitempty"`
 	EmbdID                 string     `gorm:"column:embd_id;size:128;not null;index" json:"embd_id"`
 	TenantEmbdID           *string    `gorm:"column:tenant_embd_id;size:32;index" json:"tenant_embd_id,omitempty"`
 	Permission             string     `gorm:"column:permission;size:16;not null;default:me;index" json:"permission"`
@@ -177,6 +182,9 @@ func (kb *Knowledgebase) ToMap() map[string]interface{} {
 	if kb.Description != nil {
 		result["description"] = *kb.Description
 	}
+	if kb.Category != nil {
+		result["category"] = *kb.Category
+	}
 	if kb.PipelineID != nil {
 		result["pipeline_id"] = *kb.PipelineID
 	}
@@ -213,6 +221,7 @@ type KnowledgebaseDetail struct {
 	Name                 string   `json:"name"`
 	Language             *string  `json:"language,omitempty"`
 	Description          *string  `json:"description,omitempty"`
+	Category             *string  `json:"category,omitempty"`
 	Permission           string   `json:"permission"`
 	DocNum               int64    `json:"doc_num"`
 	TokenNum             int64    `json:"token_num"`
@@ -242,6 +251,7 @@ type KnowledgebaseListItem struct {
 	Name         string  `json:"name"`
 	Language     *string `json:"language"`
 	Description  *string `json:"description"`
+	Category     *string `json:"category"`
 	TenantID     string  `json:"tenant_id"`
 	Permission   string  `json:"permission"`
 	DocNum       int64   `json:"doc_num"`
