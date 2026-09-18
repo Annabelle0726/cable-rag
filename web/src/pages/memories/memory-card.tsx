@@ -1,3 +1,4 @@
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { HomeCard } from '@/components/home-card';
 import { MoreButton } from '@/components/more-button';
 import { SharedBadge } from '@/components/shared-badge';
@@ -16,10 +17,10 @@ export function MemoryCard({ data, showMemoryRenameModal }: IProps) {
     <HomeCard
       data={{
         name: data?.name,
-        avatar: data?.avatar,
         description: data?.description,
         update_time: data?.create_time,
       }}
+      leading={<CardIdentityIcon kind="memory" avatar={data?.avatar} />}
       moreDropdown={
         <MemoryDropdown
           memory={data}

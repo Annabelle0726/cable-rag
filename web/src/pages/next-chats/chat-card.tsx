@@ -1,3 +1,4 @@
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { HomeCard } from '@/components/home-card';
 import { MoreButton } from '@/components/more-button';
 import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
@@ -17,9 +18,9 @@ export function ChatCard({ data, showChatRenameModal }: IProps) {
       data={{
         name: data.name,
         description: data.description,
-        avatar: data.icon,
         update_time: data.update_time,
       }}
+      leading={<CardIdentityIcon kind="chat" avatar={data.icon} />}
       moreDropdown={
         <ChatDropdown chat={data} showChatRenameModal={showChatRenameModal}>
           <MoreButton></MoreButton>

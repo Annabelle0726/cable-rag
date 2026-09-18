@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { HomeCard } from '@/components/home-card';
 import { MoreButton } from '@/components/more-button';
 import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
@@ -30,6 +31,7 @@ export function SearchCard({ data, showSearchRenameModal }: IProps) {
   return (
     <HomeCard
       data={data}
+      leading={<CardIdentityIcon kind="search" avatar={data.avatar} />}
       moreDropdown={
         <SearchDropdown
           dataset={data}
