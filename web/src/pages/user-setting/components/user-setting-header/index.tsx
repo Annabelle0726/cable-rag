@@ -34,12 +34,12 @@ export function ProfileSettingWrapperCard({
   children,
 }: ProfileSettingWrapperCardProps) {
   return (
-    <article className="glass-surface relative flex h-full min-h-0 w-full flex-col overflow-hidden">
+    <article className="glass-surface relative flex h-full min-h-0 w-full flex-col">
       <header className="shrink-0 border-b border-cable-hairline p-5">
         {header}
       </header>
 
-      <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto scrollbar-auto p-1">{children}</div>
     </article>
   );
 }

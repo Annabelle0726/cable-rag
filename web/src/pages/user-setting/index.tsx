@@ -30,10 +30,10 @@ function UserSetting() {
     // The content column carries no padding of its own: the panel inside it is
     // meant to sit flush against the rail, the right edge and the bottom edge,
     // which is what its header and body then pad for themselves.
-    <section className="grid size-full min-h-0 min-w-0 grid-cols-[4rem_minmax(0,1fr)] grid-rows-1 overflow-hidden md:grid-cols-[303px_minmax(0,1fr)]">
+    <section className="grid size-full min-h-0 min-w-0 grid-cols-[4rem_minmax(0,1fr)] grid-rows-1 md:grid-cols-[303px_minmax(0,1fr)]">
       <SideBar />
 
-      <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1">
         <Outlet />
       </div>
     </section>

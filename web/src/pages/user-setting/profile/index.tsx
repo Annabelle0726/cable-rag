@@ -178,7 +178,7 @@ const ProfilePage: FC = () => {
       <div className="max-w-3xl space-y-11 w-3/4 p-7">
         {/* Name */}
         <div className="flex items-center gap-4 ">
-          <label className="w-[190px] text-sm font-medium">
+          <label className="w-[88px] text-sm font-medium">
             {t('username')}
           </label>
           <div className="flex-1 flex items-center gap-4 min-w-0">
@@ -191,7 +191,7 @@ const ProfilePage: FC = () => {
             <Button
               variant="outline"
               type="button"
-              className="h-10 rounded-xl"
+              className="ceramic-cta-soft h-10 rounded-xl"
               onClick={() => handleEditClick(EditType.editName)}
             >
               <PenLine size={12} /> {t('edit')}
@@ -201,7 +201,7 @@ const ProfilePage: FC = () => {
 
         {/* Avatar */}
         <div className="flex items-center gap-4">
-          <label className="w-[190px] text-sm font-medium">{t('avatar')}</label>
+          <label className="w-[88px] text-sm font-medium">{t('avatar')}</label>
           <div className="flex items-center gap-4">
             <AvatarUpload
               value={profile.avatar}
@@ -213,7 +213,7 @@ const ProfilePage: FC = () => {
 
         {/* Time Zone */}
         <div className="flex items-center gap-4">
-          <label className="w-[190px] text-sm font-medium">
+          <label className="w-[88px] text-sm font-medium">
             {t('timezone')}
           </label>
           <div className="flex-1 flex items-center gap-4">
@@ -228,7 +228,7 @@ const ProfilePage: FC = () => {
             <Button
               variant="outline"
               type="button"
-              className="h-10 rounded-xl"
+              className="ceramic-cta-soft h-10 rounded-xl"
               onClick={() => handleEditClick(EditType.editTimeZone)}
             >
               <PenLine size={12} /> {t('edit')}
@@ -238,7 +238,7 @@ const ProfilePage: FC = () => {
 
         {/* Email Address */}
         <div className="flex items-center gap-4">
-          <label className="w-[190px] text-sm font-medium"> {t('email')}</label>
+          <label className="w-[88px] text-sm font-medium"> {t('email')}</label>
           <div className="flex-1 flex flex-col items-start gap-2">
             <div className="text-sm text-text-primary flex-1 rounded-md py-1.5 ">
               {profile.email}
@@ -251,7 +251,7 @@ const ProfilePage: FC = () => {
 
         {/* Password */}
         <div className="flex items-center gap-4">
-          <label className="w-[190px] text-sm font-medium">
+          <label className="w-[88px] text-sm font-medium">
             {t('password')}
           </label>
           <div className="flex-1 flex items-center gap-4">
@@ -261,7 +261,7 @@ const ProfilePage: FC = () => {
             <Button
               variant="outline"
               type="button"
-              className="h-10 rounded-xl"
+              className="ceramic-cta-soft h-10 rounded-xl"
               onClick={() => handleEditClick(EditType.editPassword)}
             >
               <PenLine size={12} /> {t('edit')}

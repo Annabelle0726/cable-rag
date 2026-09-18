@@ -323,6 +323,10 @@
     --badge-border: rgba(14, 165, 233, 0.3);
     --badge-ink: #0369a1;
     --badge-shadow: rgba(2, 132, 199, 0.18);
+    --badge-surface-hover: rgba(14, 165, 233, 0.2);
+    /* A form field has to stay legible against the glass panel it sits on, so its
+       edge is a real line rather than the hairline the chrome uses. */
+    --field-border: rgba(15, 23, 42, 0.14);
     /* Live status: the success colour with a diffuse bloom, so a "configured" dot
        reads as a breathing indicator rather than a flat green pixel. */
     --dot-live-glow: 0 0 8px rgb(var(--state-success) / 0.6);
@@ -641,6 +645,10 @@
     --badge-border: rgba(56, 189, 248, 0.35);
     --badge-ink: #7dd3fc;
     --badge-shadow: rgba(2, 6, 23, 0.35);
+    --badge-surface-hover: rgba(56, 189, 248, 0.25);
+    /* On navy the panel and the pane behind a field are the same glass, so the
+       field edge is lifted to a clearly visible line. */
+    --field-border: rgba(148, 163, 184, 0.32);
     --dot-live-glow: 0 0 9px rgb(var(--state-success) / 0.55);
     --ceramic-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
       0 6px 18px -8px rgba(0, 0, 0, 0.4), 0 20px 44px -24px rgba(0, 0, 0, 0.5);
@@ -1035,7 +1043,7 @@
   /* Primary ceramic action: the branded fill, a rim light along the top edge and
      a coloured drop shadow that widens under the pointer and contracts while the
      control is held. The lift is shadow only, so nothing moves its own box. */
-  .ceramic-cta {
+  .ceramic-cta.ceramic-cta {
     background-color: var(--accent-color);
     color: var(--accent-contrast);
     box-shadow: var(--ceramic-relief-elevation);
@@ -1045,13 +1053,13 @@
       color 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .ceramic-cta:hover,
-  .ceramic-cta:focus-visible {
+  .ceramic-cta.ceramic-cta:hover,
+  .ceramic-cta.ceramic-cta:focus-visible {
     background-color: var(--accent-color-strong);
     box-shadow: var(--ceramic-relief-elevation-hover);
   }
 
-  .ceramic-cta:active {
+  .ceramic-cta.ceramic-cta:active {
     background-color: var(--accent-color-strong);
     box-shadow: var(--ceramic-relief-elevation-active);
   }
@@ -1060,7 +1068,7 @@
      raised out of the surface without carrying the brand fill. Focus keeps the
      relief and adds the accent ring on top of it, because a box-shadow cannot be
      additive across two rules. */
-  .ceramic-relief {
+  .ceramic-relief.ceramic-relief {
     background-color: var(--glass-bg);
     border: 1px solid var(--cable-hairline);
     box-shadow: var(--ceramic-relief-elevation);
@@ -1070,12 +1078,12 @@
       box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .ceramic-relief:hover {
+  .ceramic-relief.ceramic-relief:hover {
     box-shadow: var(--ceramic-relief-elevation-hover);
   }
 
-  .ceramic-relief:focus-visible,
-  .ceramic-relief:focus-within {
+  .ceramic-relief.ceramic-relief:focus-visible,
+  .ceramic-relief.ceramic-relief:focus-within {
     outline: none;
     border-color: var(--accent-color);
     box-shadow:
@@ -1083,7 +1091,7 @@
       0 0 0 3px var(--accent-color-soft);
   }
 
-  .ceramic-relief:active {
+  .ceramic-relief.ceramic-relief:active {
     box-shadow: var(--ceramic-relief-elevation-active);
   }
 
@@ -1092,7 +1100,7 @@
      raised tile, so a search box and the button beside it read as two different
      pieces of the same material. Kept here with the relief for the same reason:
      `Input` paints its own background. */
-  .ceramic-well {
+  .ceramic-well.ceramic-well {
     background-color: var(--glass-bg);
     border: 1px solid var(--ceramic-well-border);
     box-shadow: var(--ceramic-well-inset);
@@ -1102,8 +1110,8 @@
       box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .ceramic-well:focus-visible,
-  .ceramic-well:focus-within {
+  .ceramic-well.ceramic-well:focus-visible,
+  .ceramic-well.ceramic-well:focus-within {
     outline: none;
     border-color: var(--accent-color);
     box-shadow:
@@ -1115,13 +1123,13 @@
      slider lifted out of it. Same family as the controls above — the tray keeps
      the hairline edge and the groove, the slider keeps the rim light — so the
      switch reads as part of the toolbar material rather than as a grey box. */
-  .ceramic-switch {
+  .ceramic-switch.ceramic-switch {
     background-color: var(--glass-bg);
     border: 1px solid var(--cable-hairline);
     box-shadow: var(--ceramic-recess), var(--ceramic-switch-shadow);
   }
 
-  .ceramic-switch-thumb {
+  .ceramic-switch-thumb.ceramic-switch-thumb {
     background-color: var(--ceramic-switch-thumb-surface);
     box-shadow: var(--ceramic-switch-thumb-elevation);
   }
@@ -1129,11 +1137,11 @@
   /* Settings chrome. A rail is a glass column, and the seam between two rails is
      the hairline plus the groove's lit edge, so the divider reads as a recess
      rather than as a cut. */
-  .ceramic-rail {
+  .ceramic-rail.ceramic-rail {
     background-color: var(--glass-bg);
   }
 
-  .ceramic-seam-r {
+  .ceramic-seam-r.ceramic-seam-r {
     border-right: 1px solid var(--cable-hairline);
     box-shadow: 1px 0 0 var(--ceramic-groove-highlight);
   }
@@ -1141,7 +1149,7 @@
   /* Left navigation row: frosted under the pointer, and a soft ceramic block with
      the brand edge — plus the 1px rim light — when it is the current page. Only
      backgrounds and shadows change, so nothing moves its own box. */
-  .ceramic-nav-item {
+  .ceramic-nav-item.ceramic-nav-item {
     color: var(--text-secondary);
     transition:
       background-color 200ms ease-in-out,
@@ -1150,12 +1158,12 @@
       box-shadow 200ms ease-in-out;
   }
 
-  .ceramic-nav-item:hover {
+  .ceramic-nav-item.ceramic-nav-item:hover {
     background-color: var(--ceramic-hover-surface);
     color: var(--text-primary);
   }
 
-  .ceramic-nav-item-active {
+  .ceramic-nav-item-active.ceramic-nav-item-active {
     background-color: var(--ceramic-surface);
     border-color: var(--ceramic-border-hover);
     box-shadow:
@@ -1167,7 +1175,7 @@
   /* A row in the provider list: the pointer frosts it, and the current provider
      sinks into the surface, so the list shows where you are without a second
      raised tile competing with the navigation block beside it. */
-  .ceramic-list-row {
+  .ceramic-list-row.ceramic-list-row {
     color: var(--text-secondary);
     transition:
       background-color 200ms ease-in-out,
@@ -1175,12 +1183,12 @@
       box-shadow 200ms ease-in-out;
   }
 
-  .ceramic-list-row:hover {
+  .ceramic-list-row.ceramic-list-row:hover {
     background-color: var(--ceramic-hover-surface);
     color: var(--text-primary);
   }
 
-  .ceramic-list-row-active {
+  .ceramic-list-row-active.ceramic-list-row-active {
     background-color: var(--glass-bg);
     box-shadow: var(--ceramic-recess);
     color: var(--text-primary);
@@ -1189,7 +1197,7 @@
   /* Mini ceramic badge for inline labels (model types, overflow counts): the
      accent at a whisper of alpha, a rim light along the top edge and a micro drop
      shadow, where a flat grey chip used to be. */
-  .ceramic-badge {
+  .ceramic-badge.ceramic-badge {
     background-color: var(--badge-surface);
     border: 1px solid var(--badge-border);
     box-shadow:
@@ -1201,25 +1209,54 @@
   /* A field in the settings forms: a glass well with a 12px radius, the shared
      hairline and the accent ring on focus, so a select matches the search fields
      it sits next to. */
-  .ceramic-field {
+  .ceramic-field.ceramic-field {
     background-color: var(--glass-bg);
-    border: 1px solid var(--cable-hairline);
+    border: 1px solid var(--field-border);
     border-radius: 0.75rem;
+    box-shadow: var(--ceramic-recess);
     transition:
       background-color 200ms ease-in-out,
       border-color 200ms ease-in-out,
       box-shadow 200ms ease-in-out;
   }
 
-  .ceramic-field:focus-visible,
-  .ceramic-field:focus-within {
+  /* Focus keeps the recess and adds the accent ring on top of it, because a
+     box-shadow cannot be additive across two rules. */
+  .ceramic-field.ceramic-field:focus-visible,
+  .ceramic-field.ceramic-field:focus-within {
     outline: none;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px var(--accent-color-soft);
+    border-color: var(--field-border-focus);
+    box-shadow:
+      var(--ceramic-recess),
+      0 0 0 3px var(--accent-color-soft);
+  }
+
+  /* Secondary accent action: the badge material at button size — the accent
+     tint, the accent edge, the rim light and a micro drop shadow, with the tint
+     deepening under the pointer. For the actions that sit beside a field (the
+     Edit buttons) and should read as the same family without the solid fill. */
+  .ceramic-cta-soft.ceramic-cta-soft {
+    background-color: var(--badge-surface);
+    border: 1px solid var(--badge-border);
+    box-shadow:
+      inset 0 1px 0 var(--ceramic-relief-highlight),
+      0 1px 2px var(--badge-shadow);
+    color: var(--badge-ink);
+    transition:
+      background-color 200ms ease-in-out,
+      border-color 200ms ease-in-out,
+      box-shadow 200ms ease-in-out,
+      color 200ms ease-in-out;
+  }
+
+  .ceramic-cta-soft.ceramic-cta-soft:hover,
+  .ceramic-cta-soft.ceramic-cta-soft:focus-visible {
+    background-color: var(--badge-surface-hover);
+    border-color: var(--field-border-focus);
   }
 
   /* A live status dot: the success colour with a diffuse bloom. */
-  .ceramic-dot-live {
+  .ceramic-dot-live.ceramic-dot-live {
     background-color: rgb(var(--state-success));
     box-shadow: var(--dot-live-glow);
   }
