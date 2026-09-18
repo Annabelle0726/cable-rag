@@ -21,7 +21,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-black/50 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      'fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       className,
     )}
     {...props}
@@ -38,11 +38,10 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'outline-none outline-0 fixed left-[50%] top-[50%] rounded-lg z-50 grid w-full max-w-xl translate-x-[-50%] translate-y-[-50%]',
-        // TODO: to keep scrollbar perfectly aligned to header bottom and/or footer top,
-        //       'gap-4' should be removed, then bring your own body container with padding-y instead.
+        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-xl translate-x-[-50%] translate-y-[-50%] outline-none',
         'gap-4',
-        'border-0.5 border-border-button bg-bg-base p-6 shadow-lg duration-200 sm:rounded-lg',
+        /* 改用项目统一的精致边框、卡片背景色与 2xl 拟物圆角 */
+        'rounded-2xl border border-cable-hairline bg-bg-card p-6 shadow-2xl backdrop-blur-md duration-200',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -55,10 +54,10 @@ const DialogContent = React.forwardRef<
       {children}
       <DialogPrimitive.Close
         className="
-        absolute right-4 top-4 p-2 rounded-sm opacity-70 outline-none text-text-secondary transition-colors
-        hover:bg-border-button hover:text-text-primary
-        focus-visible:bg-border-button focus-visible:text-text-primary
-        disabled:pointer-events-none data-[state=open]:bg-bg-accent data-[state=open]:text-muted-foreground
+        absolute right-4 top-4 p-2 rounded-lg outline-none text-text-secondary transition-colors
+        hover:bg-cable-nav-active-bg hover:text-text-primary
+        focus-visible:bg-cable-nav-active-bg focus-visible:text-text-primary
+        disabled:pointer-events-none
       "
       >
         <X className="h-4 w-4" />
@@ -75,7 +74,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      '-mx-6 -mt-6 p-6 border-b-0.5 border-border-button',
+      '-mx-6 -mt-6 p-6 border-b border-cable-hairline',
       'flex flex-col space-y-1.5 text-center sm:text-left',
       className,
     )}
@@ -90,7 +89,6 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      // '-mx-6 -mb-6 px-12 pt-4 pb-8',
       '-mx-6 -mb-6 p-6 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-4',
       className,
     )}
@@ -106,7 +104,7 @@ const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      'text-lg font-semibold leading-none tracking-tight',
+      'text-lg font-semibold leading-none tracking-tight text-text-primary',
       className,
     )}
     {...props}
@@ -120,7 +118,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn('text-sm text-text-primary', className)}
+    className={cn('text-sm text-text-secondary', className)}
     {...props}
   />
 ));
