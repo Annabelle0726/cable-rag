@@ -31,6 +31,34 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import * as z from 'zod';
 
+/**
+ * The invite dialog's card: the glass surface at the translucent token, a 24px
+ * backdrop blur, the hairline edge and the drawer shadow.
+ *
+ * Four of these classes carry the important modifier because `Modal`
+ * interpolates `className` in the *middle* of its own class list, so
+ * tailwind-merge reads the primitive's `bg-bg-base`, `rounded-lg`,
+ * `border-border-default` and `shadow-lg` as the later ones and keeps both
+ * sides; without the modifier the card stays an opaque page-coloured slab with
+ * the default grey edge, which is what the rendered dialog measured before.
+ */
+const DialogCardClassName =
+  'glass-panel !rounded-2xl !border-cable-hairline !bg-glass backdrop-blur-xl !shadow-cable-drawer';
+
+/**
+ * The dialog actions. One flex row each, so the label sits on the icon's centre
+ * line and can never wrap, and an edge from a token so neither action is a
+ * borderless block: the accent-confirm pill takes the real line token
+ * (`--badge-border` composites into the accent fill itself in dark mode, so it
+ * would not read as an edge there), the secondary cancel capsule the hairline
+ * `.ceramic-relief` already draws.
+ */
+const ConfirmButtonClassName =
+  'ceramic-cta inline-flex h-10 items-center justify-center whitespace-nowrap rounded-xl border border-[var(--field-border)] bg-accent-color px-5 text-accent-contrast hover:bg-accent-color-strong';
+
+const CancelButtonClassName =
+  'ceramic-relief inline-flex h-10 items-center justify-center whitespace-nowrap rounded-full px-4 text-text-secondary hover:bg-glass hover:text-state-error';
+
 const AddingUserModal = ({
   visible,
   hideModal,
@@ -68,9 +96,9 @@ const AddingUserModal = ({
       confirmLoading={loading}
       okText={t('common.ok')}
       cancelText={t('common.cancel')}
-      className="glass-panel rounded-2xl border-cable-hairline bg-glass backdrop-blur-xl !shadow-cable-drawer"
-      okButtonClassName="ceramic-cta h-10 rounded-xl px-5"
-      cancelButtonClassName="ceramic-relief h-10 rounded-full px-4 text-text-secondary hover:bg-glass hover:text-state-error"
+      className={DialogCardClassName}
+      okButtonClassName={ConfirmButtonClassName}
+      cancelButtonClassName={CancelButtonClassName}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleOk)} className="space-y-4">
