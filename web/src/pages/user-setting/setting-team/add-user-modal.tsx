@@ -68,6 +68,9 @@ const AddingUserModal = ({
       confirmLoading={loading}
       okText={t('common.ok')}
       cancelText={t('common.cancel')}
+      className="glass-panel rounded-2xl border-cable-hairline bg-glass backdrop-blur-xl !shadow-cable-drawer"
+      okButtonClassName="ceramic-cta h-10 rounded-xl px-5"
+      cancelButtonClassName="ceramic-relief h-10 rounded-full px-4 text-text-secondary hover:bg-glass hover:text-state-error"
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleOk)} className="space-y-4">
@@ -78,7 +81,11 @@ const AddingUserModal = ({
               <FormItem>
                 <FormLabel required>{t('setting.email')}</FormLabel>
                 <FormControl>
-                  <Input placeholder={t('setting.email')} {...field} />
+                  <Input
+                    className="ceramic-field h-11"
+                    placeholder={t('setting.email')}
+                    {...field}
+                  />
                 </FormControl>
                 <FormDescription className="text-xs">
                   {t('setting.inviteTip')}

@@ -22,7 +22,12 @@ import {
 } from '@/hooks/use-user-setting-request';
 import { useTranslation } from 'react-i18next';
 
+import {
+  ceramicSearchFieldClassName,
+  ceramicSearchFieldRootClassName,
+} from '@/components/list-filter-bar';
 import { SearchInput } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { ProfileSettingWrapperCard } from '../components/user-setting-header';
@@ -60,7 +65,7 @@ const UserSettingTeam = () => {
       }
     >
       <div className="h-full overflow-x-hidden overflow-y-auto">
-        <Card className="bg-transparent border-none rounded-none">
+        <Card className="bg-transparent border-none rounded-none shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
             {/* <User className="mr-2 h-5 w-5 text-[#1677ff]" /> */}
             <CardTitle className="text-base">
@@ -69,12 +74,16 @@ const UserSettingTeam = () => {
 
             <section className="flex gap-4 items-center">
               <SearchInput
-                className="bg-bg-input border-border-default w-32"
+                className={cn(ceramicSearchFieldClassName, 'w-32')}
+                rootClassName={cn(ceramicSearchFieldRootClassName)}
                 placeholder={t('common.search')}
                 value={searchUser}
                 onChange={(e) => setSearchUser(e.target.value)}
               />
-              <Button onClick={showAddingTenantModal}>
+              <Button
+                className="ceramic-cta h-10 rounded-full px-5"
+                onClick={showAddingTenantModal}
+              >
                 <UserPlus className=" h-4 w-4" />
                 {t('setting.invite')}
               </Button>
@@ -86,14 +95,15 @@ const UserSettingTeam = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-transparent border-none mt-8 rounded-none">
+        <Card className="bg-transparent border-none mt-8 rounded-none shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
             {/* <Users className="mr-2 h-5 w-5 text-[#1677ff]" /> */}
             <CardTitle className="text-base w-fit">
               {t('setting.joinedTeams')}
             </CardTitle>
             <SearchInput
-              className="bg-bg-input border-border-default w-32"
+              className={cn(ceramicSearchFieldClassName, 'w-32')}
+              rootClassName={cn(ceramicSearchFieldRootClassName)}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={t('common.search')}

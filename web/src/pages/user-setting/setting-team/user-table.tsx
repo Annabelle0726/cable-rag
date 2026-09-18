@@ -37,6 +37,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TenantRole } from '../constants';
+import EmptyTableRow from './empty-table-row';
 import { useHandleDeleteUser } from './hooks';
 
 const ColorMap: Record<string, string> = {
@@ -98,10 +99,10 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
     }
   };
   return (
-    <div className="bg-bg-input scrollbar-auto overflow-hidden border border-border-default">
-      <Table rootClassName="rounded-none">
-        <TableHeader className="bg-bg-title">
-          <TableRow className="hover:bg-bg-title">
+    <div className="glass-panel rounded-2xl border-cable-hairline">
+      <Table rootClassName="bg-transparent">
+        <TableHeader className="bg-table-header">
+          <TableRow className="border-cable-hairline hover:bg-transparent">
             <TableHead className="h-12 px-4">{t('common.name')}</TableHead>
             <TableHead className="h-12 px-4">
               <div className="flex items-center gap-1">
@@ -120,7 +121,7 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
             <TableHead className="h-12 px-4">{t('common.action')}</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody className="bg-bg-base">
+        <TableBody className="bg-transparent">
           {loading ? (
             <TableRow>
               <TableCell colSpan={5} className="h-24 text-center">
@@ -131,7 +132,10 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
             </TableRow>
           ) : sortedData && sortedData.length > 0 ? (
             sortedData.map((record) => (
-              <TableRow key={record.user_id} className="hover:bg-bg-card">
+              <TableRow
+                key={record.user_id}
+                className="ceramic-list-row border-cable-hairline"
+              >
                 <TableCell className="p-4">
                   <div className="flex gap-1 items-center">
                     <RAGFlowAvatar
@@ -198,11 +202,7 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
               </TableRow>
             ))
           ) : (
-            <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
-                {t('common.noData')}
-              </TableCell>
-            </TableRow>
+            <EmptyTableRow colSpan={5} label={t('common.noData')} />
           )}
         </TableBody>
       </Table>

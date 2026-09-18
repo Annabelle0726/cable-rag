@@ -34,6 +34,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, LogOut } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TenantRole } from '../constants';
+import EmptyTableRow from './empty-table-row';
 import { useHandleAgreeTenant, useHandleQuitUser } from './hooks';
 const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
   const { t } = useTranslation();
@@ -89,10 +90,10 @@ const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
   };
 
   return (
-    <div className="bg-bg-input scrollbar-auto overflow-hidden border border-border-default">
-      <Table rootClassName="rounded-none">
-        <TableHeader className="bg-bg-title">
-          <TableRow className="hover:bg-bg-title">
+    <div className="glass-panel rounded-2xl border-cable-hairline">
+      <Table rootClassName="bg-transparent">
+        <TableHeader className="bg-table-header">
+          <TableRow className="border-cable-hairline hover:bg-transparent">
             <TableHead className="h-12 px-4">{t('common.name')}</TableHead>
             <TableHead className="h-12 px-4">
               <div className="flex items-center gap-1">
@@ -110,7 +111,7 @@ const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
             <TableHead className="h-12 px-4">{t('common.action')}</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody className="bg-bg-base">
+        <TableBody className="bg-transparent">
           {loading ? (
             <TableRow>
               <TableCell colSpan={4} className="h-24 text-center">
@@ -121,7 +122,10 @@ const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
             </TableRow>
           ) : sortedData && sortedData.length > 0 ? (
             sortedData.map((tenant) => (
-              <TableRow key={tenant.tenant_id} className="hover:bg-bg-card">
+              <TableRow
+                key={tenant.tenant_id}
+                className="ceramic-list-row border-cable-hairline"
+              >
                 <TableCell className="p-4 flex gap-1 items-center">
                   <RAGFlowAvatar
                     isPerson
@@ -171,11 +175,7 @@ const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
               </TableRow>
             ))
           ) : (
-            <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center">
-                {t('common.noData')}
-              </TableCell>
-            </TableRow>
+            <EmptyTableRow colSpan={4} label={t('common.noData')} />
           )}
         </TableBody>
       </Table>
