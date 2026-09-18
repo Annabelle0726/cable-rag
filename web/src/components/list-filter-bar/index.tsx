@@ -14,56 +14,56 @@
  *  limitations under the License.
  */
 
-import { cn } from '@/lib/utils';
-import { Funnel } from 'lucide-react';
+import {cn} from '@/lib/utils';
+import {Funnel} from 'lucide-react';
 import React, {
-  ChangeEventHandler,
-  PropsWithChildren,
-  ReactNode,
-  useMemo,
+    ChangeEventHandler,
+    PropsWithChildren,
+    ReactNode,
+    useMemo,
 } from 'react';
-import { HomeIcon } from '../svg-icon';
-import { Button, ButtonProps } from '../ui/button';
-import { SearchInput } from '../ui/input';
-import { CheckboxFormMultipleProps, FilterPopover } from './filter-popover';
+import {HomeIcon} from '../svg-icon';
+import {Button, ButtonProps} from '../ui/button';
+import {SearchInput} from '../ui/input';
+import {CheckboxFormMultipleProps, FilterPopover} from './filter-popover';
 
 interface IProps {
-  title?: ReactNode;
-  searchString?: string;
-  onSearchChange?: ChangeEventHandler<HTMLInputElement>;
-  showFilter?: boolean;
-  showSearch?: boolean;
-  leftPanel?: ReactNode;
-  preChildren?: ReactNode;
+    title?: ReactNode;
+    searchString?: string;
+    onSearchChange?: ChangeEventHandler<HTMLInputElement>;
+    showFilter?: boolean;
+    showSearch?: boolean;
+    leftPanel?: ReactNode;
+    preChildren?: ReactNode;
 }
 
 export const FilterButton = React.forwardRef<
-  HTMLButtonElement,
-  ButtonProps & { count?: number }
->(({ count = 0, ...props }, ref) => {
-  return (
-    <Button
-      // Raised glass capsule on the same 40px rail as the search field and the
-      // page's create button, with the funnel in the secondary ink rather than
-      // the primitive's ink-white. `size="auto"` keeps the primitive from
-      // imposing its own box, so the geometry comes from these utilities alone.
-      className={cn(
-        'ceramic-relief h-10 shrink-0 rounded-full text-text-secondary hover:text-text-primary',
-        count > 0 ? 'px-4' : 'w-10 px-0',
-      )}
-      size="auto"
-      {...props}
-      ref={ref}
-    >
-      <Funnel />
+    HTMLButtonElement,
+    ButtonProps & { count?: number }
+>(({count = 0, ...props}, ref) => {
+    return (
+        <Button
+            // Raised glass capsule on the same 40px rail as the search field and the
+            // page's create button, with the funnel in the secondary ink rather than
+            // the primitive's ink-white. `size="auto"` keeps the primitive from
+            // imposing its own box, so the geometry comes from these utilities alone.
+            className={cn(
+                'ceramic-relief h-10 shrink-0 rounded-full text-text-secondary hover:text-text-primary hover:bg-cable-nav-active-bg focus-visible:bg-cable-nav-active-bg transition-colors',
+                count > 0 ? 'px-4' : 'w-10 px-0',
+            )}
+            size="auto"
+            {...props}
+            ref={ref}
+        >
+            <Funnel/>
 
-      {count > 0 && (
-        <span className="rounded bg-text-badge px-1 py-0.5 text-xs leading-none text-text-primary">
+            {count > 0 && (
+                <span className="rounded bg-text-badge px-1 py-0.5 text-xs leading-none text-text-primary">
           {count}
         </span>
-      )}
-    </Button>
-  );
+            )}
+        </Button>
+    );
 });
 
 FilterButton.displayName = 'FilterButton';
@@ -81,138 +81,138 @@ FilterButton.displayName = 'FilterButton';
  * from starting under the icon.
  */
 export const ceramicSearchFieldClassName =
-  'ceramic-well h-10 w-full rounded-full px-4 placeholder:text-content-secondary';
+    'ceramic-well h-10 w-full rounded-full px-4 placeholder:text-content-secondary';
 
 export const ceramicSearchFieldRootClassName =
-  '[&>span]:ps-3 [&>span>svg]:ms-0 [&>span>svg]:me-2 [&>span]:text-content-secondary';
+    '[&>span]:ps-3 [&>span>svg]:ms-0 [&>span>svg]:me-2 [&>span]:text-content-secondary';
 
 export default function ListFilterBar({
-  title,
-  children,
-  preChildren,
-  searchString,
-  onSearchChange,
-  showFilter = true,
-  showSearch = true,
-  leftPanel,
-  value,
-  onChange,
-  onOpenChange,
-  filters,
-  className,
-  icon,
-  iconClassName,
-  filterGroup,
-  searchVariant = 'capsule',
-}: PropsWithChildren<IProps & Omit<CheckboxFormMultipleProps, 'setOpen'>> & {
-  className?: string;
-  icon?: ReactNode;
-  iconClassName?: string;
-  filterGroup?: Record<string, string[]>;
-  /**
-   * `capsule` is the ceramic field every list page shows: the recessed surface,
-   * the shared hairline, an accent ring on focus and the magnifier inked in the
-   * secondary content colour. It is the default so a new page cannot land on a
-   * field of a different height; `default` keeps the primitive's plain box for
-   * callers that are not part of a list toolbar.
-   */
-  searchVariant?: 'default' | 'capsule';
+                                          title,
+                                          children,
+                                          preChildren,
+                                          searchString,
+                                          onSearchChange,
+                                          showFilter = true,
+                                          showSearch = true,
+                                          leftPanel,
+                                          value,
+                                          onChange,
+                                          onOpenChange,
+                                          filters,
+                                          className,
+                                          icon,
+                                          iconClassName,
+                                          filterGroup,
+                                          searchVariant = 'capsule',
+                                      }: PropsWithChildren<IProps & Omit<CheckboxFormMultipleProps, 'setOpen'>> & {
+    className?: string;
+    icon?: ReactNode;
+    iconClassName?: string;
+    filterGroup?: Record<string, string[]>;
+    /**
+     * `capsule` is the ceramic field every list page shows: the recessed surface,
+     * the shared hairline, an accent ring on focus and the magnifier inked in the
+     * secondary content colour. It is the default so a new page cannot land on a
+     * field of a different height; `default` keeps the primitive's plain box for
+     * callers that are not part of a list toolbar.
+     */
+    searchVariant?: 'default' | 'capsule';
 }) {
-  const filterCount = useMemo(() => {
-    return typeof value === 'object' && value !== null
-      ? Object.values(value).reduce((pre, cur) => {
-          if (Array.isArray(cur)) {
-            return pre + cur.length;
-          }
-          if (typeof cur === 'object') {
-            return (
-              pre +
-              Object.values(cur).reduce((pre, cur) => {
-                return pre + (cur?.length || 0);
-              }, 0)
-            );
-          }
-          return pre;
-        }, 0)
-      : 0;
-  }, [value]);
+    const filterCount = useMemo(() => {
+        return typeof value === 'object' && value !== null
+            ? Object.values(value).reduce((pre, cur) => {
+                if (Array.isArray(cur)) {
+                    return pre + cur.length;
+                }
+                if (typeof cur === 'object') {
+                    return (
+                        pre +
+                        Object.values(cur).reduce((pre, cur) => {
+                            return pre + (cur?.length || 0);
+                        }, 0)
+                    );
+                }
+                return pre;
+            }, 0)
+            : 0;
+    }, [value]);
 
-  const hasFilter = Boolean(filters?.length && showFilter);
+    const hasFilter = Boolean(filters?.length && showFilter);
 
-  return (
-    <div
-      className={cn(
-        'flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between',
-        className,
-      )}
-    >
-      <h1 className="flex min-w-0 shrink-0 items-center gap-2.5 text-2xl font-semibold">
-        {typeof icon === 'string' ? (
-          <HomeIcon
-            name={`${icon}`}
-            imgClass={cn('size-[1em]', iconClassName)}
-          />
-        ) : (
-          icon
-        )}
-        {leftPanel || title}
-      </h1>
-
-      <div
-        className={cn(
-          // One control row on every list page: centred on the 40px rail and
-          // pushed to the right edge, so switching pages never moves the create
-          // button sideways or up.
-          'min-w-0 w-full items-center gap-3',
-          preChildren
-            ? 'flex flex-wrap md:flex-nowrap md:w-auto md:shrink-0 md:justify-end'
-            : cn(
-                'grid',
-                hasFilter
-                  ? 'grid-cols-[auto_minmax(0,1fr)_auto]'
-                  : 'grid-cols-[minmax(0,1fr)_auto]',
-                'md:flex md:w-auto md:shrink-0 md:justify-end',
-              ),
-        )}
-        role="toolbar"
-      >
-        {preChildren}
-        {hasFilter && (
-          <FilterPopover
-            value={value}
-            onChange={onChange}
-            filters={filters}
-            filterGroup={filterGroup}
-            onOpenChange={onOpenChange}
-          >
-            <FilterButton count={filterCount} />
-          </FilterPopover>
-        )}
-        {showSearch && (
-          <SearchInput
-            value={searchString}
-            onChange={onSearchChange}
+    return (
+        <div
             className={cn(
-              'min-w-0',
-              preChildren ? 'flex-1 basis-32' : '',
-              'md:w-32',
-              searchVariant === 'capsule' && ceramicSearchFieldClassName,
+                'flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between',
+                className,
             )}
-            rootClassName={cn(
-              // A little more air before the create action: on the bare 12px
-              // rhythm the field and the pill read as one control, and the field
-              // sits a touch left of where the eye expects it.
-              'me-2',
-              searchVariant === 'capsule' && ceramicSearchFieldRootClassName,
-            )}
-            role="searchbox"
-          />
-        )}
+        >
+            <h1 className="flex min-w-0 shrink-0 items-center gap-2.5 text-2xl font-semibold">
+                {typeof icon === 'string' ? (
+                    <HomeIcon
+                        name={`${icon}`}
+                        imgClass={cn('size-[1em]', iconClassName)}
+                    />
+                ) : (
+                    icon
+                )}
+                {leftPanel || title}
+            </h1>
 
-        {children && (
-          <div className="shrink-0 justify-self-end">{children}</div>
-        )}
-      </div>
-    </div>
-  );
+            <div
+                className={cn(
+                    // One control row on every list page: centred on the 40px rail and
+                    // pushed to the right edge, so switching pages never moves the create
+                    // button sideways or up.
+                    'min-w-0 w-full items-center gap-3',
+                    preChildren
+                        ? 'flex flex-wrap md:flex-nowrap md:w-auto md:shrink-0 md:justify-end'
+                        : cn(
+                            'grid',
+                            hasFilter
+                                ? 'grid-cols-[auto_minmax(0,1fr)_auto]'
+                                : 'grid-cols-[minmax(0,1fr)_auto]',
+                            'md:flex md:w-auto md:shrink-0 md:justify-end',
+                        ),
+                )}
+                role="toolbar"
+            >
+                {preChildren}
+                {hasFilter && (
+                    <FilterPopover
+                        value={value}
+                        onChange={onChange}
+                        filters={filters}
+                        filterGroup={filterGroup}
+                        onOpenChange={onOpenChange}
+                    >
+                        <FilterButton count={filterCount}/>
+                    </FilterPopover>
+                )}
+                {showSearch && (
+                    <SearchInput
+                        value={searchString}
+                        onChange={onSearchChange}
+                        className={cn(
+                            'min-w-0',
+                            preChildren ? 'flex-1 basis-32' : '',
+                            'md:w-32',
+                            searchVariant === 'capsule' && ceramicSearchFieldClassName,
+                        )}
+                        rootClassName={cn(
+                            // A little more air before the create action: on the bare 12px
+                            // rhythm the field and the pill read as one control, and the field
+                            // sits a touch left of where the eye expects it.
+                            'me-2',
+                            searchVariant === 'capsule' && ceramicSearchFieldRootClassName,
+                        )}
+                        role="searchbox"
+                    />
+                )}
+
+                {children && (
+                    <div className="shrink-0 justify-self-end">{children}</div>
+                )}
+            </div>
+        </div>
+    );
 }
