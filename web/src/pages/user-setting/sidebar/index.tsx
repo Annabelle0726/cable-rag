@@ -15,7 +15,6 @@
  *  limitations under the License.
  */
 
-import { IconFontFill } from '@/components/icon-font';
 import { RAGFlowAvatar } from '@/components/ragflow-avatar';
 import ThemeSwitch from '@/components/theme-switch';
 import { Button } from '@/components/ui/button';
@@ -50,11 +49,6 @@ const menuItems = (t: TFunction) => [
     icon: <LucideServer className="size-[1em]" />,
     label: t('setting.dataSources'),
     key: Routes.DataSource,
-  },
-  {
-    icon: <IconFontFill name="mcp" className="size-[1em]" />,
-    label: 'MCP',
-    key: Routes.Mcp,
   },
   {
     icon: <LucideUsers className="size-[1em]" />,
