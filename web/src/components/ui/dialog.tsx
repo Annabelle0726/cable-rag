@@ -21,7 +21,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      'fixed inset-0 z-50 bg-black/70 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       className,
     )}
     {...props}
@@ -40,8 +40,8 @@ const DialogContent = React.forwardRef<
       className={cn(
         'fixed left-[50%] top-[50%] z-50 grid w-full max-w-xl translate-x-[-50%] translate-y-[-50%] outline-none',
         'gap-4',
-        /* 改用项目统一的精致边框、卡片背景色与 2xl 拟物圆角 */
-        'rounded-2xl border border-cable-hairline bg-bg-card p-6 shadow-2xl backdrop-blur-md duration-200',
+        /* 使用清晰的边框、深度背景与提升对比度的阴影 */
+        'rounded-xl border border-border-button bg-bg-base p-6 shadow-2xl duration-200',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -55,8 +55,8 @@ const DialogContent = React.forwardRef<
       <DialogPrimitive.Close
         className="
         absolute right-4 top-4 p-2 rounded-lg outline-none text-text-secondary transition-colors
-        hover:bg-cable-nav-active-bg hover:text-text-primary
-        focus-visible:bg-cable-nav-active-bg focus-visible:text-text-primary
+        hover:bg-border-button/40 hover:text-text-primary
+        focus-visible:bg-border-button/40 focus-visible:text-text-primary
         disabled:pointer-events-none
       "
       >
@@ -74,7 +74,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      '-mx-6 -mt-6 p-6 border-b border-cable-hairline',
+      '-mx-6 -mt-6 p-6 border-b border-border-button',
       'flex flex-col space-y-1.5 text-center sm:text-left',
       className,
     )}
