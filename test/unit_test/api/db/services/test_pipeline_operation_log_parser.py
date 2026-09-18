@@ -337,9 +337,9 @@ def test_setup_key_map_matches_parser_param_setups():
     # Every runtime suffix must appear in the map with the correct setup key.
     for setup_key, conf in runtime_setups.items():
         for suffix in conf.get("suffix", []):
-            assert suffix_map[suffix] == setup_key, (
-                f"suffix {suffix!r} in ParserParam.setups[{setup_key!r}] is mapped to {suffix_map.get(suffix)!r}; the runtime dispatch at parser.py:1425-1426 will route {suffix!r} to {setup_key!r}."
-            )
+            assert (
+                suffix_map[suffix] == setup_key
+            ), f"suffix {suffix!r} in ParserParam.setups[{setup_key!r}] is mapped to {suffix_map.get(suffix)!r}; the runtime dispatch at parser.py:1425-1426 will route {suffix!r} to {setup_key!r}."
 
     # The map must contain ONLY suffixes that exist in ParserParam.setups.
     # A stale map entry pointing at a setup that no longer lists the
