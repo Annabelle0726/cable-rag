@@ -15,7 +15,11 @@ const Popover = ({
   onOpenChange,
   disableOutsideClick = false,
 }: PopoverProps) => {
-  const [open, setOpen] = React.useState(true);
+  // Seed the internal state from the controlling prop. Starting at `true` made
+  // every popover render open on its first commit — before the sync effect below
+  // could correct it — so a page load flashed the panel open (the navigation's
+  // knowledge-base menu was the visible case) and then closed it a frame later.
+  const [open, setOpen] = React.useState(!!openState);
   React.useEffect(() => {
     setOpen(!!openState);
   }, [openState]);
