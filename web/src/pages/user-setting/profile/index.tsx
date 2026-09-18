@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal/modal';
 import { useTranslate } from '@/hooks/common-hooks';
 import { TimezoneList } from '@/pages/user-setting/constants';
+import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from 'i18next';
 import { Loader2Icon, PenLine } from 'lucide-react';
@@ -45,6 +46,16 @@ const timezoneOptions = TimezoneList.map(({ name }) => ({
   value: name,
   label: name,
 }));
+
+/**
+ * One field shape for the whole page: a 40px glass well with the shared hairline
+ * and the accent ring on focus, used by the read-only values here and by the
+ * inputs in the edit modals, so the two never drift apart.
+ */
+const profileFieldClass =
+  'ceramic-field flex h-10 min-w-0 flex-1 items-center px-3 text-sm text-text-primary';
+
+const profileInputClass = 'ceramic-field h-10';
 
 const baseSchema = z.object({
   userName: z
@@ -166,18 +177,21 @@ const ProfilePage: FC = () => {
       {/* Main Content */}
       <div className="max-w-3xl space-y-11 w-3/4 p-7">
         {/* Name */}
-        <div className="flex items-start gap-4 ">
+        <div className="flex items-center gap-4 ">
           <label className="w-[190px] text-sm font-medium">
             {t('username')}
           </label>
           <div className="flex-1 flex items-center gap-4 min-w-0">
-            <div className="text-sm text-text-primary border border-border-button flex-1 min-w-0 rounded-md py-1.5 px-2 truncate">
-              {profile.userName}
+            {/* The value truncates inside the well: a flex container cannot
+                ellipsise an anonymous item, so the text carries it. */}
+            <div className={profileFieldClass}>
+              <span className="truncate">{profile.userName}</span>
             </div>
 
             <Button
               variant="outline"
               type="button"
+              className="h-10 rounded-xl"
               onClick={() => handleEditClick(EditType.editName)}
             >
               <PenLine size={12} /> {t('edit')}
@@ -186,7 +200,7 @@ const ProfilePage: FC = () => {
         </div>
 
         {/* Avatar */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-center gap-4">
           <label className="w-[190px] text-sm font-medium">{t('avatar')}</label>
           <div className="flex items-center gap-4">
             <AvatarUpload
@@ -198,17 +212,23 @@ const ProfilePage: FC = () => {
         </div>
 
         {/* Time Zone */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-center gap-4">
           <label className="w-[190px] text-sm font-medium">
             {t('timezone')}
           </label>
           <div className="flex-1 flex items-center gap-4">
-            <div className="text-sm text-text-primary border border-border-button flex-1 rounded-md py-1.5 px-2 empty:before:content-['_'] empty:before:whitespace-pre">
+            <div
+              className={cn(
+                profileFieldClass,
+                "empty:before:content-['_'] empty:before:whitespace-pre",
+              )}
+            >
               {timezone}
             </div>
             <Button
               variant="outline"
               type="button"
+              className="h-10 rounded-xl"
               onClick={() => handleEditClick(EditType.editTimeZone)}
             >
               <PenLine size={12} /> {t('edit')}
@@ -217,7 +237,7 @@ const ProfilePage: FC = () => {
         </div>
 
         {/* Email Address */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-center gap-4">
           <label className="w-[190px] text-sm font-medium"> {t('email')}</label>
           <div className="flex-1 flex flex-col items-start gap-2">
             <div className="text-sm text-text-primary flex-1 rounded-md py-1.5 ">
@@ -230,17 +250,18 @@ const ProfilePage: FC = () => {
         </div>
 
         {/* Password */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-center gap-4">
           <label className="w-[190px] text-sm font-medium">
             {t('password')}
           </label>
           <div className="flex-1 flex items-center gap-4">
-            <div className="text-sm text-text-primary border border-border-button flex-1 rounded-md py-1.5 px-2">
-              <span className="inline-block translate-y-0.5">********</span>
+            <div className={profileFieldClass}>
+              <span className="inline-block">********</span>
             </div>
             <Button
               variant="outline"
               type="button"
+              className="h-10 rounded-xl"
               onClick={() => handleEditClick(EditType.editPassword)}
             >
               <PenLine size={12} /> {t('edit')}
@@ -284,7 +305,7 @@ const ProfilePage: FC = () => {
                             placeholder=""
                             maxLength={NICKNAME_MAX_LENGTH}
                             {...field}
-                            className="bg-bg-input border-border-default"
+                            className={profileInputClass}
                           />
                         </FormControl>
                       </div>
@@ -311,6 +332,7 @@ const ProfilePage: FC = () => {
                           placeholder="Select a timeZone"
                           onChange={field.onChange}
                           value={field.value}
+                          triggerClassName="ceramic-field h-10 w-full"
                         />
                       </div>
                       <div className="flex w-full pt-1">
@@ -340,7 +362,7 @@ const ProfilePage: FC = () => {
                             <PasswordInput
                               {...field}
                               autoComplete="current-password"
-                              className="bg-bg-input border-border-default"
+                              className={profileInputClass}
                             />
                           </FormControl>
                         </div>
@@ -366,7 +388,7 @@ const ProfilePage: FC = () => {
                             <PasswordInput
                               {...field}
                               autoComplete="new-password"
-                              className="bg-bg-input border-border-default"
+                              className={profileInputClass}
                             />
                           </FormControl>
                         </div>
@@ -391,7 +413,7 @@ const ProfilePage: FC = () => {
                           <FormControl className="w-full">
                             <PasswordInput
                               {...field}
-                              className="bg-bg-input border-border-default"
+                              className={profileInputClass}
                               autoComplete="new-password"
                               onBlur={() => {
                                 form.trigger('confirmPasswd');
