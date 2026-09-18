@@ -98,11 +98,11 @@ export function ActionCell({
   }
 
   return (
-    <section className="flex gap-2 items-center text-text-sub-title-invert opacity-0 group-hover:opacity-100 transition-opacity">
+    <section className="flex items-center gap-2 text-content-tertiary">
       {isKnowledgeBase || (
         <Button
           variant="transparent"
-          className="border-none hover:bg-bg-card text-text-primary"
+          className="size-8 rounded-full border-none text-content-secondary transition-colors duration-200 hover:bg-cable-nav-active-bg hover:text-cable-accent"
           size="icon-sm"
           onClick={handleShowConnectToKnowledgeModal}
         >
@@ -112,7 +112,7 @@ export function ActionCell({
       {isKnowledgeBase || (
         <Button
           variant="transparent"
-          className="border-none hover:bg-bg-card text-text-primary"
+          className="size-8 rounded-full border-none text-content-secondary transition-colors duration-200 hover:bg-cable-nav-active-bg hover:text-cable-accent"
           size="icon-sm"
           onClick={handleShowMoveFileModal}
         >
@@ -122,7 +122,7 @@ export function ActionCell({
       {isKnowledgeBase || (
         <Button
           variant="transparent"
-          className="border-none hover:bg-bg-card text-text-primary"
+          className="size-8 rounded-full border-none text-content-secondary transition-colors duration-200 hover:bg-cable-nav-active-bg hover:text-cable-accent"
           size="icon-sm"
           onClick={handleShowFileRenameModal}
         >
@@ -132,7 +132,7 @@ export function ActionCell({
       {isFolder || (
         <Button
           variant="transparent"
-          className="border-none hover:bg-bg-card text-text-primary"
+          className="size-8 rounded-full border-none text-content-secondary transition-colors duration-200 hover:bg-cable-nav-active-bg hover:text-cable-accent"
           size="icon-sm"
           onClick={onDownloadDocument}
         >
@@ -149,7 +149,7 @@ export function ActionCell({
         >
           <Button
             variant="transparent"
-            className="border-none hover:bg-bg-card text-text-primary"
+            className="size-8 rounded-full border-none text-content-secondary transition-colors duration-200 hover:bg-cable-nav-active-bg hover:text-cable-accent"
             size="icon-sm"
           >
             <Eye />
@@ -205,7 +205,7 @@ export function ActionCell({
         >
           <Button
             variant="transparent"
-            className="border-none hover:bg-bg-card text-text-primary"
+            className="size-8 rounded-full border-none text-content-secondary transition-colors duration-200 hover:bg-cable-nav-active-bg hover:text-cable-accent"
             size="icon-sm"
           >
             <Trash2 />
