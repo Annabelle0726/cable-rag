@@ -892,6 +892,7 @@ export default {
       delete: '删除',
     },
     chat: {
+      messageCount: '{{total}} 条消息',
       chatSupport: '聊天支持',
       replyInstantly: '我们通常会即时回复',
       typeYourMessage: '输入您的消息...',

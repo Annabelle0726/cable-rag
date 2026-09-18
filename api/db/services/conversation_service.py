@@ -17,7 +17,7 @@ import hashlib
 import time
 import logging
 from uuid import uuid4
-from peewee import IntegrityError
+from peewee import IntegrityError, fn
 from common.constants import StatusEnum
 from api.db.db_models import Conversation, DB
 from api.db.services.api_service import API4ConversationService
@@ -54,6 +54,33 @@ class ConversationService(CommonService):
             sessions = sessions.paginate(page_number, items_per_page)
 
         return list(sessions.dicts())
+
+    @classmethod
+    @DB.connection_context()
+    def get_message_counts(cls, dialog_ids):
+        """Total messages per chat, summed over its sessions.
+
+        A session stores its whole history in ``message`` as a JSON array, so the
+        count is that array's length summed per ``dialog_id``. The SQL form keeps
+        a chat list from shipping every history just to measure it; a metadata
+        backend without ``JSON_LENGTH``, or a session holding a value that is not
+        valid JSON, falls back to counting the same arrays in Python.
+        """
+        ids = [dialog_id for dialog_id in dialog_ids or [] if dialog_id]
+        if not ids:
+            return {}
+
+        try:
+            rows = cls.model.select(cls.model.dialog_id, fn.SUM(fn.JSON_LENGTH(cls.model.message)).alias("messages")).where(cls.model.dialog_id.in_(ids)).group_by(cls.model.dialog_id).tuples()
+            return {dialog_id: int(messages or 0) for dialog_id, messages in rows}
+        except Exception:
+            logger.warning("Counting session histories in Python: JSON_LENGTH is unavailable here.", exc_info=True)
+
+        counts: dict[str, int] = {}
+        rows = cls.model.select(cls.model.dialog_id, cls.model.message).where(cls.model.dialog_id.in_(ids)).tuples()
+        for dialog_id, message in rows:
+            counts[dialog_id] = counts.get(dialog_id, 0) + (len(message) if isinstance(message, list) else 0)
+        return counts
 
     @classmethod
     @DB.connection_context()

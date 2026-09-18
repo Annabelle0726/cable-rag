@@ -1,0 +1,51 @@
+import { HomeCard } from '@/components/home-card';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import '@/locales/config';
+import { render, screen } from '@testing-library/react';
+
+// The card has two places to put extra content, and they are not interchangeable:
+// a title-row chip shares the name's line, while the trailing rail gets the card's
+// right edge to itself. A chat card needs the second, so the placement is worth a
+// test rather than a comment.
+const renderCard = (props: {
+  extra?: React.ReactNode;
+  trailing?: React.ReactNode;
+}) =>
+  render(
+    // The title and the description are truncated texts, which are tooltips, and
+    // the app supplies the provider at its root.
+    <TooltipProvider>
+      <HomeCard
+        data={{ name: 'Cable QA', description: 'desc', update_time: '2026-09-18' }}
+        moreDropdown={<span>more</span>}
+        {...props}
+      />
+    </TooltipProvider>,
+  );
+
+describe('HomeCard slots', () => {
+  it('puts the trailing rail after the text column, at the card edge', () => {
+    const { container } = renderCard({
+      trailing: <span data-testid="rail">rail</span>,
+    });
+
+    const card = container.querySelector('article');
+    const rail = screen.getByTestId('rail');
+
+    expect(card?.lastElementChild).toBe(rail);
+    // Which is a sibling of the text column, not inside it: that column keeps
+    // `flex-1`, so the rail is pushed to the far right of the card.
+    expect(rail.previousElementSibling?.className).toContain('flex-1');
+  });
+
+  it('puts a title-row extra inside the header instead', () => {
+    const { container } = renderCard({
+      extra: <span data-testid="tag">tag</span>,
+    });
+
+    const tag = screen.getByTestId('tag');
+
+    expect(container.querySelector('header')?.contains(tag)).toBe(true);
+    expect(container.querySelector('article')?.lastElementChild).not.toBe(tag);
+  });
+});

@@ -35,6 +35,7 @@ from api.db.joint_services.tenant_model_service import (
     get_api_key,
     get_composite_model_name_by_id,
     get_model_config_by_id,
+    get_model_name_by_ids,
     get_tenant_default_model_by_type,
     resolve_model_config,
     resolve_model_id,
@@ -127,6 +128,23 @@ def _build_chat_response(chat):
     data.pop("kb_ids", None)
     data["kb_names"] = kb_names
     return data
+
+
+def _add_card_metadata(chats):
+    """Attach the chat-card metadata: total messages and the model's short name.
+
+    Batched over the page, so a list request costs one aggregate plus one model
+    lookup rather than a pair of queries per card.
+    """
+    if not chats:
+        return chats
+
+    counts = ConversationService.get_message_counts([chat.get("id") for chat in chats])
+    names = get_model_name_by_ids([chat.get("llm_id") for chat in chats])
+    for chat in chats:
+        chat["message_count"] = counts.get(chat.get("id"), 0)
+        chat["model_name"] = names.get(chat.get("llm_id"), "")
+    return chats
 
 
 def _resolve_kb_names(kb_ids):
@@ -567,7 +585,7 @@ async def list_chats():
                 **exact_filters,
             )
 
-        return get_json_result(data={"chats": [_build_chat_response(chat) for chat in chats], "total": total})
+        return get_json_result(data={"chats": _add_card_metadata([_build_chat_response(chat) for chat in chats]), "total": total})
     except Exception as ex:
         return server_error_response(ex)
 

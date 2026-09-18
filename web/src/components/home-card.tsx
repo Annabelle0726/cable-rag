@@ -50,6 +50,13 @@ interface IProps {
    * else has to share one of them and clamp instead of taking a line of its own.
    */
   extra?: ReactNode;
+  /**
+   * A rail of its own at the card's right edge, outside the text column, centred
+   * in the card's height. For a card whose right edge has to carry content too —
+   * a chat's message count, its model and the arrow that says the card opens —
+   * rather than clamping a second thing into the title row.
+   */
+  trailing?: ReactNode;
 }
 
 function Time({ time }: { time: string | number | undefined }) {
@@ -67,6 +74,7 @@ export function HomeCard({
   testId,
   showReleaseTime = false,
   extra,
+  trailing,
 }: IProps) {
   const { t } = useTranslation();
 
@@ -171,6 +179,8 @@ export function HomeCard({
           {sharedBadge}
         </div>
       </div>
+
+      {trailing}
     </Card>
   );
 }

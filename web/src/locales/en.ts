@@ -1010,6 +1010,7 @@ export default {
       delete: 'Delete',
     },
     chat: {
+      messageCount: '{{total}} messages',
       chatSupport: 'Chat Support',
       replyInstantly: 'We typically reply instantly',
       typeYourMessage: 'Type your message...',

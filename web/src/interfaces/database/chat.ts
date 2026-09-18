@@ -67,6 +67,10 @@ export interface IDialog {
   language: string;
   llm_id: string;
   tenant_llm_id?: string;
+  /** Total messages across the chat's sessions, resolved by the list endpoint. */
+  message_count?: number;
+  /** Display name of the chat's model, resolved by the list endpoint. */
+  model_name?: string;
   llm_setting: Variable;
   llm_setting_type?: string;
   name: string;
