@@ -103,8 +103,10 @@ const FormLabel = React.forwardRef<
     <Label
       ref={ref}
       className={cn(
+        /* 1. 显式设为主文本色和中等字重，摆脱灰色 */
+        'text-sm font-medium text-text-primary inline-flex items-center gap-1.5',
+        required && 'before:content-["*"] before:text-state-error before:me-0.5',
         className,
-        required && 'before:content-["*"] before:text-state-error',
       )}
       htmlFor={formItemId}
       {...props}
@@ -149,7 +151,8 @@ const FormDescription = React.forwardRef<
     <p
       ref={ref}
       id={formDescriptionId}
-      className={cn('text-sm text-text-disabled', className)}
+      /* 2. 将原本过于灰暗的 text-text-disabled 提亮为 text-text-secondary */
+      className={cn('text-xs text-text-secondary', className)}
       {...props}
     />
   );
@@ -171,7 +174,7 @@ const FormMessage = React.forwardRef<
     <p
       ref={ref}
       id={formMessageId}
-      className={cn('text-sm font-medium text-state-error', className)}
+      className={cn('text-xs font-medium text-state-error', className)}
       {...props}
     >
       {body}
