@@ -133,7 +133,7 @@ export function DatasetNavMenu({
            3. 移除了无谓的平铺内边距，完全交由内部 Grid/Flex 控制。
         */
         className={cn(
-          'z-50 w-[min(92vw,34rem)] overflow-hidden outline-none',
+          'z-50 w-[min(92vw,28rem)] overflow-hidden outline-none',
           'rounded-t-none rounded-b-2xl border border-cable-hairline bg-bg-card/95 shadow-2xl backdrop-blur-md p-0',
           'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
         )}
