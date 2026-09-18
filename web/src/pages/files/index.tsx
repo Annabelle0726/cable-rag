@@ -158,7 +158,6 @@ export default function Files() {
           loading={loading}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
-          showMoveFileModal={showMoveFileModal}
           connectKnowledgeModal={connectKnowledgeModal}
         />
       </div>

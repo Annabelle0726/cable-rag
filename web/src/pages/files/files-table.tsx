@@ -42,14 +42,12 @@ import { pick } from 'lodash';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { ActionCell } from './action-cell';
 import {
   UseHandleConnectToKnowledgeReturnType,
   useRenameCurrentFile,
 } from './hooks';
 import { KnowledgeCell } from './knowledge-cell';
 import { LinkToDatasetDialog } from './link-to-dataset-dialog';
-import { UseMoveDocumentShowType } from './use-move-file';
 import { useNavigateToOtherFolder } from './use-navigate-to-folder';
 import { isFolderType, isKnowledgeBaseType } from './util';
 import { useIsGoBackend } from '../../utils/backend-variant';
@@ -58,8 +56,7 @@ type FilesTableProps = Pick<
   ReturnType<typeof useFetchFileList>,
   'files' | 'loading' | 'pagination' | 'setPagination' | 'total'
 > &
-  Pick<UseRowSelectionType, 'rowSelection' | 'setRowSelection'> &
-  UseMoveDocumentShowType & {
+  Pick<UseRowSelectionType, 'rowSelection' | 'setRowSelection'> & {
     connectKnowledgeModal: UseHandleConnectToKnowledgeReturnType;
   };
 
@@ -71,7 +68,6 @@ export function FilesTable({
   loading,
   rowSelection,
   setRowSelection,
-  showMoveFileModal,
   connectKnowledgeModal,
 }: FilesTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -88,14 +84,12 @@ export function FilesTable({
   const {
     connectToKnowledgeVisible,
     hideConnectToKnowledgeModal,
-    showConnectToKnowledgeModal,
     initialConnectedIds,
     onConnectToKnowledgeOk,
     connectToKnowledgeLoading,
   } = connectKnowledgeModal;
   const {
     fileRenameVisible,
-    showFileRenameModal,
     hideFileRenameModal,
     onFileRenameOk,
     initialFileName,
@@ -271,26 +265,6 @@ export function FilesTable({
         return <KnowledgeCell value={value}></KnowledgeCell>;
       },
     },
-    {
-      id: 'actions',
-      header: t('action'),
-      meta: {
-        headerCellClassName: 'w-0 whitespace-nowrap',
-      },
-      enableHiding: false,
-      enablePinning: true,
-      cell: ({ row }) => {
-        return (
-          <ActionCell
-            row={row}
-            showConnectToKnowledgeModal={showConnectToKnowledgeModal}
-            showFileRenameModal={showFileRenameModal}
-            showMoveFileModal={showMoveFileModal}
-            setRowSelection={setRowSelection}
-          />
-        );
-      },
-    },
   ];
 
   const currentPagination = useMemo(() => {
@@ -342,7 +316,12 @@ export function FilesTable({
       <div className="glass-surface flex-1 min-h-0 size-full overflow-hidden rounded-2xl border border-cable-hairline">
         <Table
           rootClassName="max-h-full overflow-auto rounded-2xl bg-transparent"
-          className="[&_th]:text-xs [&_th_button:hover]:text-cable-accent"
+          /* Header labels share one spec across every column: metadata size,
+             medium weight, secondary ink. The sort arrow hover is declared here
+             rather than on each Button because the ghost variant's own
+             hover:text-text-primary competes at equal specificity — the
+             descendant selector is what reliably wins. */
+          className="[&_th]:text-xs [&_th]:font-medium [&_th]:text-text-secondary [&_th_button:hover]:text-cable-accent [&_th_button_svg]:transition-colors [&_th_button_svg]:duration-200"
         >
           <TableHeader className="bg-table-header backdrop-blur-[2px]">
             {table.getHeaderGroups().map((headerGroup) => (
