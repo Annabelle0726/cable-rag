@@ -77,8 +77,7 @@ Cable RAG is self-hosted. Pick the path that matches your goal:
 
 ### 🍔 **Compatibility with heterogeneous data sources**
 
-- Supports Word, Slides, Excel, TXT, images, scanned copies, structured data, web pages, and more.
-
+- Supports Word (including legacy `.doc` files via seamless PDF conversion), Slides, Excel, TXT, images, scanned copies, structured data, web pages, and more.
 ### 🛀 **Automated and effortless RAG workflow**
 
 - Streamlined RAG orchestration catered to both personal and large businesses.
@@ -292,6 +291,11 @@ docker compose build cablerag-cpu
 
 This repository is developed and run on Windows with PowerShell. Use the flow below as the standard
 local startup procedure, and keep the Docker dependencies running in the background.
+
+> [!TIP]
+> **Legacy Office Preview (.doc):**
+> Docker images automatically come with headless LibreOffice pre-installed for converting legacy `.doc` documents into PDF previews. 
+> For local source development, if you need to test `.doc` preview natively, install LibreOffice on your host machine and set the `SOFFICE_BIN` environment variable pointing to the `soffice` executable.
 
 > [!IMPORTANT]
 > After cloning the repository for the first time, run `git config --local --unset core.hooksPath`, `uv tool install lefthook` and `lefthook install` once from the repo root to enable local Git hooks.

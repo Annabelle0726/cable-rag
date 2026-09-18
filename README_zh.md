@@ -76,7 +76,7 @@ Cable RAG 采用自主托管方式，请按目标选择路径：
 
 ### 🍔 **兼容各类异构数据源**
 
-- 支持丰富的文件类型，包括 Word 文档、PPT、Excel 表格、txt 文件、图片、PDF、影印件、复印件、结构化数据、网页等。
+- 支持丰富的文件类型，包括 Word 文档（含旧版 `.doc` 格式的 PDF 无缝转换预览）、PPT、Excel 表格、txt 文件、图片、PDF、影印件、复印件、结构化数据、网页等。
 
 ### 🛀 **全程无忧、自动化的 RAG 工作流**
 
@@ -289,6 +289,11 @@ docker compose build cablerag-cpu
 
 本仓库在 Windows + PowerShell 环境下开发和运行，下述流程为本仓库标准的本地启动方式，请保持 Docker
 依赖服务在后台常驻运行。
+
+> [!TIP]
+> **旧版 Office 预览 (.doc)：**
+> Docker 镜像中已预装无界面版 LibreOffice，用于将旧版 `.doc` 文档转换为 PDF 进行在线预览。
+> 如果你在本地以源码方式启动开发，且需要测试 `.doc` 文件的本地预览功能，请在宿主机安装 LibreOffice 并配置 `SOFFICE_BIN` 环境变量指向 `soffice` 可执行文件。
 
 > [!IMPORTANT]
 > 首次克隆仓库后，请在仓库根目录执行一次 `git config --local --unset core.hooksPath`、`uv tool install lefthook` 和 `lefthook install`，以启用本地 Git hooks。

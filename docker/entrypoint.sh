@@ -227,7 +227,7 @@ function task_exe() {
     JEMALLOC_PATH="$(pkg-config --variable=libdir jemalloc)/libjemalloc.so"
     while true; do
         LD_PRELOAD="$JEMALLOC_PATH" \
-        "$PY" rag/svr/task_executor.py -i "${host_id}_${consumer_id}" -t "common" &
+        "$PY" rag/svr/task_executor.py --te_idx "${host_id}_${consumer_id}" --task_type "common" &
         wait;
         sleep 1;
     done
