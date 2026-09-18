@@ -190,7 +190,26 @@ function LoginFormContent({
                 data-testid="auth-submit"
                 type="submit"
                 loading={loading}
-                className="ceramic-cta h-10 my-1 w-full"
+                className={cn(
+                  // The shared button variant tints its own hover and focus
+                  // states towards ink, which on a blue action reads as grey.
+                  // Naming the same utilities here replaces them — the merge
+                  // keeps the last of a conflicting pair — so every state stays
+                  // on the CTA's own ramp: accent, one step deeper, deepest
+                  // while held.
+                  'my-1 h-10 w-full',
+                  // The relief is written as an arbitrary property rather than a
+                  // `shadow-*` utility: a bare `shadow-[var(--token)]` is read as
+                  // a shadow *colour* and would have left the button flat.
+                  'bg-[var(--login-cta-bg)] text-[var(--login-cta-fg)] [box-shadow:var(--login-cta-shadow)]',
+                  // The glaze is a translucent layer over the fill, so it stays
+                  // put while the fill itself steps down a shade.
+                  '[background-image:var(--login-cta-sheen)] [text-shadow:var(--login-cta-text-shadow)]',
+                  'hover:bg-[var(--login-cta-bg-hover)] hover:[box-shadow:var(--login-cta-shadow-hover)]',
+                  'focus-visible:bg-[var(--login-cta-bg-hover)] focus-visible:[box-shadow:var(--login-cta-shadow-hover)]',
+                  'active:bg-[var(--login-cta-bg-active)] active:[box-shadow:var(--login-cta-shadow-active)]',
+                  'transition-[color,background-color,box-shadow] duration-200 ease-in-out',
+                )}
               >
                 {title === 'login' ? t('login') : t('continue')}
               </ButtonLoading>
@@ -267,7 +286,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { login, loading: signLoading } = useLogin();
   const { register, loading: registerLoading } = useRegister();
-  const { channels, loading: channelsLoading } = useLoginChannels();
+  const { channels } = useLoginChannels();
   const { login: loginWithChannel, loading: loginWithChannelLoading } =
     useLoginWithChannel();
   const { t } = useTranslation('translation', { keyPrefix: 'login' });
@@ -279,11 +298,10 @@ const Login = () => {
   });
   const [isLoginPage, setIsLoginPage] = useState(true);
 
-  const loading =
-    signLoading ||
-    registerLoading ||
-    channelsLoading ||
-    loginWithChannelLoading;
+  // Only the requests the submit button owns: the SSO channel list has its own
+  // place on the card and no bearing on the password form, and letting it count
+  // here greyed the button out (disabled at 50%) on every page load instead.
+  const loading = signLoading || registerLoading || loginWithChannelLoading;
   const { config } = useSystemConfig();
   const registerEnabled =
     config?.registerEnabled === 1 || config?.registerEnabled === true;

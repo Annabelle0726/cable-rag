@@ -236,6 +236,45 @@
     --login-card-glow:
       var(--ceramic-elevation), 0 10px 30px -10px rgba(2, 132, 199, 0.25);
 
+    /* Sign-in call to action. It runs on its own ramp, a step deeper than the
+       ambient accent, and keeps white ink in both themes — the dark theme's
+       accent is deliberately lifted for text and edges, where white type would
+       land at roughly 2:1. Hover and press step further down the same ramp
+       rather than towards ink, which is what stops the button reading as grey
+       under the pointer. */
+    --login-cta-bg: #0284c7;
+    --login-cta-bg-hover: #0369a1;
+    --login-cta-bg-active: #075985;
+    --login-cta-fg: #ffffff;
+    /* Its relief is its own four layers rather than the generic one the rest of
+       the app wears, because this button is the focal point of the page and
+       should read as a raised ceramic tile: a glaze that catches the light at
+       the top and shades towards the bottom, a lit top rim, a shaded lower
+       inner edge, and a lift shadow under the whole piece. Hover lifts it
+       further, press drops it onto the surface. */
+    --login-cta-sheen: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.32) 0%,
+      rgba(255, 255, 255, 0.1) 44%,
+      rgba(255, 255, 255, 0) 56%,
+      rgba(2, 6, 23, 0.18) 100%
+    );
+    --login-cta-text-shadow: 0 1px 1px rgba(2, 6, 23, 0.35);
+    --login-cta-shadow:
+      0 8px 18px -6px rgba(2, 132, 199, 0.45),
+      0 1px 2px rgba(15, 23, 42, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -2px 4px rgba(3, 105, 161, 0.45);
+    --login-cta-shadow-hover:
+      0 12px 26px -8px rgba(2, 132, 199, 0.55),
+      0 2px 4px rgba(15, 23, 42, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      inset 0 -2px 4px rgba(3, 105, 161, 0.5);
+    --login-cta-shadow-active:
+      0 2px 6px -2px rgba(2, 132, 199, 0.4),
+      inset 0 2px 5px rgba(3, 105, 161, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.24);
+
     /* Ceramic enamel: a raised shell built from an inner top highlight, a
        hairline edge and a soft drop shadow. The header pill, the header/main
        seam and the interactive cards all read from these, so the surface
@@ -542,6 +581,32 @@
     --login-card-edge: rgba(56, 189, 248, 0.3);
     --login-card-glow:
       var(--ceramic-elevation), 0 10px 30px -10px rgba(2, 132, 199, 0.25);
+    /* Sign-in call to action: the same ramp as the light theme on purpose. A
+       saturated blue with white ink is what makes the button the focal point on
+       the dark card too, and the ambient accent here is too bright to carry
+       white type. */
+    --login-cta-bg: #0284c7;
+    --login-cta-bg-hover: #0369a1;
+    --login-cta-bg-active: #075985;
+    --login-cta-fg: #ffffff;
+    /* The glaze itself is theme-neutral (it is a translucent layer over the
+       fill), so it is declared once above; only the shading deepens here, where
+       the piece sits on the dark card and needs a heavier contact shadow. */
+    --login-cta-text-shadow: 0 1px 1px rgba(2, 6, 23, 0.45);
+    --login-cta-shadow:
+      0 10px 24px -8px rgba(2, 132, 199, 0.55),
+      0 1px 2px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -2px 4px rgba(2, 6, 23, 0.5);
+    --login-cta-shadow-hover:
+      0 14px 32px -10px rgba(2, 132, 199, 0.6),
+      0 2px 5px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -2px 4px rgba(2, 6, 23, 0.55);
+    --login-cta-shadow-active:
+      0 2px 6px -2px rgba(2, 132, 199, 0.45),
+      inset 0 2px 5px rgba(2, 6, 23, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
     /* Obsidian ceramic for the dark theme: a translucent graphite shell with a
        white rim light and a real drop shadow. It is a step lighter than the
        glass bar it sits in — the same navy as the bar would leave the pill
