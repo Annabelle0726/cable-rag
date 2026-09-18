@@ -75,6 +75,12 @@ describe('knowledge base navigation menu', () => {
     expect(screen.getByTestId('nav-dataset')).toHaveTextContent('数据集');
   });
 
+  it('stays closed until the pointer reaches it', () => {
+    renderMenu();
+
+    expect(screen.queryByTestId('nav-dataset-menu')).not.toBeInTheDocument();
+  });
+
   it('opens both levels on hover, listing the highlighted class only', async () => {
     renderMenu();
 
@@ -103,6 +109,22 @@ describe('knowledge base navigation menu', () => {
     // Second level: the knowledge base of the highlighted class only.
     expect(screen.getByText('BOM 结构库')).toBeInTheDocument();
     expect(screen.queryByText('GB/T 标准规范')).not.toBeInTheDocument();
+  });
+
+  it('bridges the trigger to the panel while it is open', async () => {
+    renderMenu();
+
+    expect(
+      screen.queryByTestId('nav-dataset-menu-bridge'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(screen.getByTestId('nav-dataset'));
+
+    // The band that carries the open item's tint over the navigation bar's own
+    // padding, so the panel meets the bar instead of floating below it.
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-dataset-menu-bridge')).toBeInTheDocument();
+    });
   });
 
   it('switches the second level when another class is highlighted', async () => {

@@ -37,10 +37,9 @@ import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 're
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router';
 
-/** Wait before closing, so a pointer crossing the gap into the panel survives. */
 const CloseDelayMs = 160;
-/** The menu is a directory, not a browser: one long page is enough. */
 const MenuPageSize = 100;
+const NavbarEdgeOffset = 7;
 
 type DatasetNavMenuProps = {
   to: string;
@@ -51,15 +50,6 @@ type DatasetNavMenuProps = {
   testId?: string;
 };
 
-/**
- * The knowledge-base entry of the top navigation: a two-level menu where the
- * first level is the plant's industrial classification and the second lists that
- * class's knowledge bases, with a create shortcut pinned below.
- *
- * The trigger is still the navigation link — clicking it opens the list page as
- * before — while hovering (or focusing) opens the menu, and the panel closes on
- * a route change so it never lingers over the page it navigated to.
- */
 export function DatasetNavMenu({
   to,
   label,
@@ -90,8 +80,6 @@ export function DatasetNavMenu({
   }, [cancelClose]);
 
   const handlePreventAutoFocus = useCallback((event: Event) => {
-    // The panel is opened by hovering, so stealing focus would look like the
-    // page jumped while the pointer is still on the navigation bar.
     event.preventDefault();
   }, []);
 
@@ -110,11 +98,9 @@ export function DatasetNavMenu({
           aria-current={isActive ? 'page' : undefined}
           aria-haspopup="true"
           aria-expanded={open}
-          // While the panel is open the trigger keeps the same accent tint and
-          // ink as hover, so the item never reads as inert next to its own menu.
           className={cn(
             className,
-            'data-[state=open]:bg-cable-nav-active-bg data-[state=open]:text-cable-nav-active-text',
+            'relative duration-150 data-[state=open]:rounded-b-none data-[state=open]:bg-cable-nav-active-bg data-[state=open]:text-text-primary',
           )}
           onMouseEnter={handleOpen}
           onMouseLeave={scheduleClose}
@@ -123,16 +109,34 @@ export function DatasetNavMenu({
         >
           <Icon className="size-4 shrink-0 stroke-[1.75]" />
           <span>{label}</span>
+
+          {open ? (
+            <span
+              aria-hidden
+              data-testid="nav-dataset-menu-bridge"
+              className="absolute inset-x-0 top-full z-10 bg-cable-nav-active-bg"
+              style={{ height: NavbarEdgeOffset }}
+            />
+          ) : null}
         </Link>
       </PopoverTrigger>
 
       <PopoverContent
         align="start"
-        sideOffset={10}
+        sideOffset={NavbarEdgeOffset}
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
         onOpenAutoFocus={handlePreventAutoFocus}
-        className="glass-panel w-[min(92vw,34rem)] rounded-2xl p-0 outline-none"
+        /* 改动重点：
+           1. 统一采用 border-cable-hairline 细线边框，避免粗糙黑框。
+           2. 使用 bg-bg-card 提高背景不透明度与深度，搭配 shadow-2xl 与 backdrop-blur-md，告别灰蒙感。
+           3. 移除了无谓的平铺内边距，完全交由内部 Grid/Flex 控制。
+        */
+        className={cn(
+          'z-50 w-[min(92vw,34rem)] overflow-hidden outline-none',
+          'rounded-t-none rounded-b-2xl border border-cable-hairline bg-bg-card/95 shadow-2xl backdrop-blur-md p-0',
+          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+        )}
         data-testid="nav-dataset-menu"
       >
         <DatasetNavMenuPanel onNavigate={scheduleClose} />
@@ -153,10 +157,10 @@ function DatasetNavMenuPanel({ onNavigate }: { onNavigate: () => void }) {
   const visibleDatasets = datasetsInNavCategory(groups, activeCategory);
 
   return (
-    <div className="flex min-h-[13rem]">
-      {/* First level: the industrial classification. */}
+    <div className="flex min-h-[14rem] divide-x divide-cable-hairline">
+      {/* 第一级：左侧分类列 - 背景使用纯净微透明色，保持直角相接 */}
       <ul
-        className="w-[11.5rem] shrink-0 space-y-0.5 border-r border-cable-hairline p-2"
+        className="w-[11.5rem] shrink-0 space-y-1 bg-bg-base/40 p-2"
         role="list"
       >
         {DatasetCategoryNavOrder.map((category) => {
@@ -172,7 +176,7 @@ function DatasetNavMenuPanel({ onNavigate }: { onNavigate: () => void }) {
                 count={count}
                 isActive={isActiveCategory}
                 toneClass={toneClass}
-                icon={<CategoryIcon className="category-ink size-4" aria-hidden />}
+                icon={<CategoryIcon className="category-ink size-4 shrink-0" aria-hidden />}
                 onHover={setActiveCategory}
                 category={category}
               />
@@ -181,15 +185,15 @@ function DatasetNavMenuPanel({ onNavigate }: { onNavigate: () => void }) {
         })}
       </ul>
 
-      {/* Second level: the knowledge bases of the highlighted class. */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* 第二级：右侧知识库列表 */}
+      <div className="flex min-w-0 flex-1 flex-col bg-bg-card">
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {loading ? (
-            <div className="flex h-24 items-center justify-center">
+            <div className="flex h-32 items-center justify-center">
               <Spin size="small" />
             </div>
           ) : visibleDatasets.length ? (
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {visibleDatasets.map((dataset) => (
                 <DatasetLink
                   key={dataset.id}
@@ -199,16 +203,17 @@ function DatasetNavMenuPanel({ onNavigate }: { onNavigate: () => void }) {
               ))}
             </ul>
           ) : (
-            <p className="px-2 py-6 text-center text-sm text-text-secondary">
-              {t('datasetCategory.empty')}
-            </p>
+            <div className="flex h-32 flex-col items-center justify-center gap-1 text-text-secondary">
+              <p className="text-sm">{t('datasetCategory.empty')}</p>
+            </div>
           )}
         </div>
 
-        <div className="border-t border-cable-hairline p-2">
+        {/* 底部固定创建按钮：增加微光悬浮与分割线 */}
+        <div className="border-t border-cable-hairline bg-bg-base/20 p-2">
           <Button
             variant="ghost"
-            className="w-full justify-start gap-2"
+            className="w-full justify-start gap-2 text-text-secondary hover:bg-cable-nav-active-bg hover:text-text-primary"
             onClick={() => {
               onNavigate();
               navigateToDatasetList({ isCreate: true });
@@ -216,7 +221,7 @@ function DatasetNavMenuPanel({ onNavigate }: { onNavigate: () => void }) {
             data-testid="nav-dataset-new"
           >
             <LucidePlus className="size-4" />
-            {t('knowledgeList.createKnowledgeBase')}
+            <span>{t('knowledgeList.createKnowledgeBase')}</span>
           </Button>
         </div>
       </div>
@@ -252,16 +257,21 @@ function CategoryButton({
       aria-current={isActive ? 'true' : undefined}
       data-testid={`nav-dataset-category-${category}`}
       className={cn(
-        'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors duration-200 ease-in-out',
+        'flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-all duration-150',
         toneClass,
         isActive
-          ? 'bg-cable-nav-active-bg font-medium text-text-primary'
-          : 'text-text-secondary hover:bg-cable-nav-active-bg hover:text-text-primary',
+          ? 'bg-cable-nav-active-bg font-semibold text-text-primary shadow-sm'
+          : 'text-text-secondary hover:bg-cable-nav-active-bg/60 hover:text-text-primary',
       )}
     >
       {icon}
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      <span className="shrink-0 text-xs text-text-secondary">{count}</span>
+      <span className={cn(
+        'shrink-0 text-xs rounded-full px-1.5 py-0.2',
+        isActive ? 'text-text-primary font-medium' : 'text-text-secondary'
+      )}>
+        {count}
+      </span>
     </button>
   );
 }
@@ -283,11 +293,11 @@ function DatasetLink({
         onClick={onClick}
         data-testid="nav-dataset-item"
         data-dataset-id={dataset.id}
-        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-text-secondary transition-colors duration-200 ease-in-out hover:bg-cable-nav-active-bg hover:text-text-primary"
+        className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm text-text-secondary transition-all duration-150 hover:bg-cable-nav-active-bg hover:text-text-primary"
       >
-        <DatasetCategoryIcon category={category} className="size-5 rounded-md" />
-        <span className="min-w-0 flex-1 truncate">{dataset.name}</span>
-        <span className="shrink-0 text-xs">
+        <DatasetCategoryIcon category={category} className="size-5 rounded-lg shrink-0" />
+        <span className="min-w-0 flex-1 truncate font-medium">{dataset.name}</span>
+        <span className="shrink-0 text-xs text-text-secondary/80">
           {dataset.document_count} {t('knowledgeList.doc')}
         </span>
       </Link>
