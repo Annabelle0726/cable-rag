@@ -170,12 +170,7 @@ See [docs/](./docs) for the administrator, developer and reference guides.
 
    _The following output confirms a successful launch of the system:_
 
-   ```text
-   _________    ____  __    ______   ____  ___   ______
-  / ____/   |  / __ )/ /   / ____/  / __ \/   | / ____/
- / /   / /| | / __  / /   / __/    / /_/ / /| |/ / __  
-/ /___/ ___ |/ /_/ / /___/ /___   / _, _/ ___ / /_/ /  
-\____/_/  |_/_____/_____/_____/  /_/ |_/_/  |_\____/   
+   ```bash
                    Cable RAG Engine                    
 
    Cable RAG version: v0.27.1-<git-describe>
