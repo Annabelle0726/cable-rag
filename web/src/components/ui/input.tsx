@@ -1,3 +1,5 @@
+'use client';
+
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
@@ -5,10 +7,8 @@ import { Eye, EyeOff, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export interface InputProps extends Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  'prefix'
-> {
+export interface InputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix'> {
   value?: string | number | readonly string[] | undefined;
   prefix?: React.ReactNode;
   suffix?: React.ReactNode;
@@ -47,6 +47,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         setSuffixWidth(suffixRef.current.offsetWidth);
       }
     }, [prefix, suffix, prefixRef, suffixRef]);
+
     const handleChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
       if (type === 'number') {
         const numValue = e.target.value === '' ? '' : Number(e.target.value);
@@ -71,10 +72,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           type={isPasswordInput && showPassword ? 'text' : type}
           className={cn(
             'peer/input',
-            'flex h-8 w-full rounded-md border-0.5 border-border-button bg-bg-input px-3 py-2 outline-none text-sm text-text-primary',
-            'file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-text-disabled',
-            'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-primary',
-            'disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
+            /* 基础高度与边框：剔除灰暗的 border-0.5，引入清晰的细边框与精致圆角 */
+            'flex h-10 w-full rounded-xl border border-cable-hairline bg-bg-input px-3.5 py-2 text-sm text-text-primary outline-none transition-all duration-200',
+            /* 文件与占位符样式：提亮 Placeholder 对比度 */
+            'file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-text-secondary/70',
+            /* Hover & Focus 状态：增加明显的高亮边框反馈 */
+            'hover:border-cable-border-hover',
+            'focus-visible:border-cable-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cable-accent/20',
+            'disabled:cursor-not-allowed disabled:opacity-50',
             type === 'number' &&
               '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
             className,
@@ -97,10 +102,15 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         prefixWidth,
         suffixWidth,
         isPasswordInput,
+        showPassword,
         inputValue,
         className,
+        type,
         handleChange,
         restProps,
+        ref,
+        prefix,
+        suffix,
       ],
     );
 
@@ -110,7 +120,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {prefix && (
             <span
               ref={prefixRef}
-              className="absolute start-0 top-[50%] translate-y-[-50%]"
+              className="absolute start-0 top-[50%] translate-y-[-50%] text-text-secondary"
             >
               {prefix}
             </span>
@@ -119,7 +129,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {suffix && (
             <span
               ref={suffixRef}
-              className={cn('absolute end-0 top-[50%] translate-y-[-50%]', {
+              className={cn('absolute end-0 top-[50%] translate-y-[-50%] text-text-secondary', {
                 'end-14': isPasswordInput,
               })}
             >
@@ -130,7 +140,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             <button
               type="button"
               className="
-                p-2 text-text-secondary
+                p-2 text-text-secondary hover:text-text-primary transition-colors
                 absolute border-0 end-1 top-[50%] translate-y-[-50%]
                 dark:peer-autofill/input:text-text-secondary-inverse
                 dark:peer-autofill/input:hover:text-text-primary-inverse
@@ -139,9 +149,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <EyeOff className="size-[1em]" />
+                <EyeOff className="size-[1.1em]" />
               ) : (
-                <Eye className="size-[1em]" />
+                <Eye className="size-[1.1em]" />
               )}
             </button>
           )}
@@ -163,7 +173,7 @@ const SearchInput = (props: InputProps) => {
     <Input
       placeholder={t('common.search')}
       {...props}
-      prefix={<Search className="ms-2 me-1 size-[1em]" />}
+      prefix={<Search className="ms-3 me-1 size-[1em]" />}
     />
   );
 };
@@ -225,7 +235,7 @@ export const NumberInput = React.forwardRef<
       type="number"
       onChange={(ev) => {
         const value = ev.target.value;
-        onChange?.(value === '' ? 0 : Number(value)); // convert to number
+        onChange?.(value === '' ? 0 : Number(value));
       }}
       {...props}
       ref={ref}
