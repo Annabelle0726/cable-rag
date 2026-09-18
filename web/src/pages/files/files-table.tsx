@@ -139,6 +139,7 @@ export function FilesTable({
           }
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label="Select all"
+          className="rounded-md border-cable-border-hover shadow-ceramic data-[state=checked]:border-cable-accent data-[state=checked]:bg-cable-accent"
         />
       ),
       cell: ({ row }) => (
@@ -146,6 +147,7 @@ export function FilesTable({
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
           aria-label="Select row"
+          className="rounded-md border-cable-border-hover shadow-ceramic data-[state=checked]:border-cable-accent data-[state=checked]:bg-cable-accent"
           disabled={!row.getCanSelect()}
         />
       ),
@@ -195,7 +197,16 @@ export function FilesTable({
                 onClick={handleNameClick}
                 className="max-w-full p-0 flex justify-start gap-2 text-text-primary"
               >
-                <FileIcon name={name} type={isSkillsFolder ? 'skills' : type} />
+                {/* Icon tile: the file or folder mark sits on its own 32px glass
+                    base so the name column has a fixed left edge and the type is
+                    readable at a glance. The shared FileIcon itself is untouched,
+                    because other pages render it without a tile. */}
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-cable-border-hover bg-cable-nav-active-bg text-cable-accent">
+                  <FileIcon
+                    name={name}
+                    type={isSkillsFolder ? 'skills' : type}
+                  />
+                </span>
 
                 <span className="truncate">{name}</span>
               </Button>
@@ -328,10 +339,10 @@ export function FilesTable({
       {/* One glass shell for the whole table: a clean translucent pane so the
           rows stay the only thing to read. An earlier pass laid a CAD ruling
           under them, which fought the data instead of framing it. */}
-      <div className="glass-surface flex-1 min-h-0 size-full overflow-hidden rounded-2xl">
+      <div className="glass-surface flex-1 min-h-0 size-full overflow-hidden rounded-2xl border border-cable-hairline">
         <Table
           rootClassName="max-h-full overflow-auto rounded-2xl bg-transparent"
-          className="[&_th]:text-xs"
+          className="[&_th]:text-xs [&_th_button:hover]:text-cable-accent"
         >
           <TableHeader className="bg-table-header backdrop-blur-[2px]">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -367,7 +378,7 @@ export function FilesTable({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className="group border-b border-cable-hairline bg-transparent hover:bg-table-row-hover data-[state=selected]:bg-table-row-hover"
+                  className="group border-b border-cable-hairline bg-transparent transition-colors duration-200 hover:bg-table-row-hover data-[state=selected]:bg-table-row-hover"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell

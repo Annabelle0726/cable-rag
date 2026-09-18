@@ -5,6 +5,12 @@ import {
 import { FileIcon } from '@/components/icon-font';
 import NewDocumentLink from '@/components/new-document-link';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { UseRowSelectionType } from '@/hooks/logic-hooks/use-row-selection';
 import { useDownloadFile } from '@/hooks/use-file-request';
 import { IFile } from '@/interfaces/database/file-manager';
@@ -18,6 +24,7 @@ import { CellContext } from '@tanstack/react-table';
 import { t } from 'i18next';
 import {
   ArrowDownToLine,
+  EllipsisVertical,
   Eye,
   FolderInput,
   FolderPen,
@@ -157,29 +164,40 @@ export function ActionCell({
         </NewDocumentLink>
       )}
 
-      {/* <DropdownMenu>
+      {/* The overflow menu is the row's guaranteed action point: every other
+          button is conditional (a folder cannot be renamed from here, a
+          knowledge-base entry cannot be moved, a previewable type needs the
+          previewer), so without it a knowledge-base row had no visible action at
+          all at rest. */}
+      <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="transparent"
-        className="border-none" size={'sm'}>
+          <Button
+            variant="transparent"
+            className="size-8 rounded-full border-none text-content-secondary transition-colors duration-200 hover:bg-cable-nav-active-bg hover:text-cable-accent"
+            size="icon-sm"
+            data-testid="file-actions-more"
+          >
             <EllipsisVertical />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handleShowMoveFileModal}>
-            {t('common.move')}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleShowFileRenameModal}>
-            {t('common.rename')}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
+          {isKnowledgeBase || (
+            <DropdownMenuItem onClick={handleShowMoveFileModal}>
+              {t('common.move')}
+            </DropdownMenuItem>
+          )}
+          {isKnowledgeBase || isFolder || (
+            <DropdownMenuItem onClick={handleShowFileRenameModal}>
+              {t('common.rename')}
+            </DropdownMenuItem>
+          )}
           {isFolder || (
             <DropdownMenuItem onClick={onDownloadDocument}>
               {t('common.download')}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
-      </DropdownMenu> */}
+      </DropdownMenu>
       {isKnowledgeBase || (
         <ConfirmDeleteDialog
           onOk={onRemoveFile}

@@ -2141,6 +2141,7 @@ export default {
       addToKnowledge: '链接知识库',
       pleaseSelect: '请选择',
       newFolder: '新建文件夹',
+      notLinked: '未关联',
       uploadFile: '上传文件',
       parseOnCreation: '创建时解析',
       uploadTitle: '点击或拖拽文件至此区域即可上传',

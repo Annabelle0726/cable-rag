@@ -2536,6 +2536,7 @@ export default {
       addToKnowledge: 'Link to dataset',
       pleaseSelect: 'Please select',
       newFolder: 'New folder',
+      notLinked: 'Unlinked',
       file: 'File',
       uploadFile: 'Upload file',
       parseOnCreation: 'Parse on creation',

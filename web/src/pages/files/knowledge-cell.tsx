@@ -8,6 +8,7 @@ import {
 import { IFile } from '@/interfaces/database/file-manager';
 import { Ellipsis } from 'lucide-react';
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * The knowledge-base cell. Every row gets a capsule — a themed one for each
@@ -16,6 +17,7 @@ import { useCallback } from 'react';
  * linked yet".
  */
 export function KnowledgeCell({ value }: { value: IFile['kbs_info'] }) {
+  const { t } = useTranslation('translation', { keyPrefix: 'fileManager' });
   const renderBadges = useCallback((list: IFile['kbs_info'] = []) => {
     return list.map((x) => (
       <span
@@ -47,7 +49,7 @@ export function KnowledgeCell({ value }: { value: IFile['kbs_info'] }) {
   ) : (
     // Unlinked file: a translucent glass capsule instead of an empty cell.
     <span className="inline-flex shrink-0 items-center rounded-full border border-cable-hairline bg-glass px-2.5 py-0.5 text-xs text-content-tertiary">
-      —
+      {t('notLinked')}
     </span>
   );
 }
