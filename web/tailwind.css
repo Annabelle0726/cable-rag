@@ -91,7 +91,7 @@
     --text-primary: 22 22 24;
     --text-secondary: 117 120 122;
     --text-disabled: #b2b5b7;
-    /* Input  default color */
+    /* Input default color */
     --border-default: rgba(0, 0, 0, 0.2);
     /* Input accent color */
     --border-accent: #000000;
@@ -101,9 +101,7 @@
     /* Output Variables Box */
     --bg-accent: rgba(76, 164, 231, 0.05);
 
-    /* --state-success: #3ba05c; */
     --state-success: 59 160 92;
-    /* --state-warning: #767573; */
     --state-warning: 250 173 20;
     --state-error: 216 73 75;
 
@@ -116,23 +114,10 @@
     --text-primary-inverse: 246 246 247;
     --text-secondary-inverse: 178 181 183;
 
-    /* Semantic content palette: the inks text is drawn in, by role rather than
-       by hue, so a page never picks a grey out of the air. The upstream
-       `--text-*` pair is a warm neutral that fights the cool canvas, which is
-       why the theme states its own three-step scale and the cable tokens alias
-       into it — `--cable-muted` is the tertiary step, so the metadata greys read
-       from here too. */
     --content-primary: #0f172a;
     --content-secondary: #475569;
     --content-tertiary: #64748b;
 
-    /* Cable industry theme: page, surfaces, brand and accents.
-       Every value below is resolved per mode, so components never need
-       hardcoded whites/blacks nor `dark:` duplicates for these surfaces. */
-    /* The page canvas is the same luminous wash as the sign-in screen: a bright
-       base with a sky bloom low on the right and cooler indigo ones at the top
-       right and bottom left, so the glass above it has light to glow through
-       instead of sitting on a flat grey field. */
     --cable-page-from: #ffffff;
     --cable-page-to: #f7fafe;
     --cable-page-edge: #eaf1fc;
@@ -161,8 +146,6 @@
         transparent 55%
       );
     --cable-surface: #ffffff;
-    /* Slightly translucent so the navigation pill reads as glass inside the
-       glass bar rather than as a grey block sitting on it. */
     --cable-surface-muted: rgba(255, 255, 255, 0.66);
     --cable-surface-border: rgba(203, 216, 233, 0.9);
     --cable-surface-border-hover: rgba(2, 132, 199, 0.45);
@@ -174,49 +157,24 @@
     --cable-icon-foreground: #2563eb;
     --cable-divider: rgba(148, 163, 184, 0.35);
     --cable-muted: var(--content-tertiary);
-    /* Translucent hairline for chat bubbles and markdown tables: a hard 1px
-       border reads as a heavy outline, a low-alpha one keeps the surface soft in
-       both themes. */
     --cable-hairline: rgba(15, 23, 42, 0.08);
-    /* Two layers: a hairline contact shadow plus a wide, very light ambient one,
-       which is what keeps a translucent card from reading as a flat grey pane. */
     --cable-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05),
       0 12px 32px -20px rgba(15, 23, 42, 0.3);
     --cable-shadow-hover: 0 10px 15px -3px rgba(15, 23, 42, 0.1),
       0 4px 6px -4px rgba(15, 23, 42, 0.1);
-    /* Slide-over drawer: the panel casts leftwards over the chat, and the
-       backdrop stays light enough that the conversation behind it is still
-       readable while the settings are open. */
     --cable-drawer-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
     --cable-backdrop: rgba(15, 23, 42, 0.3);
-    /* A person without an uploaded image shows the first character of their
-       name on the brand's dark slate blue with white text. */
     --cable-avatar-surface: #1e3a8a;
     --cable-avatar-foreground: #ffffff;
 
-    /* Tech accent + glassmorphism. One accent drives focus rings, hover borders
-       and the glow; every value lives here so no component hard-codes a colour
-       and the light/dark switch stays a pure token swap. */
     --accent-color: #0284c7;
     --accent-color-strong: #0369a1;
     --accent-color-soft: rgba(2, 132, 199, 0.1);
-    /* Light glass is bright, not grey: a near-white pane at 90% still lets the
-       canvas glow through, where the 80% pane over a pale base read as haze. */
     --glass-bg: rgba(255, 255, 255, 0.9);
     --glass-border: rgba(2, 132, 199, 0.2);
     --glass-blur: 8px;
-    /* 1px inner highlight along the top edge of a glass surface: it is what
-       makes a translucent pane read as ice rather than as a flat tint. On a
-       white pane a white line would vanish, so the light theme uses a whisper of
-       the accent instead — an edge-lit panel rather than a grey box. */
     --glass-highlight: rgba(2, 132, 199, 0.08);
 
-    /* Sign-in hero: the brand column beside the form. Its title ramp is a token
-       rather than the literal white-to-sky gradient of the design, because that
-       ramp only reads on a dark canvas — on a pale page a white stop vanishes,
-       so the light theme runs the same three stops from deep slate into the
-       brand blue. The cards and badges follow the same rule: the design's
-       white-alpha values in the dark theme, their ink-side counterparts here. */
     --hero-title-from: #0f172a;
     --hero-title-via: #0369a1;
     --hero-title-to: #0ea5e9;
@@ -229,29 +187,14 @@
     --hero-badge-text: #0369a1;
     --hero-glow: rgba(2, 132, 199, 0.16);
 
-    /* Sign-in card. The edge is the accent at 30% and the shadow is the ceramic
-       elevation plus one wide accent bloom underneath, so the card reads as the
-       focal point of the page without introducing a second colour. */
     --login-card-edge: rgba(2, 132, 199, 0.3);
     --login-card-glow:
       var(--ceramic-elevation), 0 10px 30px -10px rgba(2, 132, 199, 0.25);
 
-    /* Sign-in call to action. It runs on its own ramp, a step deeper than the
-       ambient accent, and keeps white ink in both themes — the dark theme's
-       accent is deliberately lifted for text and edges, where white type would
-       land at roughly 2:1. Hover and press step further down the same ramp
-       rather than towards ink, which is what stops the button reading as grey
-       under the pointer. */
     --login-cta-bg: #0284c7;
     --login-cta-bg-hover: #0369a1;
     --login-cta-bg-active: #075985;
     --login-cta-fg: #ffffff;
-    /* Its relief is its own four layers rather than the generic one the rest of
-       the app wears, because this button is the focal point of the page and
-       should read as a raised ceramic tile: a glaze that catches the light at
-       the top and shades towards the bottom, a lit top rim, a shaded lower
-       inner edge, and a lift shadow under the whole piece. Hover lifts it
-       further, press drops it onto the surface. */
     --login-cta-sheen: linear-gradient(
       180deg,
       rgba(255, 255, 255, 0.32) 0%,
@@ -275,40 +218,19 @@
       inset 0 2px 5px rgba(3, 105, 161, 0.55),
       inset 0 1px 0 rgba(255, 255, 255, 0.24);
 
-    /* Ceramic enamel: a raised shell built from an inner top highlight, a
-       hairline edge and a soft drop shadow. The header pill, the header/main
-       seam and the interactive cards all read from these, so the surface
-       quality is one theme swap instead of a per-component stack of shadows.
-       The light values reproduce the surface and edge the pill already had, so
-       switching it onto these tokens keeps the enamel it was praised for. */
     --ceramic-surface: rgba(255, 255, 255, 0.66);
     --ceramic-highlight: rgba(255, 255, 255, 0.9);
     --ceramic-border: rgba(203, 216, 233, 0.9);
     --ceramic-border-hover: rgba(2, 132, 199, 0.4);
-    /* The segmented control is the one ceramic surface with its own, flatter
-       palette: a pale icy tray rather than the raised shell, so the selected tab
-       is the only thing in it that looks lifted. The dark theme keeps the obsidian
-       shell values, since that step is what stops the tray sinking into the bar. */
     --ceramic-track-surface: rgba(241, 245, 249, 0.75);
     --ceramic-track-border: rgba(226, 232, 240, 0.8);
     --ceramic-track-inset: inset 0 1px 2px rgba(15, 23, 42, 0.04);
-    /* The raised tab: plain ceramic white, with a brand-tinted diffusion under it
-       and no edge line of its own — the tint and the contact shadow are what
-       separate it from the tray. */
     --ceramic-pill-surface: #ffffff;
     --ceramic-pill-edge: transparent;
     --ceramic-pill-shadow:
       0 2px 8px -1px rgba(14, 165, 233, 0.18),
       0 1px 3px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 #ffffff;
-    /* Frosted hint under an unselected tab: enough to answer the pointer without
-       putting a second raised surface next to the selected one. */
     --ceramic-hover-surface: rgba(255, 255, 255, 0.5);
-    /* The recess one size down from the segmented control's tray, shared by every
-       small sunk surface (the theme switch, the active row in the provider list);
-       the groove pair above resolves per theme, so one definition serves both.
-       The theme switch keeps the brand fill as its moving highlight, with a
-       slider elevation tighter than the create pill's because it is a third of
-       the size. */
     --ceramic-recess: inset 0 2px 4px var(--ceramic-groove-shadow),
       inset 0 -1px 0 var(--ceramic-groove-highlight);
     --ceramic-switch-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
@@ -317,64 +239,38 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.35),
       inset 0 -1px 1px rgba(2, 132, 199, 0.32);
     --ceramic-switch-icon-glow: rgba(255, 255, 255, 0.6);
-    /* Mini ceramic badge for inline labels (model types, counts): the accent at a
-       whisper of alpha with a rim light, instead of a flat grey chip. */
     --badge-surface: rgba(14, 165, 233, 0.15);
     --badge-border: rgba(14, 165, 233, 0.3);
     --badge-ink: #0369a1;
     --badge-shadow: rgba(2, 132, 199, 0.18);
     --badge-surface-hover: rgba(14, 165, 233, 0.2);
-    /* A form field has to stay legible against the glass panel it sits on, so its
-       edge is a real line rather than the hairline the chrome uses. */
     --field-border: rgba(15, 23, 42, 0.14);
-    /* Live status: the success colour with a diffuse bloom, so a "configured" dot
-       reads as a breathing indicator rather than a flat green pixel. */
+    /* 补充缺失的焦点边框变量 */
+    --field-border-focus: #0284c7;
+
     --dot-live-glow: 0 0 8px rgb(var(--state-success) / 0.6);
     --ceramic-shadow: 0 1px 2px rgba(15, 23, 42, 0.04),
       0 6px 16px -8px rgba(15, 23, 42, 0.1), 0 20px 40px -24px rgba(15, 23, 42, 0.18);
     --ceramic-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.05),
       0 10px 24px -10px rgba(15, 23, 42, 0.14),
       0 28px 56px -28px rgba(15, 23, 42, 0.22);
-    /* Header/main seam: a light line with a dark line under it, which is what
-       makes a 1px divider read as a recess rather than as a cut. */
     --ceramic-groove-highlight: rgba(255, 255, 255, 0.9);
     --ceramic-groove-shadow: rgba(15, 23, 42, 0.08);
-    /* Composed once: the var() references resolve against whichever theme is
-       active where the shadow is actually used, so `.dark` only overrides the
-       primitives above. Both elevations keep the same three-layer structure so
-       the browser can interpolate between them on hover. */
     --ceramic-elevation: inset 0 1px 0 var(--ceramic-highlight),
       var(--ceramic-shadow);
     --ceramic-elevation-hover: inset 0 1px 0 var(--ceramic-highlight),
       var(--ceramic-shadow-hover);
 
-    /* Scrollbars: the theme accent at a low alpha over a transparent track, so
-       every scroll container reads as part of the same surface instead of
-       falling back to the operating system's grey. Both the `scrollbar-color`
-       path (Chromium 121+, Firefox) and the ::-webkit-scrollbar path read
-       these, which is why the pair is declared once per theme. */
     --scrollbar-track: transparent;
     --scrollbar-thumb: rgba(2, 132, 199, 0.3);
     --scrollbar-thumb-hover: rgba(2, 132, 199, 0.6);
 
-    /* Brand entry: one translucent capsule for the mark and the wordmark. Hover
-       lights a whisper of the accent on the edge and the icon instead of
-       swapping a heavy border, and focus paints the same outline inwards. */
     --brand-hover-border: rgba(2, 132, 199, 0.3);
     --brand-glow: rgba(2, 132, 199, 0.35);
 
-    /* Data tables: the header sinks one step below the glass shell it sits in,
-       and a hovered row catches a sheen rather than a fill, so rows never turn
-       into grey blocks. */
     --table-header-bg: rgba(241, 245, 249, 0.6);
     --table-row-hover: rgba(2, 132, 199, 0.05);
 
-    /* Relief: a control pressed up out of the surface — a rim light along the top
-       edge, a shade tucked under the bottom edge and a drop shadow that widens
-       under the pointer and contracts while the control is held down. The rim and
-       the shade are what make a flat pill read as a glazed tile; the primary
-       action adds the accent to the shadow, a raised glass field keeps the same
-       geometry without the brand colour. */
     --ceramic-relief-highlight: rgba(255, 255, 255, 0.55);
     --ceramic-relief-shade: rgba(2, 132, 199, 0.22);
     --ceramic-relief-shadow: 0 4px 12px rgba(2, 132, 199, 0.22);
@@ -386,22 +282,14 @@
     --ceramic-relief-elevation-hover: var(--ceramic-relief-shadow-hover),
       inset 0 1px 1px var(--ceramic-relief-highlight),
       inset 0 -1px 1px var(--ceramic-relief-shade);
-    /* Held down: the tile sits lower, so the rim light fades and the shade moves
-       to the top edge, where a pressed surface catches no light. */
     --ceramic-relief-elevation-active: var(--ceramic-relief-shadow-active),
       inset 0 2px 3px var(--ceramic-relief-shade),
       inset 0 1px 0.5px var(--ceramic-relief-highlight);
 
-    /* The recessed twin, for a field rather than a button: the light lands on the
-       bottom lip and the top edge is shaded, so an input reads as a well pressed
-       into the surface instead of as another raised tile. */
     --ceramic-well-border: rgba(2, 132, 199, 0.24);
     --ceramic-well-inset: inset 0 2px 5px rgba(2, 132, 199, 0.18),
       inset 0 -1px 0 rgba(255, 255, 255, 0.5);
 
-    /* Industrial category tones. One halo tint per knowledge-base class, plus
-       the ink the icon is drawn in; the three inks that have no existing token
-       live here, so the icon matrix colours nothing from a component. */
     --category-bom-glow: rgba(217, 119, 6, 0.2);
     --category-standard-glow: rgba(14, 165, 233, 0.2);
     --category-spec-glow: rgba(99, 102, 241, 0.2);
@@ -414,10 +302,8 @@
     --shadow-accent: rgba(2, 132, 199, 0.22);
     --surface-hover-bg: rgba(2, 132, 199, 0.06);
     --surface-hover-border: rgba(2, 132, 199, 0.45);
-    /* Text/icon colour that sits on the accent itself. */
     --accent-contrast: #ffffff;
 
-    /* Top navigation states: quiet by default, brand-blue and bold when active. */
     --cable-nav-text: #64748b;
     --cable-nav-active-text: #1d4ed8;
     --cable-nav-active-bg: rgba(2, 132, 199, 0.1);
@@ -509,7 +395,6 @@
     --bg-canvas: 0 0 0;
     --bg-list: 15 23 42;
 
-    /* #f6f6f7 */
     --text-primary: 246 246 247;
     --text-secondary: 178 181 183;
     --text-disabled: #75787a;
@@ -517,19 +402,19 @@
     --border-accent: #ffffff;
     --border-button: rgba(148, 163, 184, 0.16);
 
-    /* *-inverse: colors in light mode */
+    /* 补充暗色模式下缺失的团队分类色彩 */
+    --team-group: #4ade80;
+    --team-member: #38bdf8;
+    --team-department: #a78bfa;
+    --bg-member: rgba(56, 189, 248, 0.12);
+
     --text-primary-inverse: 22 22 24;
     --text-secondary-inverse: 117 120 122;
 
-    /* Cable industry theme in dark mode: industrial black-blue instead of pure black. */
-    /* The semantic content scale, lifted for a dark page: the same three roles,
-       brighter, because a mid grey on near-black reads as haze. */
     --content-primary: #f1f5f9;
     --content-secondary: #cbd5e1;
     --content-tertiary: #94a3b8;
 
-    /* Deep ocean in the dark theme: the same three-stop wash, with the bloom
-       lifted because a navy glow on near-black needs the extra alpha. */
     --cable-page-from: #0f172a;
     --cable-page-to: #090d16;
     --cable-page-edge: #020617;
@@ -552,13 +437,9 @@
     --cable-shadow-hover: none;
     --cable-drawer-shadow: -4px 0 16px rgba(0, 0, 0, 0.45);
     --cable-backdrop: rgba(2, 6, 23, 0.5);
-    /* Brighter than the light-mode slate so the white initial keeps its
-       contrast against a dark page. */
     --cable-avatar-surface: #1d4ed8;
     --cable-avatar-foreground: #ffffff;
 
-    /* Same accent, lifted for a dark page: the light value would read as a
-       smudge on near-black, and the glass turns into a dark pane. */
     --accent-color: #38bdf8;
     --accent-color-strong: #0ea5e9;
     --accent-color-soft: rgba(56, 189, 248, 0.14);
@@ -566,9 +447,7 @@
     --glass-border: rgba(56, 189, 248, 0.22);
     --glass-blur: 8px;
     --glass-highlight: rgba(255, 255, 255, 0.06);
-    /* Dark hero: the white-to-sky title ramp, the white-alpha glass cards and
-       the sky badge tints are the design's own values, which is why the light
-       theme above carries different ones. */
+
     --hero-title-from: #ffffff;
     --hero-title-via: #bae6fd;
     --hero-title-to: #38bdf8;
@@ -580,22 +459,15 @@
     --hero-badge-border: rgba(56, 189, 248, 0.3);
     --hero-badge-text: #7dd3fc;
     --hero-glow: rgba(14, 165, 233, 0.2);
-    /* Same card edge, lifted for the dark ceramic; the bloom keeps the light
-       theme's accent because the glow only has to read as blue, not as bright. */
+
     --login-card-edge: rgba(56, 189, 248, 0.3);
     --login-card-glow:
       var(--ceramic-elevation), 0 10px 30px -10px rgba(2, 132, 199, 0.25);
-    /* Sign-in call to action: the same ramp as the light theme on purpose. A
-       saturated blue with white ink is what makes the button the focal point on
-       the dark card too, and the ambient accent here is too bright to carry
-       white type. */
+
     --login-cta-bg: #0284c7;
     --login-cta-bg-hover: #0369a1;
     --login-cta-bg-active: #075985;
     --login-cta-fg: #ffffff;
-    /* The glaze itself is theme-neutral (it is a translucent layer over the
-       fill), so it is declared once above; only the shading deepens here, where
-       the piece sits on the dark card and needs a heavier contact shadow. */
     --login-cta-text-shadow: 0 1px 1px rgba(2, 6, 23, 0.45);
     --login-cta-shadow:
       0 10px 24px -8px rgba(2, 132, 199, 0.55),
@@ -611,20 +483,11 @@
       0 2px 6px -2px rgba(2, 132, 199, 0.45),
       inset 0 2px 5px rgba(2, 6, 23, 0.6),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    /* Obsidian ceramic for the dark theme: a translucent graphite shell with a
-       white rim light and a real drop shadow. It is a step lighter than the
-       glass bar it sits in — the same navy as the bar would leave the pill
-       invisible apart from its hairline. The cable surfaces carry `none` here on
-       purpose, which is exactly why the dark pill and the dark cards read flat
-       without this set. */
+
     --ceramic-surface: rgba(30, 41, 59, 0.72);
     --ceramic-highlight: rgba(255, 255, 255, 0.12);
     --ceramic-border: rgba(255, 255, 255, 0.08);
     --ceramic-border-hover: rgba(56, 189, 248, 0.45);
-    /* The raised tab: graphite with a blue cast, one step lighter than the shell
-       it was lifted out of, so the selected tab stays legible on navy. It keeps a
-       white rim light here because on graphite the surface alone does not read as
-       an edge, and the obsidian elevation is what gives it depth. */
     --ceramic-pill-surface: rgba(51, 65, 85, 0.92);
     --ceramic-pill-edge: rgba(255, 255, 255, 0.08);
     --ceramic-pill-shadow: var(--ceramic-elevation);
@@ -639,16 +502,15 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.22),
       inset 0 -1px 1px rgba(2, 6, 23, 0.45);
     --ceramic-switch-icon-glow: rgba(255, 255, 255, 0.45);
-    /* The badge keeps its accent tint on navy but takes a lighter ink, since the
-       light-theme navy would vanish into the tint. */
     --badge-surface: rgba(14, 165, 233, 0.18);
     --badge-border: rgba(56, 189, 248, 0.35);
     --badge-ink: #7dd3fc;
     --badge-shadow: rgba(2, 6, 23, 0.35);
     --badge-surface-hover: rgba(56, 189, 248, 0.25);
-    /* On navy the panel and the pane behind a field are the same glass, so the
-       field edge is lifted to a clearly visible line. */
     --field-border: rgba(148, 163, 184, 0.32);
+    /* 补充暗色模式缺失的焦点边框变量 */
+    --field-border-focus: #38bdf8;
+
     --dot-live-glow: 0 0 9px rgb(var(--state-success) / 0.55);
     --ceramic-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
       0 6px 18px -8px rgba(0, 0, 0, 0.4), 0 20px 44px -24px rgba(0, 0, 0, 0.5);
@@ -656,17 +518,11 @@
       0 12px 28px -10px rgba(0, 0, 0, 0.5), 0 30px 60px -30px rgba(0, 0, 0, 0.6);
     --ceramic-groove-highlight: rgba(255, 255, 255, 0.08);
     --ceramic-groove-shadow: rgba(0, 0, 0, 0.2);
-    /* The accent is lifted for the dark page, so the scrollbar follows it. */
     --scrollbar-track: transparent;
     --scrollbar-thumb: rgba(56, 189, 248, 0.32);
     --scrollbar-thumb-hover: rgba(56, 189, 248, 0.65);
-    /* #0ea5e9 at 30% is the accent the brand entry was specified with, which is
-       this theme's strong accent. */
     --brand-hover-border: rgba(14, 165, 233, 0.3);
     --brand-glow: rgba(14, 165, 233, 0.45);
-    /* The same sinks and sheen, lifted for a dark page; the relief keeps the
-       geometry, deepens its rim and swaps the accent bloom for a black drop
-       shadow so the tile still separates from navy. */
     --table-header-bg: rgba(255, 255, 255, 0.03);
     --table-row-hover: rgba(255, 255, 255, 0.04);
     --ceramic-relief-highlight: rgba(255, 255, 255, 0.18);
@@ -677,8 +533,6 @@
     --ceramic-well-border: rgba(56, 189, 248, 0.22);
     --ceramic-well-inset: inset 0 2px 6px rgba(2, 6, 23, 0.65),
       inset 0 -1px 0 rgba(255, 255, 255, 0.06);
-    /* The halo alphas are theme-neutral; only the three inks that have to stay
-       legible on navy are lifted. */
     --category-spec-ink: #818cf8;
     --category-quality-ink: #34d399;
     --category-custom-ink: #c084fc;
@@ -700,9 +554,6 @@
   }
   body {
     @apply bg-bg-base text-text-primary;
-    /* The ocean canvas is painted on the document as well as on the app shell,
-       with a fixed attachment so it stays put while a page scrolls over it and
-       every glass surface has the same backdrop wherever it sits. */
     background-image: var(--page-gradient);
     background-attachment: fixed;
     background-repeat: no-repeat;
@@ -710,8 +561,6 @@
       'rlig' 1,
       'calt' 1;
   }
-
-  /* https://tailwindcss.com/docs/preflight */
 
   h1 {
     @apply text-2xl font-bold;
@@ -722,7 +571,6 @@
   h3 {
     @apply text-lg font-medium;
   }
-
   h4 {
     @apply text-base font-normal;
   }
@@ -735,26 +583,14 @@
 
 @layer base {
   * {
-    /* One thin, themed scrollbar everywhere. The pair of colours comes from the
-       scrollbar tokens; engines that honour `scrollbar-color` (Chromium 121+ and
-       Firefox) ignore the ::-webkit-scrollbar rules below, so both paths have to
-       name the same tokens rather than one carrying the theme and the other a
-       hard-coded grey. */
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
 
-  /* The whole app inherits the native stack declared in global.less; Tailwind's
-     preflight would otherwise leave its own system list in place. */
   html {
     font-family: var(--font-sans);
   }
 
-  /* One motion signature for every interactive control: colour, opacity and
-     shadow only. Scaling or translating a surface moves its layout box, which
-     the surrounding overflow containers clip, so those properties are never
-     transitioned here. Components that need a different set (a Radix accordion,
-     for instance) still override this with their own utility. */
   a,
   button,
   [role='button'],
@@ -768,9 +604,6 @@
 }
 
 @layer components {
-  /* Site-wide content gutters. The header, every page header, every card grid
-     and the home page column share this one class so their left and right
-     edges always land on the same vertical lines, at every breakpoint. */
   .page-gutter {
     margin-inline: auto;
     width: 100%;
@@ -778,9 +611,6 @@
     padding-inline: 1rem;
   }
 
-  /* Glassmorphism shell: a translucent pane over the page gradient with a
-     hairline accent border. Applied to the top bar, the side panels and the
-     login card, so the blurred surface is defined once. */
   .glass-panel {
     background-color: var(--glass-bg);
     border: 1px solid var(--glass-border);
@@ -788,10 +618,6 @@
     -webkit-backdrop-filter: blur(var(--glass-blur));
   }
 
-  /* Glass material without a frame of its own: it blurs the page canvas behind
-     it and keeps one highlight along its top edge, leaving the outline to
-     whichever edge actually needs a hairline. Used by the panes that should meet
-     edge to edge rather than float as cards. */
   .glass-surface {
     background-color: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
@@ -799,11 +625,6 @@
     box-shadow: inset 0 1px 0 var(--glass-highlight);
   }
 
-  /* Brand entry: the mark and the wordmark share a single translucent capsule,
-     so there is no second box inside it. Hover lifts the surface with a whisper
-     of the accent instead of swapping a heavy border, and the mark itself picks
-     up the same glow; focus paints that outline inwards, so the browser's own
-     coarse ring never appears. */
   .brand-entry {
     border: 1px solid transparent;
     transition:
@@ -833,25 +654,12 @@
     filter: drop-shadow(0 0 6px var(--brand-glow));
   }
 
-  /* Ceramic enamel shell for the navigation pill: translucent surface, hairline
-     edge and the composed elevation, so the pill reads as a raised tile in both
-     themes rather than as a flat grey block in dark mode. */
   .ceramic-pill {
     background-color: var(--ceramic-surface);
     border: 1px solid var(--ceramic-border);
     box-shadow: var(--ceramic-elevation);
   }
 
-  /* Ceramic segmented control: the navigation pill's recessed twin. The shell is
-     a capsule with the surface pressed *into* it — the top edge is shaded and the
-     bottom edge catches the light, the opposite of `.ceramic-pill` — so the tabs
-     read as sitting in a groove rather than on a tile.
-     The radius is set here as well as on the element, so the track is a capsule
-     even if a call site forgets the utility. It clips instead of hiding: the
-     selected tab floats on a three-layer drop shadow, and `hidden` would slice
-     that shadow off at the 4px padding line — the same cut the navigation pill
-     already had to be rescued from. `overflow-clip-margin` lets the shadow paint
-     into the margin while the box itself never overflows or scrolls. */
   .ceramic-segmented {
     background-color: var(--ceramic-track-surface);
     border: 1px solid var(--ceramic-track-border);
@@ -861,10 +669,6 @@
     box-shadow: var(--ceramic-track-inset);
   }
 
-  /* An unselected tab answers the pointer with a frosted sheen: a hint of the
-     material, never a second raised surface competing with the selected tab. Its
-     radius is part of the class as well, so the sheen is a capsule wherever the
-     class is used. */
   .ceramic-segment-idle {
     border-radius: 9999px;
     transition:
@@ -876,13 +680,6 @@
     background-color: var(--ceramic-hover-surface);
   }
 
-  /* The selected tab: the piece lifted back out of the groove. It is a small
-     capsule of its own — the radius belongs to this class, not only to the tab
-     button, because the sliding highlight is a separate element and a square one
-     inside a round track is exactly the corner that used to poke out. It carries
-     the ceramic elevation and animates its own geometry, so re-anchoring to
-     another tab slides it where the browser can interpolate anchor functions and
-     fades its surfaces where it cannot. */
   .ceramic-segment-pill {
     background-color: var(--ceramic-pill-surface);
     border: 1px solid var(--ceramic-pill-edge);
@@ -898,9 +695,6 @@
       box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Category tone: sets the halo tint and the icon ink for one industrial
-     class, so the card icon, the card chip and the navigation menu all
-     colour-code the same knowledge base the same way. */
   .category-tone-bom {
     --category-glow: var(--category-bom-glow);
     --category-ink: var(--cable-copper);
@@ -931,8 +725,6 @@
     --category-ink: var(--category-custom-ink);
   }
 
-  /* The halo itself: a soft single-colour bloom behind the class icon, never a
-     multi-colour gradient. */
   .category-halo {
     background-image: radial-gradient(
       circle at 50% 50%,
@@ -945,12 +737,6 @@
     color: var(--category-ink);
   }
 
-  /* The top bar keeps a translucent surface but only a bottom hairline, so it
-     reads as a bar rather than a floating card. Its top edge carries the same
-     highlight as the panes below, which is what makes the shell read as one
-     piece of glass. The bottom edge is the header/main seam: a light line with
-     its own shadow line under it, so the bar sits on the page instead of being
-     cut off from it. */
   .glass-header {
     background-color: var(--glass-bg);
     border-bottom: 1px solid var(--ceramic-groove-highlight);
@@ -961,9 +747,6 @@
       0 1px 0 var(--ceramic-groove-shadow);
   }
 
-  /* Interactive card: pointer cursor plus a colour-only hover. Deliberately no
-     transform or scale — the cards sit in `overflow: hidden` grids, where any
-     scaling clips the border and can spawn a stray scrollbar. */
   .card-interactive {
     cursor: pointer;
     transition:
@@ -978,13 +761,10 @@
     border-color: var(--surface-hover-border);
   }
 
-  /* Single-colour, low-alpha accent glow. No multi-colour gradients: the
-     industrial look comes from restraint. */
   .glow-accent {
     box-shadow: 0 4px 20px -2px var(--shadow-accent);
   }
 
-  /* Electric-blue focus ring for text inputs and editable surfaces. */
   .focus-glow:focus-visible,
   .focus-glow:focus-within {
     outline: none;
@@ -992,8 +772,6 @@
     box-shadow: 0 0 0 3px var(--accent-color-soft);
   }
 
-  /* Accent call-to-action: a restrained two-stop blue, never a multi-colour
-     gradient. Text colour comes from the token so it stays readable. */
   .accent-gradient {
     background-image: linear-gradient(
       120deg,
@@ -1031,18 +809,6 @@
 }
 
 @layer utilities {
-  /* The two ceramic surfaces that dress a primitive live here rather than in the
-     components layer, because `Button` and `Input` paint a surface of their own
-     (`bg-text-primary`, `bg-bg-input`). A class in the components layer has the
-     same specificity as those utilities but is emitted before them, so it loses:
-     that is exactly how the create buttons and the filter funnel came out as ink
-     black balls. Utilities are emitted after the generated ones, so these win
-     wherever they are applied while the size and shape still come from utilities
-     at the call site. */
-
-  /* Primary ceramic action: the branded fill, a rim light along the top edge and
-     a coloured drop shadow that widens under the pointer and contracts while the
-     control is held. The lift is shadow only, so nothing moves its own box. */
   .ceramic-cta.ceramic-cta {
     background-color: var(--accent-color);
     color: var(--accent-contrast);
@@ -1064,10 +830,6 @@
     box-shadow: var(--ceramic-relief-elevation-active);
   }
 
-  /* The same relief on a glass field: a search box or any other control that is
-     raised out of the surface without carrying the brand fill. Focus keeps the
-     relief and adds the accent ring on top of it, because a box-shadow cannot be
-     additive across two rules. */
   .ceramic-relief.ceramic-relief {
     background-color: var(--glass-bg);
     border: 1px solid var(--cable-hairline);
@@ -1095,11 +857,6 @@
     box-shadow: var(--ceramic-relief-elevation-active);
   }
 
-  /* The recessed twin of `.ceramic-relief`: a field pressed into the surface. The
-     top edge is shaded and the light lands on the bottom lip, the opposite of the
-     raised tile, so a search box and the button beside it read as two different
-     pieces of the same material. Kept here with the relief for the same reason:
-     `Input` paints its own background. */
   .ceramic-well.ceramic-well {
     background-color: var(--glass-bg);
     border: 1px solid var(--ceramic-well-border);
@@ -1119,10 +876,6 @@
       0 0 0 3px var(--accent-color-soft);
   }
 
-  /* The theme switch: a glass tray recessed into the footer, and a brand-blue
-     slider lifted out of it. Same family as the controls above — the tray keeps
-     the hairline edge and the groove, the slider keeps the rim light — so the
-     switch reads as part of the toolbar material rather than as a grey box. */
   .ceramic-switch.ceramic-switch {
     background-color: var(--glass-bg);
     border: 1px solid var(--cable-hairline);
@@ -1134,9 +887,6 @@
     box-shadow: var(--ceramic-switch-thumb-elevation);
   }
 
-  /* Settings chrome. A rail is a glass column, and the seam between two rails is
-     the hairline plus the groove's lit edge, so the divider reads as a recess
-     rather than as a cut. */
   .ceramic-rail.ceramic-rail {
     background-color: var(--glass-bg);
   }
@@ -1146,9 +896,6 @@
     box-shadow: 1px 0 0 var(--ceramic-groove-highlight);
   }
 
-  /* Left navigation row: frosted under the pointer, and a soft ceramic block with
-     the brand edge — plus the 1px rim light — when it is the current page. Only
-     backgrounds and shadows change, so nothing moves its own box. */
   .ceramic-nav-item.ceramic-nav-item {
     color: var(--text-secondary);
     transition:
@@ -1172,9 +919,6 @@
     color: var(--text-primary);
   }
 
-  /* A row in the provider list: the pointer frosts it, and the current provider
-     sinks into the surface, so the list shows where you are without a second
-     raised tile competing with the navigation block beside it. */
   .ceramic-list-row.ceramic-list-row {
     color: var(--text-secondary);
     transition:
@@ -1194,9 +938,6 @@
     color: var(--text-primary);
   }
 
-  /* Mini ceramic badge for inline labels (model types, overflow counts): the
-     accent at a whisper of alpha, a rim light along the top edge and a micro drop
-     shadow, where a flat grey chip used to be. */
   .ceramic-badge.ceramic-badge {
     background-color: var(--badge-surface);
     border: 1px solid var(--badge-border);
@@ -1206,9 +947,6 @@
     color: var(--badge-ink);
   }
 
-  /* A field in the settings forms: a glass well with a 12px radius, the shared
-     hairline and the accent ring on focus, so a select matches the search fields
-     it sits next to. */
   .ceramic-field.ceramic-field {
     background-color: var(--glass-bg);
     border: 1px solid var(--field-border);
@@ -1220,8 +958,6 @@
       box-shadow 200ms ease-in-out;
   }
 
-  /* Focus keeps the recess and adds the accent ring on top of it, because a
-     box-shadow cannot be additive across two rules. */
   .ceramic-field.ceramic-field:focus-visible,
   .ceramic-field.ceramic-field:focus-within {
     outline: none;
@@ -1231,10 +967,6 @@
       0 0 0 3px var(--accent-color-soft);
   }
 
-  /* Secondary accent action: the badge material at button size — the accent
-     tint, the accent edge, the rim light and a micro drop shadow, with the tint
-     deepening under the pointer. For the actions that sit beside a field (the
-     Edit buttons) and should read as the same family without the solid fill. */
   .ceramic-cta-soft.ceramic-cta-soft {
     background-color: var(--badge-surface);
     border: 1px solid var(--badge-border);
@@ -1255,22 +987,15 @@
     border-color: var(--field-border-focus);
   }
 
-  /* A live status dot: the success colour with a diffuse bloom. */
   .ceramic-dot-live.ceramic-dot-live {
     background-color: rgb(var(--state-success));
     box-shadow: var(--dot-live-glow);
   }
 
-  /* Reserve the scrollbar's own width whether or not one is currently needed.
-     Without it, a switch to a tab whose content is shorter removes the
-     scrollbar, the content box grows by that width, and the whole layout jumps
-     sideways. Inert on boxes that do not scroll. */
   .scrollbar-gutter-stable {
     scrollbar-gutter: stable;
   }
 
-  /* Cable industry page canvas. One class, both modes: the gradient stops come
-     from the page tokens above, so no component repeats a `dark:` variant. */
   .bg-cable-page {
     background-color: var(--cable-page-to);
     background-image: var(--page-gradient);
@@ -1288,7 +1013,6 @@
   }
 
   .bg-card-soft {
-    /* First line is the fallback for browsers without color-mix() */
     background-color: var(--bg-card);
     background-color: color-mix(in srgb, var(--bg-card) 50%, transparent);
   }
