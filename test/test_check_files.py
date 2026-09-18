@@ -68,6 +68,19 @@ def test_trailing_whitespace_fix_is_noop_on_clean_file(tmp_path):
     assert f.read_bytes() == b"clean\n"
 
 
+def test_trailing_whitespace_fix_skips_readme_banner_padding(tmp_path, monkeypatch):
+    # The root READMEs pad their ASCII-art banner with trailing spaces so every
+    # line is exactly the same width: the fixer must leave that padding intact.
+    monkeypatch.chdir(tmp_path)
+    original = b"   _________    ______   \n  / ____/   |  / ____/  \n"
+    (tmp_path / "README.md").write_bytes(original)
+
+    rc = check_trailing_whitespace([Path("README.md")], fix=True)
+
+    assert rc == 0
+    assert (tmp_path / "README.md").read_bytes() == original
+
+
 def test_merge_conflicts_skips_binary_file_with_markers(tmp_path):
     # A binary file whose bytes happen to contain ASCII conflict markers.
     f = tmp_path / "blob.bin"

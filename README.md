@@ -171,12 +171,12 @@ See [docs/](./docs) for the administrator, developer and reference guides.
    _The following output confirms a successful launch of the system:_
 
    ```text
-   ______   ____   ____   |    ______   ____   ______
-  / ____/  / __ \ / __ \  |   / __ \   / __ \ / ____/
- / /      / /_/ // /_/ /  |  / /_/ /  / /_/ // / __
-/ /___   / __  // /_/ /   | / _, _/  / __  // /_/ /
-\____/  /_/ /_//_____/    |/_/ |_|  /_/ /_//____/
-                         Cable RAG Engine
+   _________    ____  __    ______   ____  ___   ______
+  / ____/   |  / __ )/ /   / ____/  / __ \/   | / ____/
+ / /   / /| | / __  / /   / __/    / /_/ / /| |/ / __  
+/ /___/ ___ |/ /_/ / /___/ /___   / _, _/ ___ / /_/ /  
+\____/_/  |_/_____/_____/_____/  /_/ |_/_/  |_\____/   
+                   Cable RAG Engine                    
 
    Cable RAG version: v0.27.1-<git-describe>
    project base: /ragflow
@@ -294,7 +294,7 @@ local startup procedure, and keep the Docker dependencies running in the backgro
 
 > [!TIP]
 > **Legacy Office Preview (.doc):**
-> Docker images automatically come with headless LibreOffice pre-installed for converting legacy `.doc` documents into PDF previews. 
+> Docker images automatically come with headless LibreOffice pre-installed for converting legacy `.doc` documents into PDF previews.
 > For local source development, if you need to test `.doc` preview natively, install LibreOffice on your host machine and set the `SOFFICE_BIN` environment variable pointing to the `soffice` executable.
 
 > [!IMPORTANT]

@@ -97,11 +97,16 @@ def check_eof(paths: list[Path], fix: bool = False) -> int:
 
 _TRAILING_WS_RE = re.compile(r"[ \t]+(?=\r?\n|$)")
 
+# The root READMEs render the startup banner as ASCII art. Its trailing spaces
+# are load-bearing: they pad every banner line to the same width. Stripping them
+# collapses the banner, so these two files are exempt from this fixer.
+_TRAILING_WS_EXEMPT = {"README.md", "README_zh.md"}
+
 
 def check_trailing_whitespace(paths: list[Path], fix: bool = False) -> int:
     errors: list[str] = []
     for path in paths:
-        if not path.is_file():
+        if not path.is_file() or path.as_posix() in _TRAILING_WS_EXEMPT:
             continue
         try:
             data = _read_bytes(path)
