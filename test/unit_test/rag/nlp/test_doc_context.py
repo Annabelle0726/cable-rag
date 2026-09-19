@@ -178,6 +178,24 @@ def test_detect_standard_id_prefers_the_number_that_names_the_document():
 
 
 @pytest.mark.p2
+def test_detect_standard_id_reads_the_coal_industry_prefix():
+    # 《MT/T 818.11-2009》 is filed as "煤炭行业标准.pdf", so the name declares no
+    # number and the scan reaches the front matter, which cites GB/T 2900.10-2001.
+    # While MT was missing from the allowlist the document's own number was
+    # invisible to the scan, so every chunk was stamped with the cited standard —
+    # a "标准号" the document does not own, on a field the answering prompt is told
+    # to treat as authoritative.
+    found = doc_context.detect_standard_id(
+        "煤炭行业标准.pdf",
+        [
+            "MT/T 818.11—2009\n煤矿用电缆 第11部分：额定电压10kV及以下固定敷设电力电缆一般规定",
+            "本部分参与起草单位\nGB/T 2900.10-2001 电工术语 电缆",
+        ],
+    )
+    assert found == "MT/T 818.11-2009"
+
+
+@pytest.mark.p2
 def test_document_title_keeps_the_voltage_rating_slash():
     # The "/" in "450/750V" is part of the name, not a directory separator.
     assert doc_context.document_title(INCIDENT_DOC_NAME) == INCIDENT_DOC_TITLE
