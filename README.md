@@ -354,7 +354,7 @@ local startup procedure, and keep the Docker dependencies running in the backgro
    cd C:\Projects\RAG\ragflow\web
    npm run dev
    ```
-   ![Frontend UI interface](./files-page.png)
+   ![Frontend UI interface](./probe-register-light.png)
 
    | Frontend (dev) | API proxy target | Purpose |
    |----------------|------------------|---------|

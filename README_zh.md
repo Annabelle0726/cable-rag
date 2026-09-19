@@ -351,7 +351,7 @@ docker compose build cablerag-cpu
    cd C:\Projects\RAG\ragflow\web
    npm run dev
    ```
-   ![前端 UI 界面](./files-page.png)
+   ![前端 UI 界面](./probe-register-light.png)
 
    | 前端（开发） | API 代理目标 | 用途 |
    |--------------|--------------|------|
