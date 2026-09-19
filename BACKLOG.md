@@ -53,28 +53,23 @@ branch A is genuinely 0-based and needs a sample-driven decision.
 
 ## feat(web): give a direct answer the pool it quotes, server-side
 
-`4496afd8e` resolves an answer's citations against the last pool it quoted, but
-only in the UI: the tool loop can answer straight from the conversation history
-(`[Tool loop] Answering directly at step 1 — no tool needed`), and the reference
-entry the endpoints write for such a turn stays the empty placeholder
-`{"chunks": [], "doc_aggs": []}`. Anything reading the raw stream — the SDK, the
-share endpoints — therefore sees `[ID:1]` markers with no pool to resolve them.
+Still open, and only this half: an answer composed without retrieval of its own
+(`[Tool loop] Answering directly at step 1 — no tool needed`) persists the empty
+placeholder `{"chunks": [], "doc_aggs": []}` while quoting the previous answer's
+markers. The UI resolves those against the pool the answer quoted
+(`resolveAnswerPools`, `4496afd8e`); anything reading the raw stream — the SDK, the
+bot endpoints — still sees markers with no pool behind them, because the pool
+never leaves the client.
+
 Server-side direction: when an answer arrives with markers and no pool of its own,
 attach the session's most recent non-empty reference, the way the UI already does.
 
-The same entry should cover the other half of that gap, which the UI cannot close:
-a marker numbered against a pool the answer did not end up carrying. Measured over
-the stored history (75 answers, 49 of them cited): 12 answers had markers no pool
-could resolve, 10 of those resolved against the previous answer's pool in the UI,
-and 2 stayed unopenable — one citing `[ID:5]`/`[ID:0]` against a 3-chunk pool, one
-citing `[ID:1]` in a conversation whose first answer carried no pool at all.
-
-Direction: the search harness narrows its pool per step (`_narrow_or_keep`) while
-the reference handed back is built from the chat-side `rag_tools.kbinfos`, so the
-numbers the model saw and the pool the client receives can differ in both length
-and order. One pool, numbered where the model is prompted, is what makes a marker
-mean a chunk; `[ID:0]` also needs rejecting at the source, since the numbering is
-1-based.
+The other half of this gap is closed: markers used to be numbered against the
+compose-stage pool (`cite_chunks`) while the reference came from the chat-side
+accumulator, so a valid marker could name a passage the client never received.
+`_citation_pool` (`1c2de066f`) hands back the pool the model was numbered on.
+Measured after that change the remaining failures are the two above, which no
+server-side pool exists for.
 
 ## fix(rag): make the Go agentic-rag subtree build again
 

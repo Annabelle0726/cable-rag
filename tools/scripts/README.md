@@ -4,6 +4,8 @@ This directory contains database-related utility scripts for RAGFlow.
 
 - **mysql_migration.py**: Data migration between tables with stage-based execution
 - **db_schema_sync.py**: Database schema synchronization using peewee-migrate
+- **audit_answer_rendering.py**: Read-only audit of stored answers for the three ways one can render wrong — internal text left in the body, citation markers no pool can resolve, unbalanced `<think>` markers. Connection details come from `conf/service_conf.yaml`. No browser, so it can run in a regression sweep.
+- **render_visible_text.py**: Development-only companion to the above. Renders conversations in a running deployment and reads the transcript's `innerText`, which is what the user actually sees (the classifier above reads the stored payload, where log records are still present because the client folds them). Needs playwright and a live deployment, so it is not for CI.
 
 ---
 
