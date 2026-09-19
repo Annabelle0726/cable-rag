@@ -558,6 +558,26 @@ def cited_chunk_indexes(answer: str, chunk_count: int) -> set:
     return indexes
 
 
+def _citation_pool(kbinfos: dict, cite_chunks) -> dict:
+    """The pool a citation marker's number refers to.
+
+    Markers are numbered where the model is prompted: the agentic compose stage
+    labels its evidence ``ID: 1 … ID: n`` over the narrowed ``cite_chunks`` it puts
+    in ``evidence_kbinfos["chunks"]`` (see
+    ``rag/advanced_rag/agentic_rag_graph.py``) and records the same list on the
+    tools as ``_rag_cite_chunks``. The pool handed back to the client used to be
+    the chat-side accumulator instead, which holds a different set in a different
+    order — measured on live traffic, answers reached ``[ID:5]`` against a
+    3-chunk pool, and every such marker opened a passage other than the one the
+    model read. Whatever the pipeline recorded as its citation basis wins;
+    ``kbinfos`` remains the fallback for the paths that never set one.
+    """
+    pool = deepcopy(kbinfos)
+    if cite_chunks:
+        pool["chunks"] = deepcopy(list(cite_chunks))
+    return pool
+
+
 def repair_bad_citation_formats(answer: str, kbinfos: dict, idx: set):
     max_index = len(kbinfos["chunks"])
     normalized_answer = normalize_arabic_digits(answer) or ""
@@ -2151,9 +2171,15 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
             think = ans[0] + "</think>"
             answer = ans[1]
 
-        idx = cited_chunk_indexes(answer, len(rag_tools.kbinfos["chunks"]))
+        # One pool for all three readers below: marker validation, the document
+        # list, and the reference handed to the client. They used to read the
+        # chat-side accumulator while the model had been numbered over a narrower
+        # list, so a valid marker could name a passage the client never received.
+        pool = _citation_pool(rag_tools.kbinfos, getattr(rag_tools, "_rag_cite_chunks", None))
 
-        answer, idx = repair_bad_citation_formats(answer, rag_tools.kbinfos, idx)
+        idx = cited_chunk_indexes(answer, len(pool["chunks"]))
+
+        answer, idx = repair_bad_citation_formats(answer, pool, idx)
 
         doc_ids = set()
         for citation in idx:
@@ -2163,14 +2189,15 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
                 if citation:
                     doc_ids.add(str(citation))
                 continue
-            if 0 <= chunk_index < len(rag_tools.kbinfos["chunks"]):
-                doc_id = rag_tools.kbinfos["chunks"][chunk_index].get("doc_id")
+            if 0 <= chunk_index < len(pool["chunks"]):
+                doc_id = pool["chunks"][chunk_index].get("doc_id")
                 if doc_id:
                     doc_ids.add(doc_id)
 
-        recall_docs = [d for d in rag_tools.kbinfos["doc_aggs"] if d["doc_id"] in doc_ids]
+        recall_docs = [d for d in pool["doc_aggs"] if d["doc_id"] in doc_ids]
         if not recall_docs:
-            recall_docs = rag_tools.kbinfos["doc_aggs"]
+            recall_docs = pool["doc_aggs"]
+        pool["doc_aggs"] = recall_docs
         rag_tools.kbinfos["doc_aggs"] = recall_docs
 
         # The retrieved pool is handed back whenever retrieval produced anything,
@@ -2180,7 +2207,7 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
         # against and no document list to show. The non-agentic path already
         # returns the pool unconditionally (`kb_prompt` consumers read
         # `reference.chunks`), so this also removes a divergence between the two.
-        refs = deepcopy(rag_tools.kbinfos)
+        refs = pool
         for c in refs.get("chunks", []) if isinstance(refs, dict) else []:
             if c.get("vector"):
                 del c["vector"]

@@ -1154,6 +1154,12 @@ async def _compose_answer_from_evidence(state: AgenticState, tools, token_queue:
     # and expand range-merged citations (see _expand_range_citation_markers).
     tools._rag_slot_evidence = state.get("slot_evidence") or {}
     tools._rag_cite_chunk_ids = [str(c.get("chunk_id") or c.get("id") or "") for c in cite_chunks]
+    # The chunks those ids belong to, in the same order: the evidence below is
+    # labelled "ID: n" over exactly this list, so it is the numbering basis the
+    # citation markers refer to. The chat side hands the client a pool of its own
+    # otherwise (`rag_tools.kbinfos`), and a marker numbered against one list
+    # while the client resolves it against another opens the wrong passage.
+    tools._rag_cite_chunks = cite_chunks
     evidence_kbinfos = dict(kbinfos, chunks=cite_chunks)
     evidence_blocks = kb_prompt(evidence_kbinfos, min(tools.chat_mdl.max_length, _EVIDENCE_BUDGET_TOKENS))
     evidence = "\n".join(evidence_blocks) if isinstance(evidence_blocks, list) else str(evidence_blocks)
