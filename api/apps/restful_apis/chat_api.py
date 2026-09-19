@@ -953,6 +953,9 @@ async def update_session(chat_id, session_id):
             if not isinstance(name, str) or not name.strip():
                 return get_data_error_result(message="`name` can not be empty")
             req["name"] = name.strip()[:255]
+        is_pinned = req.get("is_pinned")
+        if is_pinned is not None and not isinstance(is_pinned, bool):
+            return get_data_error_result(message="`is_pinned` must be a boolean")
         update_fields = {k: v for k, v in req.items() if k not in {"id", "dialog_id", "chat_id", "user_id"}}
         if not ConversationService.update_by_id(session_id, update_fields):
             return get_data_error_result(message="Session not found!")

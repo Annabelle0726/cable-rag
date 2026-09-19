@@ -110,6 +110,8 @@ export interface IConversation {
   name: string;
   update_date: string;
   update_time: number;
+  /** Pinned sessions lead the list, whatever the activity order says. */
+  is_pinned?: boolean;
   is_new: true;
 }
 

@@ -1514,6 +1514,7 @@ class Conversation(DataBaseModel):
     message = JSONField(null=True)
     reference = JSONField(null=True, default=[])
     user_id = CharField(max_length=255, null=True, help_text="user_id", index=True)
+    is_pinned = BooleanField(null=False, help_text="pin to the top of the conversation list", default=False, index=True)
 
     class Meta:
         db_table = "conversation"
@@ -2497,6 +2498,7 @@ def migrate_db():
     alter_db_add_column(migrator, "file_commit_item", "content_after_location", CharField(max_length=512, null=True))
     alter_db_add_column(migrator, "file_commit_item", "slug_kwd", CharField(max_length=512, null=True, index=True))
     alter_db_add_column(migrator, "file_commit_item", "page_type_kwd", CharField(max_length=32, null=True, index=True))
+    alter_db_add_column(migrator, "conversation", "is_pinned", BooleanField(null=False, help_text="pin to the top of the conversation list", default=False, index=True))
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_secret_key")
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_public_key")
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_host")

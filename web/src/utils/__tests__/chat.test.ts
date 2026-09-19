@@ -1,4 +1,5 @@
 import {
+  bumpConversation,
   countAgenticLogLines,
   generateTemporaryConversationId,
   isAgenticLogContinuation,
@@ -6,12 +7,17 @@ import {
   isAgenticPreambleLine,
   isPersistedConversationId,
   isTemporaryConversationId,
+  orderConversations,
+  pinConversation,
   preprocessLaTeX,
   promoteCaretExponentsToLaTeX,
   replaceAgenticLogsToSection,
   replaceThinkToSection,
   trimExtractionResidue,
 } from '../chat';
+// Type-only: a value import used in an annotation fails the Babel transform that
+// this suite's module graph is built with.
+import type { IConversation } from '@/interfaces/database/chat';
 
 describe('preprocessLaTeX', () => {
   it('converts block \\[ \\] to $$ $$', () => {
@@ -485,5 +491,108 @@ describe('conversation id provenance', () => {
     expect(isTemporaryConversationId(undefined)).toBe(false);
     expect(isPersistedConversationId('')).toBe(false);
     expect(isPersistedConversationId(undefined)).toBe(false);
+  });
+});
+
+describe('conversation list order', () => {
+  /** Only the three fields the order reads are meaningful here. */
+  const buildConversation = (
+    id: string,
+    updateTime: number,
+    isPinned = false,
+  ) =>
+    ({
+      id,
+      update_time: updateTime,
+      is_pinned: isPinned,
+    }) as IConversation;
+
+  const readIds = (list: IConversation[]) => list.map((item) => item.id);
+
+  const list = [
+    buildConversation('older', 100),
+    buildConversation('newest', 300),
+    buildConversation('middle', 200),
+  ];
+
+  it('puts the most recent conversation first', () => {
+    expect(readIds(orderConversations(list))).toEqual([
+      'newest',
+      'middle',
+      'older',
+    ]);
+  });
+
+  it('keeps pinned conversations above a more recent one', () => {
+    const withPin = [...list, buildConversation('pinned', 50, true)];
+
+    expect(readIds(orderConversations(withPin))).toEqual([
+      'pinned',
+      'newest',
+      'middle',
+      'older',
+    ]);
+  });
+
+  it('orders pinned conversations among themselves by activity', () => {
+    const withPins = [
+      buildConversation('pinned-old', 10, true),
+      buildConversation('pinned-new', 20, true),
+      buildConversation('plain', 999),
+    ];
+
+    expect(readIds(orderConversations(withPins))).toEqual([
+      'pinned-new',
+      'pinned-old',
+      'plain',
+    ]);
+  });
+
+  it('bumps a conversation to the top of the unpinned group', () => {
+    expect(readIds(bumpConversation(list, 'older', 400))).toEqual([
+      'older',
+      'newest',
+      'middle',
+    ]);
+  });
+
+  it('does not bump a conversation above the pinned ones', () => {
+    const withPin = [...list, buildConversation('pinned', 50, true)];
+
+    expect(readIds(bumpConversation(withPin, 'older', 400))).toEqual([
+      'pinned',
+      'older',
+      'newest',
+      'middle',
+    ]);
+  });
+
+  it('pins a conversation without touching its neighbours', () => {
+    expect(readIds(pinConversation(list, 'older', true))).toEqual([
+      'older',
+      'newest',
+      'middle',
+    ]);
+  });
+
+  it('returns an unpinned conversation to its activity position', () => {
+    const pinned = pinConversation(list, 'older', true);
+
+    expect(readIds(pinConversation(pinned, 'older', false))).toEqual([
+      'newest',
+      'middle',
+      'older',
+    ]);
+  });
+
+  it('leaves the list it was given untouched', () => {
+    const input = [...list];
+
+    bumpConversation(input, 'older', 400);
+    pinConversation(input, 'older', true);
+
+    expect(readIds(input)).toEqual(['older', 'newest', 'middle']);
+    expect(input[0].update_time).toBe(100);
+    expect(input[0].is_pinned).toBe(false);
   });
 });

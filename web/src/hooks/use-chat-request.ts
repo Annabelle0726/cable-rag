@@ -34,7 +34,11 @@ import i18n from '@/locales/config';
 import { useGetSharedChatSearchParams } from '@/pages/next-chats/hooks/use-send-shared-message';
 import chatService from '@/services/next-chat-service';
 import api from '@/utils/api';
-import { buildMessageListWithUuid } from '@/utils/chat';
+import {
+  buildMessageListWithUuid,
+  bumpConversation,
+  pinConversation,
+} from '@/utils/chat';
 import { markListItemsDeleted } from '@/utils/list-deletion-util';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from 'ahooks';
@@ -60,6 +64,7 @@ export const enum ChatApiAction {
   FetchSessionManually = 'fetchSessionManually',
   CreateSession = 'createSession',
   UpdateSession = 'updateSession',
+  PinSession = 'pinSession',
   RemoveSession = 'removeSession',
   DeleteMessage = 'deleteMessage',
   FetchMindMap = 'fetchMindMap',
@@ -317,7 +322,14 @@ export const useFetchSessionList = () => {
     },
     queryFn: async () => {
       const { data } = await chatService.listSessions(
-        { url: api.listSessions(id!) },
+        {
+          url: api.listSessions(id!),
+          // Conversation order is activity order: the list endpoint sorts pinned
+          // sessions first and then whatever `orderby` names, so asking for
+          // `update_time` is what puts the conversation just answered at the top
+          // — for every client, not only this one.
+          params: { orderby: 'update_time', desc: 'true' },
+        },
         true,
       );
       return data?.data;
@@ -332,6 +344,91 @@ export const useFetchSessionList = () => {
     handleInputChange,
     setSearchString,
   };
+};
+
+/**
+ * Edits the cached conversation list in place, so a row can move the moment the
+ * user acts on it instead of waiting for the next list request.
+ *
+ * The cache is the only copy the list renders from: `useSelectDerivedConversationList`
+ * mirrors it into local state, and `gcTime: 0` means the next fetch replaces it
+ * with the server's own order — which is why both edits below reuse the same
+ * ordering rule the endpoint sorts by.
+ */
+export const useSessionListOrder = () => {
+  const queryClient = useQueryClient();
+  const { id: chatId } = useParams();
+
+  const rewriteList = useCallback(
+    (rewrite: (list: IConversation[]) => IConversation[]) => {
+      if (!chatId) return;
+      queryClient.setQueryData<IConversation[]>(
+        [ChatApiAction.FetchSessionList, chatId],
+        (previous) => (previous ? rewrite(previous) : previous),
+      );
+    },
+    [chatId, queryClient],
+  );
+
+  const bumpSession = useCallback(
+    (sessionId: string) => {
+      if (!sessionId) return;
+      rewriteList((list) => bumpConversation(list, sessionId));
+    },
+    [rewriteList],
+  );
+
+  const setSessionPinned = useCallback(
+    (sessionId: string, isPinned: boolean) => {
+      if (!sessionId) return;
+      rewriteList((list) => pinConversation(list, sessionId, isPinned));
+    },
+    [rewriteList],
+  );
+
+  return { bumpSession, setSessionPinned };
+};
+
+/**
+ * Pins or unpins a conversation. The row moves to (or back out of) the pinned
+ * group immediately, and the request settles the cache against the server: a
+ * failure re-reads the list, so a refused pin cannot leave a pinned-looking row
+ * behind.
+ */
+export const usePinSession = () => {
+  const { id: chatId } = useParams();
+  const queryClient = useQueryClient();
+  const { setSessionPinned } = useSessionListOrder();
+
+  const { isPending: loading, mutateAsync } = useMutation({
+    mutationKey: [ChatApiAction.PinSession],
+    mutationFn: async ({
+      sessionId,
+      isPinned,
+    }: {
+      sessionId: string;
+      isPinned: boolean;
+    }) => {
+      setSessionPinned(sessionId, isPinned);
+
+      const { data } = await chatService.updateSession(
+        {
+          url: api.updateSession(chatId!, sessionId),
+          data: { is_pinned: isPinned },
+        },
+        true,
+      );
+
+      return data;
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: [ChatApiAction.FetchSessionList],
+      });
+    },
+  });
+
+  return { pinSession: mutateAsync, loading };
 };
 
 export function useFetchSessionManually() {

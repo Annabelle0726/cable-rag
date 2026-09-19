@@ -1011,6 +1011,8 @@ export default {
     },
     chat: {
       messageCount: '{{total}} messages',
+      pin: 'Pin to top',
+      unpin: 'Unpin',
       chatSupport: 'Chat Support',
       replyInstantly: 'We typically reply instantly',
       typeYourMessage: 'Type your message...',

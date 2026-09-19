@@ -22,7 +22,7 @@ import {
 // Type-only: both names are used in annotations only, and a value import here
 // makes the Babel module transform fail on this file ("imported binding used in
 // a type annotation"), which breaks every suite that imports it.
-import type { IMessage, Message } from '@/interfaces/database/chat';
+import type { IConversation, IMessage, Message } from '@/interfaces/database/chat';
 import { omit } from 'lodash';
 import { v4 as uuid } from 'uuid';
 import {
@@ -80,6 +80,51 @@ export const isPersistedConversationId = (
   conversationId?: string,
 ): conversationId is string =>
   !!conversationId && !isTemporaryConversationId(conversationId);
+
+/**
+ * The order the conversation list is read in: the pinned sessions first, then the
+ * ones with the most recent activity. It is the rule the list endpoint sorts by,
+ * repeated here so an edit made before the server answers — a send, a pin — lands
+ * a row exactly where the next refetch will put it.
+ */
+export function orderConversations(list: IConversation[]): IConversation[] {
+  return [...list].sort((a, b) => {
+    if (!!a.is_pinned !== !!b.is_pinned) {
+      return a.is_pinned ? -1 : 1;
+    }
+    return (b.update_time ?? 0) - (a.update_time ?? 0);
+  });
+}
+
+/**
+ * Moves a session to the top of its own group, which is what a new turn does to
+ * it on the server. `now` is injectable so a test can state the order it expects
+ * instead of racing the clock.
+ */
+export function bumpConversation(
+  list: IConversation[],
+  sessionId: string,
+  now = Date.now(),
+): IConversation[] {
+  return orderConversations(
+    list.map((item) =>
+      item.id === sessionId ? { ...item, update_time: now } : item,
+    ),
+  );
+}
+
+/** Pins or unpins a session, which carries it into the pinned group and back. */
+export function pinConversation(
+  list: IConversation[],
+  sessionId: string,
+  isPinned: boolean,
+): IConversation[] {
+  return orderConversations(
+    list.map((item) =>
+      item.id === sessionId ? { ...item, is_pinned: isPinned } : item,
+    ),
+  );
+}
 
 // When rendering each message, add a prefix to the id to ensure uniqueness.
 export const buildMessageUuidWithRole = (

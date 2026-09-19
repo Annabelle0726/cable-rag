@@ -4,7 +4,11 @@ import {
   useHandleMessageInputChange,
   useScrollToBottom,
 } from '@/hooks/logic-hooks';
-import { useFetchChat, useGetChatSearchParams } from '@/hooks/use-chat-request';
+import {
+  useFetchChat,
+  useGetChatSearchParams,
+  useSessionListOrder,
+} from '@/hooks/use-chat-request';
 import { buildMessageListWithUuid } from '@/utils/chat';
 import { IMessage, Message } from '@/interfaces/database/chat';
 import notification from '@/utils/notification';
@@ -95,6 +99,8 @@ export const useSendMessage = () => {
   // so a retry keeps the same options instead of silently dropping them.
   const lastSendOptionsRef = useRef<NextMessageInputOnPressEnterParameter>({});
 
+  const { bumpSession } = useSessionListOrder();
+
   const sendMessage = useCallback(
     async ({
       message,
@@ -110,6 +116,12 @@ export const useSendMessage = () => {
       const sessionId = currentConversationId ?? conversationId;
 
       lastSendOptionsRef.current = { enableInternet, enableThinking };
+
+      // The turn is what makes this conversation the most recent one, so it moves
+      // to the top of the list now rather than when the next list request lands.
+      // The answer only refreshes the same row's timestamp, so there is nothing
+      // left to move when the stream ends.
+      bumpSession(sessionId);
 
       const { ok, aborted } = await runChatCompletionStream({
         conversationId: sessionId,
@@ -141,6 +153,7 @@ export const useSendMessage = () => {
       failStream,
       t,
       currentDialog?.llm_setting,
+      bumpSession,
     ],
   );
 

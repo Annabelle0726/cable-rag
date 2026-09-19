@@ -45,10 +45,16 @@ class ConversationService(CommonService):
             sessions = sessions.where(cls.model.name == name)
         if user_id:
             sessions = sessions.where(cls.model.user_id == user_id)
+
+        # Pinned sessions lead the list whatever the caller sorted by; the
+        # requested field then orders the two groups between themselves, so a
+        # caller asking for `create_time` still gets activity ordering inside the
+        # pinned block and inside the rest.
+        sort_field = cls.model.getter_by(orderby)
         if desc:
-            sessions = sessions.order_by(cls.model.getter_by(orderby).desc())
+            sessions = sessions.order_by(cls.model.is_pinned.desc(), sort_field.desc())
         else:
-            sessions = sessions.order_by(cls.model.getter_by(orderby).asc())
+            sessions = sessions.order_by(cls.model.is_pinned.desc(), sort_field.asc())
 
         if items_per_page > 0:
             sessions = sessions.paginate(page_number, items_per_page)
