@@ -66,11 +66,31 @@ class ThinkLogHandler(logging.Handler):
         if not msg or not msg.lstrip().startswith("["):
             return
         try:
-            sink("<br>" + msg.strip())
+            sink(render_think_log_line(msg))
         except Exception:
             # Never let think-log forwarding break the request or the logging
             # subsystem itself.
             pass
+
+
+def render_think_log_line(msg: str) -> str:
+    """One forwarded record, on one line, closed by its own break.
+
+    The client collapses a forwarded record by matching its leading ``[Stage]``
+    tag, then treats whatever follows as answer text unless it looks like a
+    continuation. A record whose own message spans lines therefore leaks: the
+    lines after the first carry no tag, and the stage that logs immediately
+    before composing leaves the answer glued to the last of them —
+    ``pre_summary=''直接说结论：…`` reached the answer body exactly that way.
+
+    Escaping the newlines keeps the record's content — it stays readable in the
+    collapsed panel, tables included — while leaving exactly one line for the
+    tag rule to match, and the trailing break means the answer that follows
+    always starts a line of its own. Only the forwarded copy is escaped: the
+    same record still reaches the log file with its own formatting.
+    """
+    escaped = msg.strip().replace("\r\n", "\n").replace("\n", "\\n")
+    return "<br>" + escaped + "<br>"
 
 
 def install_think_log_handler() -> None:
