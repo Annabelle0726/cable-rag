@@ -23,13 +23,13 @@ import (
 	"fmt"
 	"strings"
 
-	ragprompts "ragflow/internal/rag/prompts"
+	ragprompts "ragflow/internal/prompts"
 )
 
 // CitationPrompt returns the citation-instruction text. The LLM
 // component appends it to the system prompt when LLMParam.Cite is true.
 //
-// The text lives once, in internal/rag/prompts/citation_prompt.md (a copy of
+// The text lives once, in internal/prompts/citation_prompt.md (a copy of
 // rag/prompts/citation_prompt.md), and is delegated to here so the two Go
 // columns cannot drift apart again.
 //
