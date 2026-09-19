@@ -50,6 +50,8 @@ type AvatarUploadProps = {
   cropModalOkButtonTestId?: string;
 };
 
+type DragMode = 'move' | 'nw' | 'ne' | 'sw' | 'se' | null;
+
 export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
   function AvatarUpload(
     {
@@ -64,7 +66,7 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
     ref,
   ) {
     const { t } = useTranslation();
-    const [avatarBase64Str, setAvatarBase64Str] = useState(''); // Avatar Image base64
+    const [avatarBase64Str, setAvatarBase64Str] = useState('');
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
     const [imageToCrop, setImageToCrop] = useState<string | null>(null);
     const [cropArea, setCropArea] = useState({ x: 0, y: 0, size: 200 });
@@ -72,8 +74,18 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
     const imageRef = useRef<HTMLImageElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // 拖拽与缩放状态
     const isDraggingRef = useRef(false);
-    const dragStartRef = useRef({ x: 0, y: 0 });
+    const dragModeRef = useRef<DragMode>(null);
+    const dragStartRef = useRef({
+      mouseX: 0,
+      mouseY: 0,
+      cropX: 0,
+      cropY: 0,
+      cropSize: 200,
+    });
+
     const [imageScale, setImageScale] = useState(1);
     const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
 
@@ -109,11 +121,9 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
 
       if (!ctx) return;
 
-      // Set canvas size to 64x64 (avatar size)
       canvas.width = 64;
       canvas.height = 64;
 
-      // Draw cropped image on canvas
       ctx.drawImage(
         image,
         cropArea.x,
@@ -126,7 +136,6 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
         64,
       );
 
-      // Convert to base64
       const croppedImageBase64 = canvas.toDataURL('image/png');
       setAvatarBase64Str(croppedImageBase64);
       onChange?.(croppedImageBase64);
@@ -144,29 +153,26 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
       const image = imageRef.current;
       const container = containerRef.current;
 
-      // Calculate image scale to fit container
       const scale = Math.min(
         container.clientWidth / image.width,
         container.clientHeight / image.height,
       );
       setImageScale(scale);
 
-      // Calculate image offset to center it
       const scaledWidth = image.width * scale;
       const scaledHeight = image.height * scale;
       const offsetX = (container.clientWidth - scaledWidth) / 2;
       const offsetY = (container.clientHeight - scaledHeight) / 2;
       setImageOffset({ x: offsetX, y: offsetY });
 
-      // Initialize crop area to center of image
-      const size = Math.min(scaledWidth, scaledHeight) * 0.8;
+      const size = Math.min(scaledWidth, scaledHeight) * 0.75;
       const x = (image.width - size / scale) / 2;
       const y = (image.height - size / scale) / 2;
 
       setCropArea({ x, y, size: size / scale });
     }, []);
 
-    // 统一处理缩放逻辑 (通过滑块或滚轮)
+    // 缩放计算函数
     const updateCropSize = useCallback((newSize: number) => {
       if (!imageRef.current) return;
       const image = imageRef.current;
@@ -199,70 +205,84 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
       });
     }, []);
 
+    // 鼠标移动核心逻辑（处理移动 + 四角拉伸）
     const handleMouseMove = useCallback(
       (e: MouseEvent) => {
-        if (
-          !isDraggingRef.current ||
-          !imageRef.current ||
-          !containerRef.current
-        )
-          return;
+        if (!isDraggingRef.current || !imageRef.current) return;
 
         const image = imageRef.current;
-        const container = containerRef.current;
-        const containerRect = container.getBoundingClientRect();
+        const mode = dragModeRef.current;
+        const { mouseX, mouseY, cropX, cropY, cropSize } = dragStartRef.current;
 
-        const mouseX = e.clientX - containerRect.left;
-        const mouseY = e.clientY - containerRect.top;
+        const deltaX = (e.clientX - mouseX) / imageScale;
+        const deltaY = (e.clientY - mouseY) / imageScale;
 
-        const imageX = (mouseX - imageOffset.x) / imageScale;
-        const imageY = (mouseY - imageOffset.y) / imageScale;
+        if (mode === 'move') {
+          let newX = cropX + deltaX;
+          let newY = cropY + deltaY;
 
-        let newX = imageX - dragStartRef.current.x;
-        let newY = imageY - dragStartRef.current.y;
+          newX = Math.max(0, Math.min(newX, image.width - cropSize));
+          newY = Math.max(0, Math.min(newY, image.height - cropSize));
 
-        newX = Math.max(0, Math.min(newX, image.width - cropArea.size));
-        newY = Math.max(0, Math.min(newY, image.height - cropArea.size));
+          setCropArea({ x: newX, y: newY, size: cropSize });
+        } else {
+          let newSize = cropSize;
+          let newX = cropX;
+          let newY = cropY;
 
-        setCropArea((prev) => ({
-          ...prev,
-          x: newX,
-          y: newY,
-        }));
+          if (mode === 'se') {
+            const delta = Math.max(deltaX, deltaY);
+            newSize = Math.max(30, cropSize + delta);
+            newSize = Math.min(newSize, image.width - cropX, image.height - cropY);
+          } else if (mode === 'nw') {
+            const delta = Math.min(deltaX, deltaY);
+            newSize = Math.max(30, cropSize - delta);
+            newSize = Math.min(newSize, cropX + cropSize, cropY + cropSize);
+            newX = cropX + (cropSize - newSize);
+            newY = cropY + (cropSize - newSize);
+          } else if (mode === 'ne') {
+            const delta = Math.max(deltaX, -deltaY);
+            newSize = Math.max(30, cropSize + delta);
+            newSize = Math.min(newSize, image.width - cropX, cropY + cropSize);
+            newY = cropY + (cropSize - newSize);
+          } else if (mode === 'sw') {
+            const delta = Math.max(-deltaX, deltaY);
+            newSize = Math.max(30, cropSize + delta);
+            newSize = Math.min(newSize, cropX + cropSize, image.height - cropY);
+            newX = cropX + (cropSize - newSize);
+          }
+
+          setCropArea({ x: newX, y: newY, size: newSize });
+        }
       },
-      [cropArea.size, imageScale, imageOffset],
+      [imageScale],
     );
 
     const handleMouseUp = useCallback(() => {
       isDraggingRef.current = false;
+      dragModeRef.current = null;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     }, [handleMouseMove]);
 
     const handleMouseDown = useCallback(
-      (e: React.MouseEvent) => {
+      (e: React.MouseEvent, mode: DragMode) => {
         e.preventDefault();
         e.stopPropagation();
         isDraggingRef.current = true;
-        if (imageRef.current && containerRef.current) {
-          const container = containerRef.current;
-          const containerRect = container.getBoundingClientRect();
+        dragModeRef.current = mode;
+        dragStartRef.current = {
+          mouseX: e.clientX,
+          mouseY: e.clientY,
+          cropX: cropArea.x,
+          cropY: cropArea.y,
+          cropSize: cropArea.size,
+        };
 
-          const mouseX = e.clientX - containerRect.left;
-          const mouseY = e.clientY - containerRect.top;
-
-          const imageX = (mouseX - imageOffset.x) / imageScale;
-          const imageY = (mouseY - imageOffset.y) / imageScale;
-
-          dragStartRef.current = {
-            x: imageX - cropArea.x,
-            y: imageY - cropArea.y,
-          };
-        }
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
       },
-      [cropArea, imageScale, imageOffset],
+      [cropArea, handleMouseMove, handleMouseUp],
     );
 
     const handleWheel = useCallback(
@@ -430,12 +450,30 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
                         height: `${cropArea.size * imageScale}px`,
                         boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
                       }}
-                      onMouseDown={handleMouseDown}
-                    />
+                      onMouseDown={(e) => handleMouseDown(e, 'move')}
+                    >
+                      {/* 四角拉伸手柄 (蓝色圆点) */}
+                      <div
+                        className="absolute -top-1.5 -left-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:scale-125 transition-transform"
+                        onMouseDown={(e) => handleMouseDown(e, 'nw')}
+                      />
+                      <div
+                        className="absolute -top-1.5 -right-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nesw-resize z-20 hover:scale-125 transition-transform"
+                        onMouseDown={(e) => handleMouseDown(e, 'ne')}
+                      />
+                      <div
+                        className="absolute -bottom-1.5 -left-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nesw-resize z-20 hover:scale-125 transition-transform"
+                        onMouseDown={(e) => handleMouseDown(e, 'sw')}
+                      />
+                      <div
+                        className="absolute -bottom-1.5 -right-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:scale-125 transition-transform"
+                        onMouseDown={(e) => handleMouseDown(e, 'se')}
+                      />
+                    </div>
                   )}
                 </div>
 
-                {/* 缩放控制区域 */}
+                {/* 底部滑动条与快捷按钮 */}
                 <div className="flex items-center justify-center gap-3 mt-4 w-[300px]">
                   <button
                     type="button"
