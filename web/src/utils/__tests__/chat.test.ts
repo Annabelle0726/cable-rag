@@ -650,4 +650,24 @@ describe('internal log payloads', () => {
     expect(answer).not.toContain('pre_summary');
     expect(answer).toContain('答案是 42。');
   });
+
+  it('folds the action session slot lines into the panel as well', () => {
+    // `[Action Session:init] <brief>\n<render_slots()>`, whose lines are list
+    // items carrying field assignments — the one forwarded record whose
+    // continuation the table/indent rule did not cover.
+    const text = [
+      '[Action Session:init] d0(.+)',
+      '- id=0 type=slot',
+      '- id=1 type=slot',
+      '',
+      '答案是 42。',
+    ].join('\n');
+    const result = replaceAgenticLogsToSection(text, 'Log');
+    const answer = result.replace(/<details[\s\S]*?<\/details>/g, '');
+
+    expect(answer).not.toContain('id=0');
+    expect(answer).toContain('答案是 42。');
+    // The whole line belongs to the record, so nothing of it is left behind.
+    expect(answer.trim()).toBe('答案是 42。');
+  });
 });

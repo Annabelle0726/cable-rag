@@ -261,7 +261,7 @@ const ANSWER_MEDIA_RE =
 const LOG_CONTINUATION_RE = /^(?:\||[ \t]{2,}|[│┃├└┌┐┘┤┬┴─])/;
 
 /**
- * The payload line of a log record: an internal field assignment — the
+ * A payload line of a log record: an internal field assignment — the
  * `pre_summary='…'` the compose stage logs on the line after
  * `[Formalize][pre_summary] …evidence_len=N`. The record's first line carries its
  * `[Stage]` tag and is recognised wherever it appears, but the payload line
@@ -272,6 +272,15 @@ const LOG_CONTINUATION_RE = /^(?:\||[ \t]{2,}|[│┃├└┌┐┘┤┬┴─
  */
 const LOG_FIELD_PAYLOAD_RE =
   /^[a-z][a-z0-9_]{0,31}=(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|\S*)/;
+
+/**
+ * The same assignment as a list item — `- id=0 type=slot`, which is how the
+ * action session renders its slots after `[Action Session:init] …\n<slots>`.
+ * Recognised only as a continuation (the whole line belongs to the record),
+ * never as a payload to strip: there is no answer glued to these lines, so
+ * removing the assignment would leave the rest of the slot table in the answer.
+ */
+const LOG_LIST_FIELD_RE = /^[-*+]\s+[a-z][a-z0-9_]{0,31}=/;
 
 /** The field assignment a log payload line starts with, `''` when there is none. */
 export function matchLogFieldPayload(line: string = ''): string {
@@ -297,7 +306,11 @@ export function isAgenticLogContinuation(line: string = ''): boolean {
     return false;
   }
 
-  return LOG_CONTINUATION_RE.test(trimmed);
+  return (
+    LOG_CONTINUATION_RE.test(trimmed) ||
+    LOG_FIELD_PAYLOAD_RE.test(trimmed) ||
+    LOG_LIST_FIELD_RE.test(trimmed)
+  );
 }
 
 /** True when a line is untagged tool-progress chatter. */
