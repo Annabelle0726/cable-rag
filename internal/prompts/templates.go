@@ -53,7 +53,7 @@ type EmbeddedPromptLoader struct{}
 func (EmbeddedPromptLoader) Load(name string) (string, error) {
 	data, err := templatesFS.ReadFile(name + ".md")
 	if err != nil {
-		return "", fmt.Errorf("internal/rag/prompts: template %q: %w", name, err)
+		return "", fmt.Errorf("internal/prompts: template %q: %w", name, err)
 	}
 	return strings.TrimSpace(string(data)), nil
 }

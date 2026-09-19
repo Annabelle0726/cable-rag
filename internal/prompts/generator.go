@@ -131,7 +131,7 @@ func CitationPrompt(userDefined string) string {
 		// The md is embedded in the binary; a load failure is a build/packaging
 		// defect, not a runtime condition. Panic so it surfaces loudly in tests
 		// rather than silently shipping empty citation rules.
-		panic(fmt.Sprintf("internal/rag/prompts: citation_prompt.md: %v", err))
+		panic(fmt.Sprintf("internal/prompts: citation_prompt.md: %v", err))
 	}
 	return strings.TrimSpace(string(data)) + citationIDSuffix
 }
