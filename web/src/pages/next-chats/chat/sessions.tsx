@@ -14,11 +14,13 @@ import {
   useGetChatSearchParams,
   useRemoveSessions,
 } from '@/hooks/use-chat-request';
+import { cn } from '@/lib/utils';
 import {
   LucideCopyX,
   LucideListChecks,
   LucidePanelLeftClose,
   LucidePencil,
+  LucidePin,
   LucidePlus,
   LucideSettings,
   LucideTrash2,
@@ -384,10 +386,25 @@ export function Sessions({
               {conversationList.map((x) => (
                 <li
                   key={x.id}
-                  className="
-                      group pr-3 flex items-center gap-1 rounded-lg
-                      aria-selected:bg-bg-card has-[>button:focus-visible]:bg-bg-card
-                    "
+                  // A pinned row wears a surface of its own, so it reads as pinned
+                  // before the pointer goes anywhere near it; the open one swaps
+                  // that surface for the brand bar on its leading edge, which the
+                  // selected highlight alone would not say.
+                  //
+                  // `bg-cable-surface-muted` rather than `bg-cable-surface/60`: the
+                  // cable tokens are plain `var()` colours, and Tailwind v3 emits no
+                  // rule at all for an opacity modifier on one of those, so the
+                  // row would have come out with no background. The muted token is
+                  // the surface a step up from the page — translucent white in the
+                  // light theme, #1b2129 against #161b22 in the dark one.
+                  className={cn(
+                    'group pr-3 flex items-center gap-1 rounded-lg',
+                    'aria-selected:bg-bg-card has-[>button:focus-visible]:bg-bg-card',
+                    x.is_pinned &&
+                      (conversationId === x.id
+                        ? 'border-l-2 border-l-cable-accent'
+                        : 'border border-cable-hairline bg-cable-surface-muted'),
+                  )}
                   aria-selected={conversationId === x.id}
                 >
                   {renamingConversationId === x.id ? (
@@ -405,7 +422,7 @@ export function Sessions({
                     <>
                       <button
                         type="button"
-                        className="focus-visible:outline-none px-3 py-2 text-left flex-1 truncate"
+                        className="focus-visible:outline-none px-3 py-2 text-left flex min-w-0 flex-1 items-center gap-1.5"
                         onClick={() =>
                           handleConversationCardClick(x.id, x.is_new)
                         }
@@ -413,7 +430,18 @@ export function Sessions({
                         data-testid="chat-detail-session-item"
                         data-session-id={x.id}
                       >
-                        {x.name}
+                        {/* Inside the button, so the marker never becomes a
+                            smaller target than the row it labels. */}
+                        {x.is_pinned ? (
+                          <LucidePin
+                            aria-hidden
+                            data-testid="chat-detail-session-pin-marker"
+                            className="size-3.5 shrink-0 text-cable-accent"
+                          />
+                        ) : null}
+                        <span className="min-w-0 flex-1 truncate">
+                          {x.name}
+                        </span>
                       </button>
 
                       <Button
