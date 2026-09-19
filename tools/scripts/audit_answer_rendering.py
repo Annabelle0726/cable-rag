@@ -48,6 +48,7 @@ import re
 import sys
 from collections import Counter
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -70,10 +71,24 @@ class Finding:
     conversation: str
     dialog: str
     answer_index: int
-    updated: str
+    answered_at: str
     length: int
     problems: list[str] = field(default_factory=list)
     samples: list[str] = field(default_factory=list)
+
+
+def answer_time(message: dict, fallback: str) -> str:
+    """When the answer was written.
+
+    Each stored message carries its own `created_at`, and that is the timestamp
+    that matters: a conversation's `update_time` moves whenever the session gets
+    another turn, so reporting it made an old answer look freshly generated — one
+    moved from 15:50 to 18:40 while its text stayed byte-identical.
+    """
+    stamp = message.get("created_at")
+    if isinstance(stamp, (int, float)) and stamp > 0:
+        return datetime.fromtimestamp(stamp).strftime("%Y-%m-%d %H:%M:%S")
+    return f"{fallback} (conversation update_time)"
 
 
 def answer_pools(reference) -> list[int]:
@@ -127,11 +142,15 @@ def inspect_answer(content: str) -> dict:
     }
 
 
-def analyse(conversations) -> tuple[Counter, list[Finding]]:
+def analyse(conversations, since: str | None = None) -> tuple[Counter, list[Finding]]:
     """Walk stored conversations and report every answer that renders wrong.
 
     `conversations` yields ``(id, dialog_name, messages, reference, updated)``, so
-    the whole analysis is testable without a database.
+    the whole analysis is testable without a database. `since` ("YYYY-MM-DD" or
+    "YYYY-MM-DD HH:MM") restricts the report to answers written after that moment,
+    which is what answers "is the fix working, or am I looking at old rows" — the
+    stored text of an old answer is never rewritten, so it would be reported for
+    ever.
     """
     totals: Counter = Counter()
     findings: list[Finding] = []
@@ -149,6 +168,11 @@ def analyse(conversations) -> tuple[Counter, list[Finding]]:
                 answer_index += 1
                 continue
 
+            answered_at = answer_time(message, str(updated))
+            if since and answered_at < since:
+                answer_index += 1
+                continue
+
             entry_index = answer_index - 1
             own = (reference[entry_index] if entry_index < len(reference or []) else None) or {}
             own_pool = len(own.get("chunks") or {})
@@ -156,7 +180,7 @@ def analyse(conversations) -> tuple[Counter, list[Finding]]:
 
             result = inspect_answer(content)
             totals["answers"] += 1
-            finding = Finding(str(conv_id)[:8], dialog, answer_index, str(updated), len(content))
+            finding = Finding(str(conv_id)[:8], dialog, answer_index, answered_at, len(content))
 
             if result["leaked_fields"]:
                 totals["answers_with_leaked_field"] += 1
@@ -194,7 +218,7 @@ def render(totals: Counter, findings: list[Finding]) -> str:
     lines += [f"  {key}: {totals[key]}" for key in sorted(totals)]
     lines.append(f"\nFINDINGS ({len(findings)} answers)\n")
     for finding in findings:
-        lines.append(f"{finding.conversation} · {finding.dialog!r} · answer#{finding.answer_index} · " f"{finding.updated} · len={finding.length}")
+        lines.append(f"{finding.conversation} · {finding.dialog!r} · answer#{finding.answer_index} · " f"{finding.answered_at} · len={finding.length}")
         lines += [f"    - {problem}" for problem in finding.problems]
         lines += [f"      {sample}" for sample in finding.samples]
     return "\n".join(lines) + "\n"
@@ -254,6 +278,10 @@ def main(argv=None) -> int:
     parser.add_argument("--password", help="MySQL password")
     parser.add_argument("--database", help="MySQL database")
     parser.add_argument("--limit", type=int, default=100, help="how many conversations to read (default 100)")
+    parser.add_argument(
+        "--since",
+        help="only report answers written after this moment ('YYYY-MM-DD' or 'YYYY-MM-DD HH:MM'); " "stored text is never rewritten, so without it an old answer is reported for ever",
+    )
     parser.add_argument("--out", help="write the report here as well as to stdout")
     args = parser.parse_args(argv)
 
@@ -263,7 +291,7 @@ def main(argv=None) -> int:
     finally:
         connection.close()
 
-    totals, findings = analyse(conversations)
+    totals, findings = analyse(conversations, since=args.since)
     report = render(totals, findings)
     print(report)
     if args.out:

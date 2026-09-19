@@ -141,3 +141,50 @@ class TestTheReport:
 
         assert totals["answers"] == 0
         assert findings == []
+
+
+class TestTimestampsAndSince:
+    """An old answer's text is never rewritten, so the report has to say when the
+    answer was written — and `--since` has to be able to hide the old ones."""
+
+    def conversation(self, answered_at: float, answer: str = LEAKED):
+        messages = [
+            {"role": "assistant", "content": "你好", "created_at": answered_at - 60},
+            {"role": "user", "content": "问题", "created_at": answered_at - 30},
+            {"role": "assistant", "content": answer, "created_at": answered_at},
+        ]
+        # A conversation-level timestamp far newer than the message: this is what
+        # made an old answer look freshly generated.
+        return ("conv-ts", "助手", messages, [{"chunks": [], "doc_aggs": []}], "2099-01-01 00:00:00")
+
+    def test_the_answer_reports_its_own_time_not_the_conversation_activity(self):
+        _, findings = analyse([self.conversation(1789804250.43)])  # 2026-09-19 15:50:50
+
+        assert findings[0].answered_at == "2026-09-19 15:50:50"
+
+    def test_a_message_without_a_timestamp_falls_back_and_says_so(self):
+        messages = [
+            {"role": "assistant", "content": "你好"},
+            {"role": "user", "content": "问题"},
+            {"role": "assistant", "content": LEAKED},
+        ]
+
+        _, findings = analyse([("conv-ns", "助手", messages, [], "2026-09-19 15:50:50")])
+
+        assert findings[0].answered_at == "2026-09-19 15:50:50 (conversation update_time)"
+
+    def test_since_hides_answers_written_before_it(self):
+        old = self.conversation(1789804250.43)  # 15:50
+        new = self.conversation(1789814457.60)  # 18:40, same leaky text
+
+        totals, findings = analyse([old, new], since="2026-09-19 17:00")
+
+        assert totals["answers"] == 1
+        assert len(findings) == 1
+        assert findings[0].answered_at.startswith("2026-09-19 18:40")
+
+    def test_without_since_every_answer_is_reported(self):
+        totals, findings = analyse([self.conversation(1789804250.43), self.conversation(1789814457.60)])
+
+        assert totals["answers"] == 2
+        assert len(findings) == 2
