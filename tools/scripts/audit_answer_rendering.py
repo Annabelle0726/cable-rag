@@ -38,6 +38,19 @@ reaches MySQL as `mysql:3306`, the host as `127.0.0.1:<published port>`).
 Usage:
     python tools/scripts/audit_answer_rendering.py
     python tools/scripts/audit_answer_rendering.py --out audit.txt --limit 200
+
+Verifying a change to the chat path: ask the question again in the UI, note when
+you sent it, and read only what was written since — the new answer must report no
+findings:
+
+    python tools/scripts/audit_answer_rendering.py --since "2026-09-19 18:00"
+
+Pair that with the tool loop's own log line for the turn
+(`docker logs cablerag-cpu --since 10m`): a knowledge-base turn must show
+`running rag`, either `Step 1: running rag...` from the model or
+`Route guard: running rag before the model answers`. `Answering directly at step 1
+— no tool needed` on such a turn means the answer was composed without retrieval —
+the defect the route guard exists to remove.
 """
 
 from __future__ import annotations
