@@ -122,7 +122,6 @@ export default {
       review: '来自 500 多条评论',
       /* Sign-in hero: the brand column beside the form. */
       hero: {
-        slogan: '新一代企业级 RAG 智能知识库引擎',
         featureHybridSearch: '精准混合检索',
         featureHybridSearchDesc:
           '向量语义 + 全文检索双引擎，检索准确率提升 85%+',
@@ -132,8 +131,8 @@ export default {
         featureAgentMemory: '智能体与长记忆链',
         featureAgentMemoryDesc:
           '结合结构化 Memory 与工具链，赋予 AI 深度推理与上下文记忆能力',
-        badgeLatency: '✨ 向量检索延迟 < 10ms',
-        badgeIsolation: '🔒 100% 企业级私域隔离',
+        badgeLatency: '向量检索延迟 < 10ms',
+        badgeIsolation: '100% 企业级私域隔离',
       },
     },
     header: {
@@ -154,6 +153,12 @@ export default {
       dataset: '知识库',
       memories: '记忆',
       help: '帮助',
+    },
+    breadcrumb: {
+      datasetModule: '知识库管理',
+    },
+    footer: {
+      copyright: '© XD芯导数字科技 | 工业标准与 QC 合规检验系统',
     },
     skills: {
       title: 'Skills',
@@ -421,6 +426,28 @@ export default {
         general: '通用',
         custom: '自定义',
       },
+    },
+    datasetTable: {
+      queryPanel: '查询条件',
+      category: '文件分类',
+      allCategories: '全部分类',
+      keyword: '关键词检索',
+      keywordPlaceholder: '请输入关键词',
+      createdRange: '创建时间范围',
+      datePlaceholder: '选择日期',
+      rangeSeparator: '至',
+      reset: '重置',
+      identity: '标识',
+      name: '数据集 / 文件名称',
+      documentCount: '文件数量',
+      files: '{{value}} 个文件',
+      updateTime: '最后更新时间',
+      status: '状态',
+      available: '可用',
+      archived: '已归档',
+      operation: '操作',
+      viewDetails: '查看详情',
+      empty: '暂无数据',
     },
     knowledgeDetails: {
       continueUpload: '继续上传',
@@ -3169,9 +3196,6 @@ export default {
       chunkTokenCap: '切片 Token 上限',
       chunkTokenCapTip: '单个切片允许包含的最大 Token 数。',
       includeDownloadInfoInContent: '在内容中包含下载链接',
-    },
-    footer: {
-      profile: 'All rights reserved @ React',
     },
     layout: {
       file: 'file',

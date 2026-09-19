@@ -140,7 +140,6 @@ export default {
       seeAll: 'See all',
       /* Sign-in hero: the brand column beside the form. */
       hero: {
-        slogan: 'A next-generation enterprise RAG knowledge engine',
         featureHybridSearch: 'Precise hybrid retrieval',
         featureHybridSearchDesc:
           'Vector semantics and full-text search in one engine, lifting retrieval accuracy by 85%+.',
@@ -150,8 +149,8 @@ export default {
         featureAgentMemory: 'Agents with long memory chains',
         featureAgentMemoryDesc:
           'Structured memory plus a tool chain gives the model deeper reasoning and lasting context.',
-        badgeLatency: '✨ Vector search under 10ms',
-        badgeIsolation: '🔒 100% private tenant isolation',
+        badgeLatency: 'Vector search under 10ms',
+        badgeIsolation: '100% private tenant isolation',
       },
     },
     header: {
@@ -173,6 +172,13 @@ export default {
       dataset: 'Dataset',
       memories: 'Memory',
       help: 'Help',
+    },
+    breadcrumb: {
+      datasetModule: 'Knowledge base admin',
+    },
+    footer: {
+      copyright:
+        '© XD Xindao Digital Technology | Industrial standard and QC compliance inspection system',
     },
     skills: {
       title: 'Skills',
@@ -464,6 +470,28 @@ export default {
         general: 'General',
         custom: 'Custom',
       },
+    },
+    datasetTable: {
+      queryPanel: 'Query conditions',
+      category: 'File class',
+      allCategories: 'All classes',
+      keyword: 'Keyword',
+      keywordPlaceholder: 'Enter a keyword',
+      createdRange: 'Created between',
+      datePlaceholder: 'Pick a date',
+      rangeSeparator: 'to',
+      reset: 'Reset',
+      identity: 'Class',
+      name: 'Dataset / file name',
+      documentCount: 'Files',
+      files: '{{value}} files',
+      updateTime: 'Last updated',
+      status: 'Status',
+      available: 'Available',
+      archived: 'Archived',
+      operation: 'Actions',
+      viewDetails: 'View details',
+      empty: 'No data',
     },
     knowledgeDetails: {
       continueUpload: 'Continue upload',
