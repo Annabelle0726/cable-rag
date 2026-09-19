@@ -34,7 +34,6 @@ import authorizationUtil from '@/utils/authorization-util';
 import { login } from '@/services/admin-service';
 
 import ThemeSwitch from '../../components/theme-switch';
-import { BgSvg } from '../login-next/bg';
 
 import { CurrentUserInfoContext } from './layouts/root-layout';
 
@@ -131,8 +130,6 @@ function AdminLogin() {
           Y="-10%"
           color="rgb(128, 255, 248)"
         />
-
-        <BgSvg isPaused={true} />
 
         <div className="absolute top-3 left-0 w-full">
           <div className="absolute mt-12 ml-12 flex items-center">

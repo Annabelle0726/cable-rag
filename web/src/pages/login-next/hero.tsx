@@ -14,13 +14,14 @@
  *  limitations under the License.
  */
 
+import { BrandMark } from '@/layouts/components/brand-mark';
 import { LucideBrain, LucideFileText, LucideZap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 /**
- * Feature list of the brand column. The icon carries the accent, the card holds
- * the copy, and both come from the hero tokens so the two themes stay a token
- * swap rather than a stack of `dark:` variants.
+ * Feature list of the brand column. The icon carries the brand green, the row
+ * holds the copy, and both come from tokens so the two themes stay a token swap
+ * rather than a stack of `dark:` variants.
  */
 const Features = [
   {
@@ -41,9 +42,12 @@ const Features = [
 ];
 
 /**
- * Brand column shown beside the sign-in form from `lg` up. Four blocks read top
- * to bottom — name, slogan, one-line pitch, then the feature cards and the two
- * floating badges — so the page has something to say before anyone signs in.
+ * Brand column shown beside the sign-in form from `lg` up.
+ *
+ * The identity block reads top to bottom — square logo, product wordmark, the
+ * system's full name, then the one-line pitch — and the feature list is a single
+ * 1px-ruled panel rather than a stack of floating cards. Everything is solid:
+ * no gradient title, no bloom behind the text, no backdrop blur.
  */
 export function LoginHero() {
   const { t } = useTranslation('translation', { keyPrefix: 'login' });
@@ -51,34 +55,39 @@ export function LoginHero() {
 
   return (
     <section className="relative hidden min-w-0 flex-col gap-6 lg:col-span-5 lg:flex">
-      {/* A single accent bloom behind the text: it gives the glass cards
-          something to sit on instead of a flat canvas. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-24 top-1/4 -z-10 size-72 rounded-full bg-hero-glow blur-3xl"
-      />
-
       <div className="flex flex-col gap-3">
-        <h1 className="w-fit bg-gradient-to-r from-hero-title-from via-hero-title-via to-hero-title-to bg-clip-text text-3xl font-bold tracking-tight text-transparent lg:text-4xl">
-          {tHeader('brandShort')}
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center border border-panel-border bg-bg-component">
+            <BrandMark label={tHeader('brandShort')} />
+          </span>
+          <span className="text-xl font-semibold tracking-tight text-cable-brand">
+            {tHeader('brandShort')}
+          </span>
+        </div>
+
+        {/* 系统全称：国网绿指示条 + 实色标题 */}
+        <h1 className="mt-1 flex items-start gap-2 text-2xl leading-snug font-bold text-text-primary">
+          <span aria-hidden className="mt-1.5 h-5 w-1 shrink-0 bg-cable-brand" />
+          {tHeader('heroTitle')}
         </h1>
-        <p className="text-lg font-medium text-text-primary">
-          {t('hero.slogan')}
+
+        <p className="text-sm text-content-secondary">
+          {tHeader('heroSubtitle')}
         </p>
       </div>
 
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col border border-panel-border bg-bg-component">
         {Features.map(({ icon: Icon, title, description }) => (
           <li
             key={title}
-            className="flex items-start gap-3 rounded-xl border border-hero-card-border bg-hero-card p-3 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-hero-card-hover"
+            className="flex items-start gap-3 border-b border-table-border p-3 last:border-b-0"
           >
-            <Icon className="mt-0.5 size-4 shrink-0 text-hero-icon" />
+            <Icon className="mt-0.5 size-4 shrink-0 text-cable-brand" />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-text-primary">
                 {t(title)}
               </p>
-              <p className="mt-0.5 text-xs leading-relaxed text-text-secondary">
+              <p className="mt-0.5 text-xs leading-relaxed text-content-secondary">
                 {t(description)}
               </p>
             </div>
@@ -87,12 +96,14 @@ export function LoginHero() {
       </ul>
 
       <div className="flex flex-wrap gap-2">
-        <span className="inline-flex items-center rounded-full border border-hero-badge-border bg-hero-badge px-3 py-1 text-xs text-hero-badge-text">
-          {t('hero.badgeLatency')}
-        </span>
-        <span className="inline-flex items-center rounded-full border border-hero-badge-border bg-hero-badge px-3 py-1 text-xs text-hero-badge-text">
-          {t('hero.badgeIsolation')}
-        </span>
+        {[t('hero.badgeLatency'), t('hero.badgeIsolation')].map((badge) => (
+          <span
+            key={badge}
+            className="inline-flex items-center border border-status-available-border bg-status-available px-2 py-1 text-xs leading-none text-status-available-ink"
+          >
+            {badge}
+          </span>
+        ))}
       </div>
     </section>
   );

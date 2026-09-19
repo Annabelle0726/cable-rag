@@ -12,7 +12,6 @@ import { useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
-import Spotlight from '@/components/spotlight';
 import { Button, ButtonLoading } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -24,12 +23,12 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { AppFooter } from '@/layouts/components/app-footer';
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { NICKNAME_PATTERN } from '../user-setting/profile/constants';
-import { BgSvg } from './bg';
 import FlipCard3D, { FlipFaceContext } from './card';
 import { LoginHero } from './hero';
 import { LoginLanguageToggle } from './language-toggle';
@@ -75,11 +74,11 @@ function LoginFormContent({
           {title === 'login' ? t('loginTitle') : t('signUpTitle')}
         </h2>
       </div>
-      {/* The focal point of the page: a ceramic shell (surface, rim light and
-          elevation) with the accent edge and one wide accent bloom under it. It
-          is the widest element on the page, and its fields are a step taller
-          than the app default so the card reads as the thing to act on. */}
-      <div className="ceramic-pill w-full max-w-[520px] rounded-2xl border-login-card-edge px-8 py-7 shadow-login-card transition-colors duration-200 ease-in-out focus-within:border-accent-color">
+      {/* The focal point of the page: a square white panel closed by a 1px
+          hairline, with the accent edge on focus-within. It is the widest element
+          on the page, and its fields are a step taller than the app default so
+          the panel reads as the thing to act on. */}
+      <div className="ceramic-pill w-full max-w-[520px] px-8 py-7 transition-colors duration-200 ease-in-out focus-within:border-cable-brand">
         {!disablePasswordLogin && (
           <Form {...form}>
             <form
@@ -409,59 +408,60 @@ const Login = () => {
 
   return (
     <>
-      {/* The spotlight takes its colour from the theme's own default (white in
-          dark mode, pale blue in light), so no colour is hard-coded here. */}
-      <Spotlight opcity={0.4} coverage={60} />
-      <Spotlight opcity={0.3} coverage={12} X={'10%'} Y={'-10%'} />
-      <Spotlight opcity={0.3} coverage={12} X={'90%'} Y={'-10%'} />
-      <div className="bg-cable-page relative flex h-screen w-screen items-center justify-center overflow-hidden">
-        <BgSvg isPaused />
-
+      <div className="bg-cable-page relative flex h-screen w-screen flex-col overflow-hidden">
         {/* The sign-in route has no app header, so the language switch lives on
             the page instead of in the top bar. */}
         <div className="absolute right-5 top-5 z-20">
           <LoginLanguageToggle />
         </div>
 
-        {/* Two columns from `lg` up, 5 / 7: the brand column takes two fifths
-            and the form three, so the card has room to sit as the focal point.
-            Below `lg` the brand column is hidden and the form keeps the compact
-            logo row instead, so the single-screen promise survives on a narrow
-            window. */}
-        <div className="relative z-10 grid h-full w-full max-w-[1200px] grid-cols-1 items-center gap-8 px-6 py-6 lg:grid-cols-12 lg:gap-12">
-          <LoginHero />
+        {/* One centred band with the 政企 footer pinned under it: the form keeps
+            the middle of the screen, and the copyright line closes the page
+            instead of floating over it. No spotlight bloom and no animated
+            circuit pattern — the canvas is plain #F0F2F5. */}
+        <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center px-6 py-6">
+          {/* Two columns from `lg` up, 5 / 7: the brand column takes two fifths
+              and the form three, so the card has room to sit as the focal point.
+              Below `lg` the brand column is hidden and the form keeps the compact
+              logo row instead, so the single-screen promise survives on a narrow
+              window. */}
+          <div className="grid w-full max-w-[1200px] grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12">
+            <LoginHero />
 
-          <div className="flex w-full flex-col items-center lg:col-span-7">
-            {/* Logo and product name read as one line, both on the same centre
-                line. Only for narrow screens: the brand column above already
-                names the product from `lg` up. */}
-            <header className="mb-4 flex flex-row items-center justify-center gap-3 lg:hidden">
-              <span className="glass-panel flex size-10 shrink-0 items-center justify-center rounded-xl">
-                <SvgIcon name="brand-logo" width={24} height={24} />
-              </span>
-              <p className="text-xl font-semibold tracking-tight text-text-primary">
-                {tHeader('brandShort')}
-              </p>
-            </header>
+            <div className="flex w-full flex-col items-center lg:col-span-7">
+              {/* Logo and product name read as one line, both on the same centre
+                  line. Only for narrow screens: the brand column above already
+                  names the product from `lg` up. */}
+              <header className="mb-4 flex flex-row items-center justify-center gap-3 lg:hidden">
+                <span className="flex size-10 shrink-0 items-center justify-center border border-panel-border bg-bg-component">
+                  <SvgIcon name="brand-logo" width={24} height={24} />
+                </span>
+                <p className="text-xl font-semibold tracking-tight text-text-primary">
+                  {tHeader('brandShort')}
+                </p>
+              </header>
 
-            {/* Login Form */}
-            <FlipCard3D isLoginPage={isLoginPage}>
-              <LoginFormContent
-                isLoginPage={isLoginPage}
-                title={title}
-                form={form}
-                loading={loading}
-                onCheck={onCheck}
-                changeTitle={changeTitle}
-                registerEnabled={registerEnabled}
-                channels={channels || []}
-                handleLoginWithChannel={handleLoginWithChannel}
-                t={t}
-                disablePasswordLogin={!!config?.disablePasswordLogin}
-              />
-            </FlipCard3D>
+              {/* Login Form */}
+              <FlipCard3D isLoginPage={isLoginPage}>
+                <LoginFormContent
+                  isLoginPage={isLoginPage}
+                  title={title}
+                  form={form}
+                  loading={loading}
+                  onCheck={onCheck}
+                  changeTitle={changeTitle}
+                  registerEnabled={registerEnabled}
+                  channels={channels || []}
+                  handleLoginWithChannel={handleLoginWithChannel}
+                  t={t}
+                  disablePasswordLogin={!!config?.disablePasswordLogin}
+                />
+              </FlipCard3D>
+            </div>
           </div>
         </div>
+
+        <AppFooter />
       </div>
     </>
   );
