@@ -35,7 +35,6 @@ from api.db.joint_services.tenant_model_service import (
     get_api_key,
     get_composite_model_name_by_id,
     get_model_config_by_id,
-    get_model_name_by_ids,
     get_tenant_default_model_by_type,
     resolve_model_config,
     resolve_model_id,
@@ -131,19 +130,17 @@ def _build_chat_response(chat):
 
 
 def _add_card_metadata(chats):
-    """Attach the chat-card metadata: total messages and the model's short name.
+    """Attach the chat-card metadata: the chat's total message count.
 
-    Batched over the page, so a list request costs one aggregate plus one model
-    lookup rather than a pair of queries per card.
+    Batched over the page, so a list request costs one aggregate rather than one
+    query per card.
     """
     if not chats:
         return chats
 
     counts = ConversationService.get_message_counts([chat.get("id") for chat in chats])
-    names = get_model_name_by_ids([chat.get("llm_id") for chat in chats])
     for chat in chats:
         chat["message_count"] = counts.get(chat.get("id"), 0)
-        chat["model_name"] = names.get(chat.get("llm_id"), "")
     return chats
 
 

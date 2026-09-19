@@ -583,24 +583,6 @@ def get_composite_model_name_by_ids(model_ids: list[str]) -> dict[str, str]:
     return result
 
 
-def get_model_name_by_ids(model_ids: list[str]) -> dict[str, str]:
-    """Convert a list of tenant_model.id values to a dict mapping each id to its
-    plain model name (``deepseek-v4-flash``).
-
-    The composite form from :func:`get_composite_model_name_by_ids` also carries
-    the instance and the provider, which is more than a chat card needs to show.
-    Model ids that cannot be resolved are silently skipped.
-    """
-    if not model_ids:
-        return {}
-
-    models = list(TenantModelService.get_by_ids(model_ids))
-    if not models:
-        return {}
-
-    return {m.id: m.model_name for m in models}
-
-
 def ensure_mistral_ocr_from_env(tenant_id: str) -> str | None:
     return _ensure_ocr_provider_from_env(
         tenant_id,
