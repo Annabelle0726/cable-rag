@@ -130,6 +130,12 @@ describe('citation markers in the chat transcript', () => {
     const { container } = renderContent('见表 [ID:6]。', fiveChunks);
 
     expect(answerBody(container)).toContain('[6]');
+    // A dashed rim is what separates "a citation that could not be opened" from
+    // plain text and from the solid-rimmed chip that resolves — the state the
+    // reported answer was in, where the marker read as ordinary prose.
+    expect(screen.getByTestId('citation-unresolved').className).toContain(
+      'border-dashed',
+    );
     expect(screen.getByTitle('该引用未能对应到证据片段')).toBeInTheDocument();
   });
 

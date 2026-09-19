@@ -405,7 +405,8 @@ function MarkdownContent({
             <span
               key={i}
               title={t('chat.citationUnresolved')}
-              className="text-text-disabled bg-bg-card rounded-2xl px-1 mx-1 text-nowrap inline-block opacity-70"
+              data-testid="citation-unresolved"
+              className="text-text-disabled bg-bg-card rounded-2xl px-1 mx-1 text-nowrap inline-block border border-dashed border-cable-hairline opacity-80"
             >
               [{match}]
             </span>
