@@ -47,6 +47,7 @@ from common.time_utils import current_timestamp, datetime_format
 from common.text_utils import normalize_arabic_digits
 from rag.advanced_rag.knowlege_compile.mind_map_extractor import MindMapExtractor
 from rag.app.tag import label_question
+from rag.llm.retrieval_guard import mandatory_retrieval
 from rag.nlp.search import index_name
 from rag.prompts.generator import chunks_format, citation_prompt, cross_languages, full_question, kb_prompt, keyword_extraction, message_fit_in, PROMPT_JINJA_ENV, ASK_SUMMARY
 from common.token_utils import num_tokens_from_string
@@ -653,9 +654,7 @@ RANGE_CITATION_PATTERN = re.compile(r"(?i)\[\s*ID\s*[:： ]*\s*(\d+)\s*[-–—~
 # prescribe, and the only shape safe to delete from an answer: a bare `[2024]` in
 # prose is as likely to be a year or a footnote. Mirrors Go's
 # `canonicalIDMarkerPattern`.
-CANONICAL_CITATION_PATTERN = re.compile(
-    r"(?i)\[\s*ID\s*[:： ]*\s*([0-9\u0660-\u0669\u06F0-\u06F9]+)\s*\]"
-)
+CANONICAL_CITATION_PATTERN = re.compile(r"(?i)\[\s*ID\s*[:： ]*\s*([0-9\u0660-\u0669\u06F0-\u06F9]+)\s*\]")
 
 
 def resolve_citation_markers(answer: str, chunk_count: int, *, one_based: bool = True) -> str:
@@ -2317,6 +2316,15 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
     # small models mangle or drop, so the client receives nothing.
     if getattr(chat_mdl, "mdl", None) is not None:
         chat_mdl.mdl.terminal_tools = {"rag"}
+        # Route guard: an assistant bound to knowledge bases retrieves on every
+        # user turn. The outer model's routing is only advisory — when it
+        # declines the tool call, the turn is composed from whatever the context
+        # window still holds instead of from the knowledge bases, which is how a
+        # comparison-table question was once answered with the previous turn's
+        # drawing material and no citations. Chit-chat turns are whitelisted in
+        # `mandatory_retrieval`; without bound knowledge bases there is nothing
+        # to guard.
+        chat_mdl.mdl.mandatory_retrieval = mandatory_retrieval(str(messages[-1].get("content") or "")) if dialog.kb_ids else None
     if stream:
         # Surface the outer model's reasoning, agent progress logs, and the
         # final-answer model's reasoning as one continuous think block. The

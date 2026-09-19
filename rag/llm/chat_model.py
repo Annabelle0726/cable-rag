@@ -38,6 +38,7 @@ from common.token_utils import num_tokens_from_string, total_token_count_from_re
 from rag.llm import FACTORY_DEFAULT_BASE_URL, LITELLM_PROVIDER_PREFIX, SupportedLiteLLMProvider
 from rag.llm.key_utils import _normalize_replicate_key, _resolve_bedrock_credentials
 from rag.llm.mws_utils import mws_api_url, require_mws_token
+from rag.llm.retrieval_guard import MandatoryRetrieval
 from rag.llm.tool_decorator import FunctionToolSession, is_tool
 from rag.nlp import is_chinese, is_english
 from rag.utils.url_utils import ensure_v1
@@ -323,6 +324,43 @@ def _move_litellm_provider_body_fields(provider: SupportedLiteLLMProvider | str 
     if moved or body:
         completion_args["extra_body"] = body
     return completion_args
+
+
+async def _mandatory_retrieval_answer(mdl) -> str | None:
+    """Run the retrieval a knowledge-base-bound assistant must not skip.
+
+    A caller arms this by setting ``mdl.mandatory_retrieval`` (see
+    rag/llm/retrieval_guard.py); the tool it names composes the cited answer
+    itself, so its result is the turn's answer and the model never gets a
+    chance to answer from stale context instead.
+
+    Returns None when the guard does not apply — nothing armed, the tool is not
+    bound, the call raised, or the tool produced nothing — so the model's own
+    routing takes over exactly as before.
+    """
+    request: MandatoryRetrieval | None = getattr(mdl, "mandatory_retrieval", None)
+    if request is None:
+        return None
+
+    bound = {t.get("function", {}).get("name") for t in (getattr(mdl, "tools", None) or []) if isinstance(t, dict)}
+    if request.tool not in bound:
+        logging.warning(f"[Tool loop] Route guard asked for the '{request.tool}' tool, which is not bound ({sorted(bound)}) — leaving the turn to the model.")
+        return None
+
+    logging.info(f"[Tool loop] Route guard: running {request.tool} before the model answers — a knowledge-base assistant must retrieve.")
+    try:
+        if hasattr(mdl.toolcall_session, "tool_call_async"):
+            result = await mdl.toolcall_session.tool_call_async(request.tool, request.arguments)
+        else:
+            result = await thread_pool_exec(mdl.toolcall_session.tool_call, request.tool, request.arguments)
+    except Exception:
+        logging.exception(f"[Tool loop] Route guard could not run the {request.tool} tool — leaving the turn to the model.")
+        return None
+
+    if result is None:
+        return None
+    answer = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False)
+    return answer or None
 
 
 class Base(ABC):
@@ -642,6 +680,12 @@ class Base(ABC):
             self.last_usage = dict(agg_usage)
 
         hist = deepcopy(history)
+        # Route guard — see _mandatory_retrieval_answer: a guarded turn retrieves
+        # before the model is asked, so no round can answer from stale context.
+        _guarded = await _mandatory_retrieval_answer(self)
+        if _guarded is not None:
+            self.last_usage = dict(agg_usage)
+            return _guarded, tk_count
         for attempt in range(self.max_retries + 1):
             history = deepcopy(hist)
             try:
@@ -752,6 +796,15 @@ class Base(ABC):
                 agg_usage["total_tokens"] += round_estimate
             total_tokens = agg_usage["total_tokens"]
             self.last_usage = dict(agg_usage)
+
+        # Route guard — see _mandatory_retrieval_answer: a guarded turn retrieves
+        # before the model is asked, so no round can answer from stale context.
+        _guarded = await _mandatory_retrieval_answer(self)
+        if _guarded is not None:
+            _commit_round(None, 0)
+            yield _guarded
+            yield total_tokens
+            return
 
         for attempt in range(self.max_retries + 1):
             history = deepcopy(hist)
@@ -2603,6 +2656,12 @@ class LiteLLMBase(ABC):
             self.last_usage = dict(agg_usage)
 
         hist = deepcopy(history)
+        # Route guard — see _mandatory_retrieval_answer: a guarded turn retrieves
+        # before the model is asked, so no round can answer from stale context.
+        _guarded = await _mandatory_retrieval_answer(self)
+        if _guarded is not None:
+            self.last_usage = dict(agg_usage)
+            return _guarded, tk_count
         for attempt in range(self.max_retries + 1):
             history = deepcopy(hist)
             try:
@@ -2704,6 +2763,15 @@ class LiteLLMBase(ABC):
                 agg_usage["total_tokens"] += round_estimate
             total_tokens = agg_usage["total_tokens"]
             self.last_usage = dict(agg_usage)
+
+        # Route guard — see _mandatory_retrieval_answer: a guarded turn retrieves
+        # before the model is asked, so no round can answer from stale context.
+        _guarded = await _mandatory_retrieval_answer(self)
+        if _guarded is not None:
+            _commit_round(None, 0)
+            yield _guarded
+            yield total_tokens
+            return
 
         for attempt in range(self.max_retries + 1):
             history = deepcopy(hist)
