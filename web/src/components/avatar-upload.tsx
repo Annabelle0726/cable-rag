@@ -16,7 +16,13 @@
 
 import { combineRefs } from '@/lib/utils';
 import { transformFile2Base64 } from '@/utils/file-util';
-import { LucidePencil, LucidePlus, LucideX } from 'lucide-react';
+import {
+  LucidePencil,
+  LucidePlus,
+  LucideX,
+  LucideZoomIn,
+  LucideZoomOut,
+} from 'lucide-react';
 import message from './ui/message';
 import {
   ChangeEventHandler,
@@ -153,11 +159,44 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
       setImageOffset({ x: offsetX, y: offsetY });
 
       // Initialize crop area to center of image
-      const size = Math.min(scaledWidth, scaledHeight) * 0.8; // 80% of the smaller dimension
+      const size = Math.min(scaledWidth, scaledHeight) * 0.8;
       const x = (image.width - size / scale) / 2;
       const y = (image.height - size / scale) / 2;
 
       setCropArea({ x, y, size: size / scale });
+    }, []);
+
+    // 统一处理缩放逻辑 (通过滑块或滚轮)
+    const updateCropSize = useCallback((newSize: number) => {
+      if (!imageRef.current) return;
+      const image = imageRef.current;
+      const maxAllowedSize = Math.min(image.width, image.height);
+      const minAllowedSize = 30;
+
+      const boundedSize = Math.max(
+        minAllowedSize,
+        Math.min(newSize, maxAllowedSize),
+      );
+
+      setCropArea((prev) => {
+        const centerRatioX = (prev.x + prev.size / 2) / image.width;
+        const centerRatioY = (prev.y + prev.size / 2) / image.height;
+
+        const newX = centerRatioX * image.width - boundedSize / 2;
+        const newY = centerRatioY * image.height - boundedSize / 2;
+
+        const boundedX = Math.max(0, Math.min(newX, image.width - boundedSize));
+        const boundedY = Math.max(
+          0,
+          Math.min(newY, image.height - boundedSize),
+        );
+
+        return {
+          x: boundedX,
+          y: boundedY,
+          size: boundedSize,
+        };
+      });
     }, []);
 
     const handleMouseMove = useCallback(
@@ -173,19 +212,15 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
         const container = containerRef.current;
         const containerRect = container.getBoundingClientRect();
 
-        // Calculate mouse position relative to container
         const mouseX = e.clientX - containerRect.left;
         const mouseY = e.clientY - containerRect.top;
 
-        // Calculate mouse position relative to image
         const imageX = (mouseX - imageOffset.x) / imageScale;
         const imageY = (mouseY - imageOffset.y) / imageScale;
 
-        // Calculate new crop area position based on mouse movement
         let newX = imageX - dragStartRef.current.x;
         let newY = imageY - dragStartRef.current.y;
 
-        // Boundary checks
         newX = Math.max(0, Math.min(newX, image.width - cropArea.size));
         newY = Math.max(0, Math.min(newY, image.height - cropArea.size));
 
@@ -213,15 +248,12 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
           const container = containerRef.current;
           const containerRect = container.getBoundingClientRect();
 
-          // Calculate mouse position relative to container
           const mouseX = e.clientX - containerRect.left;
           const mouseY = e.clientY - containerRect.top;
 
-          // Calculate mouse position relative to image
           const imageX = (mouseX - imageOffset.x) / imageScale;
           const imageY = (mouseY - imageOffset.y) / imageScale;
 
-          // Store the offset between mouse position and crop area position
           dragStartRef.current = {
             x: imageX - cropArea.x,
             y: imageY - cropArea.y,
@@ -233,42 +265,24 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
       [cropArea, imageScale, imageOffset],
     );
 
-    const handleWheel = useCallback((e: React.WheelEvent) => {
-      if (!imageRef.current) return;
-
-      const image = imageRef.current;
-      const delta = e.deltaY > 0 ? 0.9 : 1.1; // Zoom factor
-
-      setCropArea((prev) => {
-        const newSize = Math.max(
-          20,
-          Math.min(prev.size * delta, Math.min(image.width, image.height)),
-        );
-
-        // Adjust position to keep crop area centered
-        const centerRatioX = (prev.x + prev.size / 2) / image.width;
-        const centerRatioY = (prev.y + prev.size / 2) / image.height;
-
-        const newX = centerRatioX * image.width - newSize / 2;
-        const newY = centerRatioY * image.height - newSize / 2;
-
-        // Boundary checks
-        const boundedX = Math.max(0, Math.min(newX, image.width - newSize));
-        const boundedY = Math.max(0, Math.min(newY, image.height - newSize));
-
-        return {
-          x: boundedX,
-          y: boundedY,
-          size: newSize,
-        };
-      });
-    }, []);
+    const handleWheel = useCallback(
+      (e: React.WheelEvent) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        updateCropSize(cropArea.size * delta);
+      },
+      [cropArea.size, updateCropSize],
+    );
 
     useEffect(() => {
       if (value) {
         setAvatarBase64Str(value);
       }
     }, [value]);
+
+    const maxCropSize = imageRef.current
+      ? Math.min(imageRef.current.width, imageRef.current.height)
+      : 300;
 
     return (
       <div className="flex justify-start items-end space-x-2">
@@ -359,21 +373,33 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
           onOk={handleCrop}
           testId={cropModalTestId}
           okButtonTestId={cropModalOkButtonTestId}
-          // footer={
-          //   <div className="flex justify-end space-x-2">
-          //     <Button variant="secondary" onClick={handleCancelCrop}>
-          //       {t('common.cancel')}
-          //     </Button>
-          //     <Button onClick={handleCrop}>{t('common.confirm')}</Button>
-          //   </div>
-          // }
+          footer={
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancelCrop}
+                className="px-4 py-1.5 text-sm font-medium text-text-secondary hover:text-text-primary bg-transparent hover:bg-white/5 border border-border/80 rounded-lg transition-all duration-200 focus-visible:outline-none"
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleCrop}
+                data-testid={cropModalOkButtonTestId}
+                className="px-5 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-md shadow-blue-600/20 hover:shadow-blue-500/35 transition-all duration-200 active:scale-95 focus-visible:outline-none"
+              >
+                {t('common.confirm')}
+              </Button>
+            </div>
+          }
         >
           <div className="flex flex-col items-center p-4">
             {imageToCrop && (
-              <div className="w-full">
+              <div className="w-full flex flex-col items-center">
                 <div
                   ref={containerRef}
-                  className="relative overflow-hidden border border-border rounded-md mx-auto bg-bg-card"
+                  className="relative overflow-hidden border border-border rounded-md bg-bg-card select-none"
                   style={{
                     width: '300px',
                     height: '300px',
@@ -385,7 +411,7 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
                     ref={imageRef}
                     src={imageToCrop}
                     alt="To crop"
-                    className="absolute block"
+                    className="absolute block pointer-events-none"
                     style={{
                       transform: `scale(${imageScale})`,
                       transformOrigin: 'top left',
@@ -408,8 +434,37 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
                     />
                   )}
                 </div>
-                <div className="flex justify-center mt-4">
-                  <p className="text-sm text-text-secondary">
+
+                {/* 缩放控制区域 */}
+                <div className="flex items-center justify-center gap-3 mt-4 w-[300px]">
+                  <button
+                    type="button"
+                    onClick={() => updateCropSize(cropArea.size * 0.85)}
+                    className="text-text-secondary hover:text-text-primary p-1 rounded transition-colors"
+                    title="缩小"
+                  >
+                    <LucideZoomOut className="size-4" />
+                  </button>
+                  <input
+                    type="range"
+                    min={30}
+                    max={maxCropSize}
+                    value={cropArea.size}
+                    onChange={(e) => updateCropSize(Number(e.target.value))}
+                    className="w-full accent-blue-500 h-1.5 bg-slate-700/60 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => updateCropSize(cropArea.size * 1.15)}
+                    className="text-text-secondary hover:text-text-primary p-1 rounded transition-colors"
+                    title="放大"
+                  >
+                    <LucideZoomIn className="size-4" />
+                  </button>
+                </div>
+
+                <div className="flex justify-center mt-2">
+                  <p className="text-xs text-text-secondary">
                     {t('setting.cropTip')}
                   </p>
                 </div>
