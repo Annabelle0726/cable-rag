@@ -1232,8 +1232,14 @@ async def _compose_answer_from_evidence(state: AgenticState, tools, token_queue:
     parts.append(f"Evidence:\n{('Bound datasets: ' + bound + '\n') if bound else ''}{evidence}")
     user_content = "\n".join(parts)
 
+    # One line, deliberately: every INFO record starting with "[" is forwarded
+    # into the answer stream and collapsed client-side by matching its leading
+    # `[Stage]` tag. A record that wrapped onto a second line left that line
+    # untagged — it cannot be recognised as a log line, so the payload itself
+    # (`pre_summary='…'`) was rendered at the top of the answer the user reads.
+    # `%r` escapes newlines inside the value, so the record stays on one line.
     _LOG.info(
-        "[Formalize][pre_summary] question=%r pre_summary_len=%d evidence_len=%d\npre_summary=%r",
+        "[Formalize][pre_summary] question=%r pre_summary_len=%d evidence_len=%d pre_summary=%r",
         question[:160],
         len(pre_summary or ""),
         len(evidence or ""),
