@@ -322,7 +322,7 @@ export function FilesTable({
              hover:text-text-primary competes at equal specificity — the
              descendant selector is what reliably wins. */
           className="[&_th]:text-sm [&_th]:font-medium [&_th]:text-text-primary [&_th_button:hover]:text-cable-accent [&_th_button_svg]:transition-colors [&_th_button_svg]:duration-200">
-          <TableHeader className="bg-table-header backdrop-blur-[2px]">
+          <TableHeader className="bg-table-header">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
                 key={headerGroup.id}

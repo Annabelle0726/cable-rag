@@ -96,8 +96,10 @@ export enum Routes {
 }
 
 const defaultRouteFallback = (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
-    <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+    {/* A ring spinner has to stay a circle, so it takes an explicit 50% radius:
+        the design system pins every `rounded-*` utility to 2px. */}
+    <div className="size-8 animate-spin rounded-[50%] border-2 border-cable-brand border-t-transparent" />
   </div>
 );
 

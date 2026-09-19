@@ -75,19 +75,8 @@ export function CardIdentityIcon({
   }
 
   return (
-    <span
-      className={cn(
-        HALO_CLASS,
-        // Frosted sky wash inside the hairline rim, so the mark reads as a lit
-        // ceramic tile rather than a flat swatch.
-        'bg-gradient-to-br from-sky-500/15 via-sky-500/5 to-transparent',
-        className,
-      )}
-    >
-      <Icon
-        className="size-4 text-cable-accent dark:drop-shadow-[0_0_6px_rgba(56,189,248,0.3)]"
-        aria-hidden
-      />
+    <span className={cn(HALO_CLASS, 'bg-cable-icon', className)}>
+      <Icon className="size-4 text-cable-icon-foreground" aria-hidden />
     </span>
   );
 }

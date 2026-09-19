@@ -43,13 +43,11 @@ export const FilterButton = React.forwardRef<
 >(({count = 0, ...props}, ref) => {
     return (
         <Button
-            // Raised glass capsule on the same 40px rail as the search field and the
-            // page's create button, with the funnel in the secondary ink rather than
-            // the primitive's ink-white. `size="auto"` keeps the primitive from
-            // imposing its own box, so the geometry comes from these utilities alone.
+            // Flat 32px control on the same rail as the search field and the page's
+            // create button: 1px hairline, 2px corners, no elevation.
             className={cn(
-                'ceramic-relief h-10 shrink-0 rounded-full text-text-secondary hover:text-text-primary hover:bg-cable-nav-active-bg focus-visible:bg-cable-nav-active-bg transition-colors',
-                count > 0 ? 'px-4' : 'w-10 px-0',
+                'ceramic-relief h-8 shrink-0 rounded-[2px] text-text-secondary hover:text-cable-brand focus-visible:text-cable-brand transition-colors',
+                count > 0 ? 'px-3' : 'w-8 px-0',
             )}
             size="auto"
             {...props}
@@ -58,7 +56,7 @@ export const FilterButton = React.forwardRef<
             <Funnel/>
 
             {count > 0 && (
-                <span className="rounded bg-text-badge px-1 py-0.5 text-xs leading-none text-text-primary">
+                <span className="rounded-[2px] bg-bg-title px-1 py-0.5 text-xs leading-none text-text-primary">
           {count}
         </span>
             )}
@@ -69,10 +67,9 @@ export const FilterButton = React.forwardRef<
 FilterButton.displayName = 'FilterButton';
 
 /**
- * The ceramic search field, shared by the bar and by the pages that render their
- * own box (skills hides the bar's search). It is the recessed half of the
- * material: a well pressed into the surface, on the same 40px rail as the
- * controls around it.
+ * The flat search field, shared by the bar and by the pages that render their
+ * own box (skills hides the bar's search). It is the 1px-bordered half of the
+ * panel, on the same 32px rail as the controls around it.
  *
  * The inset for the text lives on the prefix `span`, not on the input: `Input`
  * measures that span and writes its width into an inline `padding-inline-start`,
@@ -81,10 +78,10 @@ FilterButton.displayName = 'FilterButton';
  * from starting under the icon.
  */
 export const ceramicSearchFieldClassName =
-    'ceramic-well h-10 w-full rounded-full px-4 placeholder:text-content-secondary';
+    'ceramic-well h-8 w-full rounded-[2px] px-3 placeholder:text-content-secondary';
 
 export const ceramicSearchFieldRootClassName =
-    '[&>span]:ps-3 [&>span>svg]:ms-0 [&>span>svg]:me-2 [&>span]:text-content-secondary';
+    '[&>span]:ps-2.5 [&>span>svg]:ms-0 [&>span>svg]:me-1.5 [&>span]:text-content-secondary';
 
 export default function ListFilterBar({
                                           title,
@@ -146,11 +143,11 @@ export default function ListFilterBar({
                 className,
             )}
         >
-            <h1 className="flex min-w-0 shrink-0 items-center gap-2.5 text-2xl font-semibold">
+            <h1 className="flex min-w-0 shrink-0 items-center gap-2 text-base font-semibold">
                 {typeof icon === 'string' ? (
                     <HomeIcon
                         name={`${icon}`}
-                        imgClass={cn('size-[1em]', iconClassName)}
+                        imgClass={cn('size-[1em] text-cable-brand', iconClassName)}
                     />
                 ) : (
                     icon
@@ -160,10 +157,10 @@ export default function ListFilterBar({
 
             <div
                 className={cn(
-                    // One control row on every list page: centred on the 40px rail and
+                    // One control row on every list page: centred on the 32px rail and
                     // pushed to the right edge, so switching pages never moves the create
                     // button sideways or up.
-                    'min-w-0 w-full items-center gap-3',
+                    'min-w-0 w-full items-center gap-2',
                     preChildren
                         ? 'flex flex-wrap md:flex-nowrap md:w-auto md:shrink-0 md:justify-end'
                         : cn(

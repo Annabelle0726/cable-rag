@@ -29,15 +29,15 @@ const ThemeSwitch = forwardRef<
   const isDark = useIsDarkTheme();
 
   /**
-   * The selected icon sits on the brand-blue slider, so it takes the ink that
-   * reads on the accent and a faint bloom; the other one keeps the secondary
-   * text colour and brightens under the pointer.
+   * The selected icon sits on the brand slider, so it takes the ink that reads on
+   * the accent; the other one keeps the secondary text colour and brightens under
+   * the pointer. No bloom: the 国网 skin moves state with colour alone.
    */
   const iconClass = (isSelected: boolean) =>
     cn(
       'size-[1em] transition-colors duration-300 ease-in-out',
       isSelected
-        ? 'text-accent-contrast drop-shadow-[0_0_6px_var(--ceramic-switch-icon-glow)]'
+        ? 'text-accent-contrast'
         : 'text-text-secondary group-hover/theme-switch:text-text-primary',
     );
 

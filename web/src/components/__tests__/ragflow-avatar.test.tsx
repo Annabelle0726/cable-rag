@@ -85,12 +85,15 @@ describe('RAGFlowAvatar', () => {
     expect(fallback.querySelector('svg')).not.toBeNull();
   });
 
-  it('keeps the two-letter gradient fallback for non-person avatars', () => {
+  it('keeps the two-letter fallback for non-person avatars on the neutral surface', () => {
     render(<RAGFlowAvatar name="Cable Assistant" />);
 
     const fallback = screen.getByTestId('avatar-fallback');
     expect(fallback.textContent).toBe('CA');
-    expect(fallback.className).toContain('bg-gradient-to-b');
+    // A machine entity reads as a framed grey tile; only a person takes the brand
+    // fill. No per-name gradient.
+    expect(fallback.className).toContain('bg-bg-title');
     expect(fallback.className).not.toContain('bg-cable-avatar');
+    expect(fallback.style.backgroundImage).toBe('');
   });
 });

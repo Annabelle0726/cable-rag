@@ -21,29 +21,6 @@ import { LucideUser } from 'lucide-react';
 import { forwardRef, memo, useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
-const PREDEFINED_COLORS = [
-  { from: '#4F6DEE', to: '#67BDF9' },
-  { from: '#38A04D', to: '#93DCA2' },
-  { from: '#C35F2B', to: '#EDB395' },
-  { from: '#633897', to: '#CBA1FF' },
-];
-
-const getStringHash = (str: string): number => {
-  if (typeof str !== 'string') return 0;
-
-  const normalized = str.trim().toLowerCase();
-  let hash = 104729;
-  const seed = 0x9747b28c;
-
-  for (let i = 0; i < normalized.length; i++) {
-    hash ^= seed ^ normalized.charCodeAt(i);
-    hash = (hash << 13) | (hash >>> 19);
-    hash = (hash * 5 + 0x52dce72d) | 0;
-  }
-
-  return Math.abs(hash);
-};
-
 const getInitials = (name?: string) => {
   if (typeof name !== 'string' || !name) return '';
   const parts = name?.trim().split(/\s+/);
@@ -71,12 +48,6 @@ export const getAvatarInitial = (...candidates: Array<string | undefined>) => {
   return '';
 };
 
-const getColorForName = (name: string): { from: string; to: string } => {
-  const hash = getStringHash(name);
-  const index = hash % PREDEFINED_COLORS.length;
-  return PREDEFINED_COLORS[index];
-};
-
 export const RAGFlowAvatar = memo(
   forwardRef<
     React.ElementRef<typeof AvatarPrimitive.Root>,
@@ -89,14 +60,11 @@ export const RAGFlowAvatar = memo(
     }
   >(({ name, email, avatar, isPerson = false, className, ...props }, ref) => {
     // Generate initial letter logic
-    const { initials, from, to } = useMemo(
+    const { initials } = useMemo(
       () => ({
         // A person falls back to one character of their name or email; other
         // avatars (datasets, agents) keep the two-letter form of their name.
         initials: isPerson ? getAvatarInitial(name, email) : getInitials(name),
-        from: 'hsl(0, 0%, 30%)',
-        to: 'hsl(0, 0%, 80%)',
-        ...(name ? getColorForName(name) : {}),
       }),
       [email, isPerson, name],
     );
@@ -110,16 +78,13 @@ export const RAGFlowAvatar = memo(
         <AvatarImage src={avatar} />
         <AvatarFallback
           className={cn(
-            'flex items-center justify-center',
+            'flex items-center justify-center border',
+            // 国网实色规则：人用品牌绿实底，机器实体用浅灰实底 + 1px 描边，
+            // 不再按名字散列到四组彩虹渐变。
             isPerson
-              ? 'bg-cable-avatar text-cable-avatar-foreground'
-              : 'bg-gradient-to-b text-white',
+              ? 'border-transparent bg-cable-avatar text-cable-avatar-foreground'
+              : 'border-panel-border bg-bg-title text-content-secondary',
           )}
-          style={
-            isPerson
-              ? undefined
-              : { backgroundImage: `linear-gradient(to bottom, ${from}, ${to})` }
-          }
           role="presentation"
           aria-hidden="true"
           data-testid="avatar-fallback"

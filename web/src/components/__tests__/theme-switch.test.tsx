@@ -53,7 +53,8 @@ describe('theme switch', () => {
     expect(light.icons).toHaveLength(2);
     // Sun first, moon second: light mode selects the sun.
     expect(light.icons[0].getAttribute('class')).toMatch(/text-accent-contrast/);
-    expect(light.icons[0].getAttribute('class')).toMatch(/drop-shadow/);
+    // Colour alone carries the state: no glow on either icon.
+    expect(light.icons[0].getAttribute('class')).not.toMatch(/drop-shadow/);
     expect(light.icons[1].getAttribute('class')).toMatch(/text-text-secondary/);
     expect(light.icons[1].getAttribute('class')).not.toMatch(
       /text-accent-contrast/,
