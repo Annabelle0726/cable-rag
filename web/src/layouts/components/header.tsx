@@ -28,11 +28,27 @@ import { useHeaderNavLayout } from './use-header-nav-layout';
 import { supportedLanguages } from '@/locales/config';
 
 /**
- * One shared shape for every header control, so the right-hand cluster reads as
- * a single row of micro-components instead of a row of mixed buttons.
+ * One shared shape for every header control, so the right-hand cluster reads as a
+ * single row of micro-components instead of a row of mixed buttons. The ink is
+ * spelled out in utilities rather than in a components-layer class: the `Button`
+ * primitive already ships `text-text-secondary`, and a utility emitted later in
+ * the stylesheet is the only thing that outranks it.
  */
 const headerControlClass =
-  'size-8 shrink-0 rounded-lg p-0 text-text-secondary transition-colors hover:bg-cable-brand-soft hover:text-cable-brand focus-visible:text-cable-brand';
+  'size-8 shrink-0 p-0 text-white/85 hover:bg-gov-header-hover hover:text-white focus-visible:bg-gov-header-hover focus-visible:text-white';
+
+/**
+ * Local override of the shared `--cable-nav-*` tokens.
+ *
+ * Those tokens are also read by white-background surfaces — the segmented tab
+ * switch, the pagination, the file cells — where the ink has to stay mid-grey
+ * (`#606266`) with a 国网绿 selection. On the solid green bar the same three
+ * tokens must resolve to white ink instead, so they are re-declared here rather
+ * than redefined globally: everything inside the header inherits the white ramp,
+ * and every surface outside it keeps the page ramp untouched.
+ */
+const headerNavTokens =
+  '[--cable-nav-text:rgba(255,255,255,0.85)] [--cable-nav-text-hover:#ffffff] [--cable-nav-active-text:#ffffff] [--cable-nav-active-bg:#005c3f] [--cable-nav-indicator:#ffffff]';
 
 export function Header({
   className,
@@ -68,13 +84,12 @@ export function Header({
         ref={headerRef}
         key="app-navbar"
         className={cn(
-          // The bar takes its height from its own vertical padding instead of a
-          // fixed value: 16px above and below the 32px-tall pill is what gives
-          // the row its breathing room. The glass surface belongs to the
-          // full-width bar in the layout, so `page-gutter` only aligns these
-          // controls with the page columns, and `items-center` keeps the nav
-          // pill's contents on the bar's centre line.
-          'page-gutter flex min-w-0 items-center gap-2 py-4 sm:gap-4',
+          // The bar is a fixed 48px rail. `page-gutter` only aligns these controls
+          // with the page columns below, and `items-center` keeps every control on
+          // the bar's centre line. The solid green surface belongs to the
+          // full-width bar in the layout, not to this row.
+          'page-gutter flex h-12 min-w-0 items-center gap-2 sm:gap-4',
+          headerNavTokens,
           className,
         )}
         {...props}
@@ -87,16 +102,15 @@ export function Header({
           )}
           <div ref={logoRef} className="inline-flex shrink-0 items-center">
             {/* Mark and wordmark share one capsule: the mark has no surface of
-                its own, so nothing reads as a box inside a box. The capsule
-                class carries the hover lift and the inward focus outline. */}
+                its own, so nothing reads as a box inside a box. */}
             <Link
               to={Routes.Root}
               aria-current={pathname === Routes.Root ? 'page' : undefined}
-              className="brand-entry flex shrink-0 items-center gap-2 rounded-full py-1.5 pe-3 ps-2"
+              className="brand-entry flex shrink-0 items-center gap-2 px-2 py-1"
               data-testid="brand-entry"
             >
               <BrandMark label={t('header.brandShort')} />
-              <span className="hidden text-base font-semibold tracking-tight text-cable-brand md:inline">
+              <span className="hidden text-[15px] font-semibold tracking-tight text-gov-header-fg md:inline">
                 {t('header.brandShort')}
               </span>
             </Link>
@@ -104,11 +118,7 @@ export function Header({
         </div>
 
         {!isCompact && (
-          // Clipped on the inline axis only: the nav must never widen the header
-          // while the compact/nav-overflow measurement settles, but a full
-          // `overflow: hidden` also clipped the nav pill's own drop shadow, which
-          // is what carries its ceramic elevation.
-          <div className="flex min-w-0 flex-1 justify-center overflow-x-clip">
+          <div className="flex min-w-0 flex-1 items-center overflow-x-clip">
             <DesktopNavbar />
           </div>
         )}
@@ -117,7 +127,7 @@ export function Header({
 
         <div
           className={cn(
-            'flex shrink-0 items-center justify-end text-text-badge',
+            'flex shrink-0 items-center justify-end',
             isCompact ? 'gap-0.5' : 'gap-1',
           )}
           data-testid="auth-status"
@@ -146,20 +156,19 @@ export function Header({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* The documentation link that used to sit here is gone: this
-              deployment ships its own docs, so a question mark pointing at
-              upstream was more of a distraction than a help. */}
           {!isCompact && hasNotification && (
             <BellButton className={headerControlClass} />
           )}
 
+          {/* Dark/light switch. The bar keeps its green in both modes, so the
+              control only swaps its icon. */}
           <ThemeButton className={headerControlClass} />
 
           <Link
             to={Routes.UserSetting}
             className={cn(
-              'relative flex size-8 shrink-0 items-center justify-center rounded-full',
-              'ring-1 ring-cable-border transition-[box-shadow] hover:ring-2 hover:ring-cable-accent',
+              'relative flex size-8 shrink-0 items-center justify-center',
+              'ring-1 ring-white/40 transition-[box-shadow] hover:ring-white',
               !isCompact && 'ms-2',
             )}
             data-testid="settings-entrypoint"
@@ -186,14 +195,14 @@ export function Header({
             measurement matches what actually renders. Keep the two in sync. */}
         <div
           ref={expandedRightMeasureRef}
-          className="inline-flex shrink-0 items-center justify-end gap-1 text-text-badge"
+          className="inline-flex shrink-0 items-center justify-end gap-1"
         >
           <Button variant="ghost" className={headerControlClass}>
             <LucideLanguages className="size-[1.05rem]" />
           </Button>
           <ThemeButton className={headerControlClass} />
           {hasNotification && <BellButton className={headerControlClass} />}
-          <div className="relative ms-2 flex size-8 shrink-0 items-center justify-center rounded-full">
+          <div className="relative ms-2 flex size-8 shrink-0 items-center justify-center">
             <RAGFlowAvatar
               name={nickname}
               email={email}

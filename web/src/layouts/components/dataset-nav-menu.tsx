@@ -100,7 +100,7 @@ export function DatasetNavMenu({
           aria-expanded={open}
           className={cn(
             className,
-            'relative duration-150 data-[state=open]:rounded-b-none data-[state=open]:bg-cable-nav-active-bg data-[state=open]:text-text-primary',
+            'relative duration-150 data-[state=open]:bg-gov-header-hover data-[state=open]:text-gov-header-fg',
           )}
           onMouseEnter={handleOpen}
           onMouseLeave={scheduleClose}
@@ -114,7 +114,7 @@ export function DatasetNavMenu({
             <span
               aria-hidden
               data-testid="nav-dataset-menu-bridge"
-              className="absolute inset-x-0 top-full z-10 bg-cable-nav-active-bg"
+              className="absolute inset-x-0 top-full z-10 bg-gov-header-hover"
               style={{ height: NavbarEdgeOffset }}
             />
           ) : null}
@@ -127,15 +127,11 @@ export function DatasetNavMenu({
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
         onOpenAutoFocus={handlePreventAutoFocus}
-        /* 改动重点：
-           1. 统一采用 border-cable-hairline 细线边框，避免粗糙黑框。
-           2. 使用 bg-bg-card 提高背景不透明度与深度，搭配 shadow-2xl 与 backdrop-blur-md，告别灰蒙感。
-           3. 移除了无谓的平铺内边距，完全交由内部 Grid/Flex 控制。
-        */
+        /* 工业级面板：白底 + 1px 实线边框，无模糊、无投影。 */
         className={cn(
           'z-50 w-[min(92vw,28rem)] overflow-hidden outline-none',
-          'rounded-t-none rounded-b-2xl border border-cable-hairline bg-bg-card/95 shadow-2xl backdrop-blur-md p-0',
-          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+          'border border-panel-border bg-bg-component p-0',
+          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         )}
         data-testid="nav-dataset-menu"
       >
@@ -158,11 +154,8 @@ function DatasetNavMenuPanel({ onNavigate }: { onNavigate: () => void }) {
 
   return (
     <div className="flex min-h-[14rem] divide-x divide-cable-hairline">
-      {/* 第一级：左侧分类列 - 背景使用纯净微透明色，保持直角相接 */}
-      <ul
-        className="w-[11.5rem] shrink-0 space-y-1 bg-bg-base/40 p-2"
-        role="list"
-      >
+      {/* 第一级：左侧分类列 - 浅灰底，与外框以 1px 分隔线相接 */}
+      <ul className="w-[11.5rem] shrink-0 space-y-0.5 bg-bg-title p-2" role="list">
         {DatasetCategoryNavOrder.map((category) => {
           const { labelKey, icon: CategoryIcon, toneClass } =
             DatasetCategoryDefinitions[category];
@@ -186,14 +179,14 @@ function DatasetNavMenuPanel({ onNavigate }: { onNavigate: () => void }) {
       </ul>
 
       {/* 第二级：右侧知识库列表 */}
-      <div className="flex min-w-0 flex-1 flex-col bg-bg-card">
+      <div className="flex min-w-0 flex-1 flex-col bg-bg-component">
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {loading ? (
             <div className="flex h-32 items-center justify-center">
               <Spin size="small" />
             </div>
           ) : visibleDatasets.length ? (
-            <ul className="space-y-1">
+            <ul className="space-y-0.5">
               {visibleDatasets.map((dataset) => (
                 <DatasetLink
                   key={dataset.id}
@@ -209,11 +202,11 @@ function DatasetNavMenuPanel({ onNavigate }: { onNavigate: () => void }) {
           )}
         </div>
 
-        {/* 底部固定创建按钮：增加微光悬浮与分割线 */}
-        <div className="border-t border-cable-hairline bg-bg-base/20 p-2">
+        {/* 底部固定创建入口：上边 1px 分割线 */}
+        <div className="border-t border-panel-border bg-bg-title p-2">
           <Button
             variant="ghost"
-            className="w-full justify-start gap-2 text-text-secondary hover:bg-cable-nav-active-bg hover:text-text-primary"
+            className="w-full justify-start gap-2 text-text-secondary hover:bg-surface-hover hover:text-cable-brand"
             onClick={() => {
               onNavigate();
               navigateToDatasetList({ isCreate: true });
@@ -257,19 +250,21 @@ function CategoryButton({
       aria-current={isActive ? 'true' : undefined}
       data-testid={`nav-dataset-category-${category}`}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-all duration-150',
+        'flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-sm transition-colors duration-150',
         toneClass,
         isActive
-          ? 'bg-cable-nav-active-bg font-semibold text-text-primary shadow-sm'
-          : 'text-text-secondary hover:bg-cable-nav-active-bg/60 hover:text-text-primary',
+          ? 'bg-surface-hover font-semibold text-text-primary'
+          : 'text-text-secondary hover:bg-bg-title hover:text-text-primary',
       )}
     >
       {icon}
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      <span className={cn(
-        'shrink-0 text-xs rounded-full px-1.5 py-0.2',
-        isActive ? 'text-text-primary font-medium' : 'text-text-secondary'
-      )}>
+      <span
+        className={cn(
+          'shrink-0 text-xs tabular-nums',
+          isActive ? 'font-medium text-text-primary' : 'text-text-secondary',
+        )}
+      >
         {count}
       </span>
     </button>
@@ -293,9 +288,9 @@ function DatasetLink({
         onClick={onClick}
         data-testid="nav-dataset-item"
         data-dataset-id={dataset.id}
-        className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm text-text-secondary transition-all duration-150 hover:bg-cable-nav-active-bg hover:text-text-primary"
+        className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-cable-brand"
       >
-        <DatasetCategoryIcon category={category} className="size-5 rounded-lg shrink-0" />
+        <DatasetCategoryIcon category={category} className="size-5 shrink-0" />
         <span className="min-w-0 flex-1 truncate font-medium">{dataset.name}</span>
         <span className="shrink-0 text-xs text-text-secondary/80">
           {dataset.document_count} {t('knowledgeList.doc')}
