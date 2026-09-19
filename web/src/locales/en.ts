@@ -1039,6 +1039,7 @@ export default {
     },
     chat: {
       messageCount: '{{total}} messages',
+      citationUnresolved: 'This citation could not be matched to a passage',
       pin: 'Pin to top',
       unpin: 'Unpin',
       chatSupport: 'Chat Support',

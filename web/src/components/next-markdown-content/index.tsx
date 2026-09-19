@@ -392,12 +392,24 @@ function MarkdownContent({
         : Object.keys(pool ?? {}).length;
       const replacedText = reactStringReplace(text, currentReg, (match, i) => {
         const chunkIndex = getChunkIndex(match, poolSize);
-        // No resolvable pool index (empty pool while streaming, or a citation
-        // past the end): keep the marker's number as plain text rather than a
-        // "图 NaN" chip. `match` is the regex capture group, so it carries the
-        // number without its `[ID:…]` wrapper.
+        // No resolvable pool index — the pool is empty while an answer streams, or
+        // the marker points past it (an answer composed without retrieval, still
+        // quoting the previous turn's markers). The marker is echoed back inside
+        // its brackets and muted, never reduced to its bare digits: printing
+        // `1`,`3`,`5` glued together turned `[ID:1][ID:3][ID:5]` into `135`, which
+        // reads as one number rather than three citations and cannot be told apart
+        // from the sentence around it. It stays a non-interactive marker, because
+        // there is no chunk to open.
         if (chunkIndex < 0) {
-          return <span key={i}>{match}</span>;
+          return (
+            <span
+              key={i}
+              title={t('chat.citationUnresolved')}
+              className="text-text-disabled bg-bg-card rounded-2xl px-1 mx-1 text-nowrap inline-block opacity-70"
+            >
+              [{match}]
+            </span>
+          );
         }
 
         return (

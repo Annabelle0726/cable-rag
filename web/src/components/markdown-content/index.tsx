@@ -341,15 +341,26 @@ const MarkdownContent = ({
       const poolSize = reference?.chunks?.length ?? 0;
       const replacedText = reactStringReplace(text, currentReg, (match, i) => {
         const chunkIndex = getChunkIndex(match, poolSize);
-        // A marker with no resolvable pool index (empty pool while the answer
-        // streams, or a citation past the end of the pool) keeps its number as
-        // plain text: a chip reading "图 NaN" — or pointing at a figure that does
-        // not exist — is worse than the bare number, and the chip appears as soon
-        // as the pool lands. `match` here is the regex capture group, i.e. the
-        // number without its `[ID:…]` wrapper (react-string-replace splits on the
-        // group), which is also what `getChunkIndex` parses.
+        // A marker with no resolvable pool index — the pool is empty while an
+        // answer streams, or the marker points past it — is echoed back inside its
+        // brackets and muted. It used to be printed as the bare number, which
+        // glued consecutive citations together: `[ID:1][ID:3][ID:5]` rendered as
+        // `135`, readable as one number instead of three citations. A chip reading
+        // "图 NaN", or one pointing at a figure that does not exist, would be worse
+        // still, so this stays non-interactive until the pool lands. `match` here is
+        // the regex capture group, i.e. the number without its `[ID:…]` wrapper
+        // (react-string-replace splits on the group), which is also what
+        // `getChunkIndex` parses.
         if (chunkIndex < 0) {
-          return <span key={i}>{match}</span>;
+          return (
+            <span
+              key={i}
+              title={t('chat.citationUnresolved')}
+              className="text-text-disabled bg-bg-card rounded-2xl px-1 mx-1 text-nowrap inline-block opacity-70"
+            >
+              [{match}]
+            </span>
+          );
         }
 
         return (

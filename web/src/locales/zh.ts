@@ -920,6 +920,7 @@ export default {
     },
     chat: {
       messageCount: '{{total}} 条消息',
+      citationUnresolved: '该引用未能对应到证据片段',
       pin: '置顶',
       unpin: '取消置顶',
       chatSupport: '聊天支持',

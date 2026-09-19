@@ -1,12 +1,15 @@
 import { render, screen } from '@testing-library/react';
 
-import MarkdownContent from '..';
+import NextMarkdownContent from '..';
 
-// The inline citation chip is rendered from `citedChunkIndex`, which reports
-// "no usable index" as -1. A caller that printed the value plainly rendered
-// "图 NaN" — most visibly while an answer streamed, because the backend sends
-// the reference pool with the final event only, so the pool is empty for the
-// whole stream, and for a citation past the end of the pool.
+// The chat transcript renders through this component, and the citation chip is
+// built from `citedChunkIndex`, which reports "no usable index" as -1. The
+// fallback used to print that index on its own — the regex capture group, without
+// the `[ID:…]` wrapper — so `[ID:1][ID:3][ID:5]` reached the screen as `135`:
+// three citations that read as one number, with nothing to hover and no way to
+// tell them apart from the sentence. A live run hit exactly that, because the tool
+// loop answered from the conversation history (no retrieval, so no pool) while the
+// model quoted the previous answer's markers verbatim.
 
 jest.mock('@/constants/markdown-remark-plugins', () => ({
   MarkdownRemarkPlugins: [],
@@ -35,6 +38,7 @@ jest.mock('react-markdown', () => ({
       <div>{children}</div>
     );
   },
+  defaultUrlTransform: (url: string) => url,
 }));
 
 jest.mock('rehype-katex', () => jest.fn());
@@ -50,20 +54,25 @@ jest.mock('@/hooks/use-document-request', () => ({
 
 jest.mock('@/components/image', () => ({
   __esModule: true,
-  default: ({ id }: { id: string }) => <div data-testid="doc-image" data-id={id} />,
+  default: ({ id }: { id: string }) => (
+    <div data-testid="doc-image" data-id={id} />
+  ),
   AuthenticatedImg: ({ src }: { src?: string }) => <img src={src} alt="" />,
 }));
 
 jest.mock('react-i18next', () => ({
+  // The component's import chain reaches `@/locales/config`, which calls
+  // `i18n.use(initReactI18next)` at module scope, so the mock has to carry the
+  // plugin object as well as the hook this suite actually stubs.
+  initReactI18next: { type: '3rdParty', init: () => {} },
   useTranslation: () => ({
     t: (key: string) =>
       ({
         'common.figure': '图',
-        'chat.searching': 'Searching',
+        'chat.citationUnresolved': '该引用未能对应到证据片段',
         'chat.thinking': 'Thinking',
         'chat.thought': 'Thought',
         'chat.agenticLog': 'Log',
-        'chat.retrieving': 'Retrieving',
       })[key] ?? key,
   }),
 }));
@@ -82,7 +91,7 @@ jest.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
 
 const renderContent = (content: string, chunks: unknown[] = []) =>
   render(
-    <MarkdownContent
+    <NextMarkdownContent
       content={content}
       loading={false}
       reference={{ chunks } as never}
@@ -94,43 +103,41 @@ const fiveChunks = Array.from({ length: 5 }, (_, index) => ({
   content_with_weight: `第 ${index + 1} 段`,
 }));
 
-describe('inline citation chip', () => {
-  it('renders the marker of a citation that resolves', () => {
+/** Everything the reader sees, with the collapsed log panels taken out. */
+const answerBody = (container: HTMLElement) =>
+  (container.textContent ?? '').replace(/\s+/g, '');
+
+describe('citation markers in the chat transcript', () => {
+  it('marks a citation that resolves, and it opens a passage', () => {
     const { container } = renderContent('见表 [ID:5]。', fiveChunks);
 
     expect(screen.getByText('[5]')).toBeInTheDocument();
-    expect(container.textContent).not.toContain('NaN');
+    expect(answerBody(container)).not.toContain('NaN');
   });
 
-  it('keeps the marker in its brackets while the pool is still empty', () => {
-    const { container } = renderContent('见表 [ID:1]。', []);
+  it('keeps a consecutive run separated when the pool is empty', () => {
+    const { container } = renderContent(
+      '如有冲突以该表为准 [ID:1][ID:3][ID:5]。',
+      [],
+    );
 
-    // react-string-replace splits on the regex capture group, so the fallback
-    // receives the number alone. It is wrapped back in its brackets: the bare
-    // number turned `[ID:1][ID:3][ID:5]` into `135`, three citations that read as
-    // one number and cannot be told apart from the sentence around them.
-    expect(container.textContent).toBe('见表 [1]。');
+    // The regression: `135` — one number where three citations belong.
+    expect(answerBody(container)).toContain('以该表为准[1][3][5]。');
+    expect(answerBody(container)).not.toContain('135');
   });
 
-  it('keeps the marker in its brackets when it points past the end of the pool', () => {
+  it('keeps the marker readable but not interactive when it points past the pool', () => {
     const { container } = renderContent('见表 [ID:6]。', fiveChunks);
 
-    expect(container.textContent).toBe('见表 [6]。');
-    expect(container.textContent).not.toContain('图');
+    expect(answerBody(container)).toContain('[6]');
+    expect(screen.getByTitle('该引用未能对应到证据片段')).toBeInTheDocument();
   });
 
-  it('renders no chip for marker 0, which 1-based citations never emit', () => {
-    const { container } = renderContent('见表 [ID:0]。', fiveChunks);
-
-    expect(container.textContent).toBe('见表 [0]。');
-    expect(container.textContent).not.toContain('图');
-  });
-
-  it('renders the chip for a resolvable marker next to an unresolvable one', () => {
+  it('carries no bare number out of a run that mixes resolvable and unresolvable markers', () => {
     const { container } = renderContent('见表 [ID:6]，另见 [ID:2]。', fiveChunks);
 
     expect(screen.getByText('[2]')).toBeInTheDocument();
-    expect(container.textContent).toContain('[6]');
-    expect(container.textContent).not.toContain('NaN');
+    expect(answerBody(container)).toContain('[6]');
+    expect(answerBody(container)).not.toContain('NaN');
   });
 });
