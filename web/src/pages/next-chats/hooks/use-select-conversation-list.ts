@@ -3,6 +3,7 @@ import { useTranslate } from '@/hooks/common-hooks';
 import {
   useFetchChatList,
   useFetchSessionList,
+  useGetChatSearchParams,
 } from '@/hooks/use-chat-request';
 import { IConversation } from '@/interfaces/database/chat';
 import { generateTemporaryConversationId } from '@/utils/chat';
@@ -36,6 +37,7 @@ export const useSelectDerivedConversationList = () => {
   const { id: dialogId } = useParams();
   const prologue = useFindPrologueFromDialogList();
   const { setConversationBoth } = useChatUrlParams();
+  const { conversationId, isNew } = useGetChatSearchParams();
 
   const addTemporaryConversation = useCallback(() => {
     if (!dialogId) {
@@ -102,6 +104,26 @@ export const useSelectDerivedConversationList = () => {
   useEffect(() => {
     setList([...conversationList]);
   }, [conversationList]);
+
+  /**
+   * Opening a chat without a conversation — a card click lands on `/chat/{id}`,
+   * with no query string — used to leave the chat pane blank until the user
+   * picked a row. Fall back to the first conversation of the list, which the
+   * endpoint has already ordered by pin and activity, so the newest conversation
+   * is what opens.
+   *
+   * A conversation already named in the URL is left alone, and so is a
+   * placeholder the user just started: writing either of those would fight the
+   * user's own choice, or reopen a placeholder under its temporary id.
+   */
+  useEffect(() => {
+    if (conversationId || isNew === 'true') return;
+
+    const firstConversation = conversationList[0];
+    if (!firstConversation) return;
+
+    setConversationBoth(firstConversation.id, '');
+  }, [conversationId, isNew, conversationList, setConversationBoth]);
 
   return {
     list,
