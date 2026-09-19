@@ -1,24 +1,22 @@
 import { PageContainer, PageContent } from '@/layouts/components/page-container';
+import { AppFooter } from '@/layouts/components/app-footer';
 import { Applications } from './applications';
-import { NextBanner } from './banner';
 import { Datasets } from './datasets';
 
 const Home = () => {
   return (
-    <PageContainer>
+    <PageContainer className="pt-4 pb-0">
       <PageContent>
-        {/* The page container already ends the scroll area with its own bottom
-            padding, and every card grid ends with a 24px filler, so this only has
-            to top those up: 64px here read as an empty screen below the last row. */}
+        {/* The 查询条件 panel at the head of the knowledge-base section is the
+            page's first element, so the operator lands on the search form and the
+            data table it drives instead of a marketing banner. */}
         <article className="pb-6">
-          <header>
-            <NextBanner />
-          </header>
-
           <Datasets />
           <Applications />
         </article>
       </PageContent>
+
+      <AppFooter />
     </PageContainer>
   );
 };

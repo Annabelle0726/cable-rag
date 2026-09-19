@@ -1,14 +1,14 @@
-import { EmptyCardType } from '@/components/empty/constant';
-import { EmptyAppCard } from '@/components/empty/empty';
 import { RenameDialog } from '@/components/rename-dialog';
-import { CardSkeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
 import { useFetchNextKnowledgeListByPage } from '@/hooks/use-knowledge-request';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DatasetCard } from '../datasets/dataset-card';
+import { DatasetTable } from '../datasets/dataset-table';
+import { DatasetQueryPanel } from '../datasets/query-panel';
+import { useDatasetQuery } from '../datasets/use-dataset-query';
 import { useRenameDataset } from '../datasets/use-rename-dataset';
-import { SeeAllAppCard } from './application-card';
-import { HomeCardGrid, SectionHeading } from './home-layout';
+import { SectionHeading } from './home-layout';
 
 export function Datasets() {
   const { t } = useTranslation();
@@ -23,51 +23,44 @@ export function Datasets() {
   } = useRenameDataset();
   const { navigateToDatasetList } = useNavigatePage();
 
-  return (
-    <section className="mt-10">
-      <SectionHeading iconName="datasets" label={t('header.dataset')} />
+  const {
+    query,
+    setCategory,
+    setKeyword,
+    setCreatedFrom,
+    setCreatedTo,
+    reset,
+    filter,
+  } = useDatasetQuery();
 
-      <div>
-        {loading ? (
-          <div className="flex-1">
-            <CardSkeleton />
-          </div>
-        ) : (
-          <>
-            {(kbs?.length ?? 0) > 0 && (
-              <HomeCardGrid>
-                {/* Flat by design: one tile per knowledge base, in a single
-                    grid. The section used to stop at the first six and lean on
-                    the see-all tile, which hid most of the plant's knowledge
-                    bases behind a second click. */}
-                {kbs?.map((dataset) => (
-                  <DatasetCard
-                    key={dataset.id}
-                    dataset={dataset}
-                    showDatasetRenameModal={showDatasetRenameModal}
-                  ></DatasetCard>
-                ))}
-                {
-                  <SeeAllAppCard
-                    click={() => navigateToDatasetList({ isCreate: false })}
-                  ></SeeAllAppCard>
-                }
-              </HomeCardGrid>
-            )}
-            {!(kbs && kbs?.length > 0) && (
-              // The create tile goes in the same grid as the cards would: the
-              // fixed 210px box it used to sit in made it a small square next to
-              // the section's real cards.
-              <HomeCardGrid>
-                <EmptyAppCard
-                  type={EmptyCardType.Dataset}
-                  onClick={() => navigateToDatasetList({ isCreate: true })}
-                />
-              </HomeCardGrid>
-            )}
-          </>
-        )}
-      </div>
+  const datasets = useMemo(() => filter(kbs ?? []), [filter, kbs]);
+
+  return (
+    <section>
+      <SectionHeading iconName="datasets" label={t('header.dataset')}>
+        <Button
+          className="ceramic-cta h-8 rounded-[2px] px-3"
+          onClick={() => navigateToDatasetList({ isCreate: true })}
+        >
+          {t('knowledgeList.createKnowledgeBase')}
+        </Button>
+      </SectionHeading>
+
+      <DatasetQueryPanel
+        className="mb-3"
+        query={query}
+        onCategoryChange={setCategory}
+        onKeywordChange={setKeyword}
+        onCreatedFromChange={setCreatedFrom}
+        onCreatedToChange={setCreatedTo}
+        onReset={reset}
+      />
+
+      <DatasetTable
+        datasets={datasets}
+        loading={loading}
+        showDatasetRenameModal={showDatasetRenameModal}
+      />
 
       {datasetRenameVisible && (
         <RenameDialog

@@ -1,23 +1,24 @@
-import { CardContainer } from '@/components/card-container';
 import { EmptyCardType } from '@/components/empty/constant';
 import { EmptyAppCard } from '@/components/empty/empty';
-import ListFilterBar from '@/components/list-filter-bar';
+import { FilterButton } from '@/components/list-filter-bar';
+import { FilterPopover } from '@/components/list-filter-bar/filter-popover';
 import { RenameDialog } from '@/components/rename-dialog';
 import { Button } from '@/components/ui/button';
 import { RAGFlowPagination } from '@/components/ui/ragflow-pagination';
-import { Spin } from '@/components/ui/spin';
 import { ListDeletionKey } from '@/constants/list-deletion';
 import { useGoToPreviousPageOnEmpty } from '@/hooks/logic-hooks';
 import { useFetchNextKnowledgeListByPage } from '@/hooks/use-knowledge-request';
 import { useQueryClient } from '@tanstack/react-query';
 import { pick } from 'lodash';
 import { Plus } from 'lucide-react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
-import { DatasetCard } from './dataset-card';
+import { DatasetTable } from './dataset-table';
 import { DatasetCreatingDialog } from './dataset-creating-dialog';
 import { useSaveKnowledge } from './hooks';
+import { DatasetQueryPanel } from './query-panel';
+import { useDatasetQuery } from './use-dataset-query';
 import { useRenameDataset } from './use-rename-dataset';
 import { useSelectOwners } from './use-select-owners';
 
@@ -36,7 +37,6 @@ export default function Datasets() {
     total_datasets,
     pagination,
     setPagination,
-    handleInputChange,
     searchString,
     setSearchString,
     filterValue,
@@ -55,6 +55,18 @@ export default function Datasets() {
     hideDatasetRenameModal,
     showDatasetRenameModal,
   } = useRenameDataset();
+
+  const {
+    query,
+    setCategory,
+    setKeyword,
+    setCreatedFrom,
+    setCreatedTo,
+    reset,
+    filter,
+  } = useDatasetQuery();
+
+  const datasets = useMemo(() => filter(kbs ?? []), [filter, kbs]);
 
   const handlePageChange = useCallback(
     (page: number, pageSize?: number) => {
@@ -81,88 +93,103 @@ export default function Datasets() {
     }
   }, [isCreate, showModal, searchUrl, setSearchUrl, queryClient]);
 
+  const handleKeywordChange = useCallback(
+    (keyword: string) => {
+      setKeyword(keyword);
+      // The panel's keyword and the list's own search box are one control: the
+      // panel narrows what is on screen, the debounced request behind
+      // `setSearchString` widens the page to every match on the server.
+      setSearchString(keyword);
+    },
+    [setKeyword, setSearchString],
+  );
+
+  const handleReset = useCallback(() => {
+    reset();
+    setSearchString('');
+  }, [reset, setSearchString]);
+
+  /** Owner stays a popover filter: it is a tenant-scoped multi-select, not one of
+   *  the panel's three single-value conditions. */
+  const ownerFilterCount = useMemo(
+    () => (Array.isArray(filterValue?.owner) ? filterValue.owner.length : 0),
+    [filterValue],
+  );
+
+  if (loading && !kbs?.length) {
+    return (
+      <article className="page-gutter py-4" data-testid="datasets-list">
+        <DatasetTable datasets={[]} loading showDatasetRenameModal={showDatasetRenameModal} />
+      </article>
+    );
+  }
+
   return (
-    <>
-      {loading && !kbs?.length ? (
-        <article
-          className="size-full flex items-center justify-center"
-          data-testid="datasets-list"
-        >
-          <Spin size="large" />
-        </article>
-      ) : kbs?.length || searchString ? (
-        <article
-          className="size-full min-w-0 flex flex-col"
-          data-testid="datasets-list"
-        >
-          <header className="page-gutter mb-4 min-w-0 pt-8">
-            <ListFilterBar
-              searchVariant="capsule"
-              title={t('header.dataset')}
-              searchString={searchString}
-              onSearchChange={handleInputChange}
-              value={filterValue}
-              filters={owners}
-              onChange={handleFilterSubmit}
-              icon={'datasets'}
-            >
-              <Button
-                className="ceramic-cta h-10 rounded-full px-5"
-                onClick={showModal}
-              >
-                <Plus className="size-[1em]" />
-                {t('knowledgeList.createKnowledgeBase')}
-              </Button>
-            </ListFilterBar>
-          </header>
+    <article
+      className="flex size-full min-w-0 flex-col overflow-auto"
+      data-testid="datasets-list"
+    >
+      <header className="page-gutter flex min-w-0 items-center justify-between gap-4 py-3">
+        <h1 className="truncate text-base font-semibold text-text-primary">
+          {t('header.dataset')}
+        </h1>
+        <div className="flex shrink-0 items-center gap-2">
+          <FilterPopover
+            value={filterValue}
+            onChange={handleFilterSubmit}
+            filters={owners}
+          >
+            <FilterButton count={ownerFilterCount} />
+          </FilterPopover>
 
-          {kbs?.length ? (
-            <>
-              <CardContainer className="page-gutter flex-1 overflow-auto">
-                {kbs.map((dataset) => (
-                  <DatasetCard
-                    dataset={dataset}
-                    key={dataset.id}
-                    showDatasetRenameModal={showDatasetRenameModal}
-                  />
-                ))}
-              </CardContainer>
+          <Button
+            className="ceramic-cta h-8 shrink-0 rounded-[2px] px-3"
+            onClick={showModal}
+          >
+            <Plus className="size-[1em]" />
+            {t('knowledgeList.createKnowledgeBase')}
+          </Button>
+        </div>
+      </header>
 
-              <footer className="page-gutter mt-4 pb-5">
-                <RAGFlowPagination
-                  {...pick(pagination, 'current', 'pageSize')}
-                  total={total_datasets}
-                  onChange={handlePageChange}
-                />
-              </footer>
-            </>
-          ) : (
-            // The create tile is a grid item in the same container the cards use,
-            // so it is exactly as wide and as tall as a knowledge-base card.
-            <CardContainer className="page-gutter flex-1 overflow-auto">
-              <EmptyAppCard
-                showIcon
-                isSearch
-                type={EmptyCardType.Dataset}
-                onClick={() => showModal()}
-              />
-            </CardContainer>
-          )}
-        </article>
-      ) : (
-        <article
-          className="size-full min-w-0 flex flex-col"
-          data-testid="datasets-list"
-        >
-          <CardContainer className="page-gutter flex-1 overflow-auto pt-8">
-            <EmptyAppCard
-              showIcon
-              type={EmptyCardType.Dataset}
-              onClick={() => showModal()}
+      <DatasetQueryPanel
+        className="page-gutter mb-3 border-x-0 border-t-0"
+        query={query}
+        onCategoryChange={setCategory}
+        onKeywordChange={handleKeywordChange}
+        onCreatedFromChange={setCreatedFrom}
+        onCreatedToChange={setCreatedTo}
+        onReset={handleReset}
+      />
+
+      {kbs?.length || searchString ? (
+        <>
+          <div className="page-gutter min-h-0 flex-1 overflow-auto">
+            <DatasetTable
+              datasets={datasets}
+              loading={loading}
+              showDatasetRenameModal={showDatasetRenameModal}
             />
-          </CardContainer>
-        </article>
+          </div>
+
+          <footer className="page-gutter py-3">
+            <RAGFlowPagination
+              {...pick(pagination, 'current', 'pageSize')}
+              total={total_datasets}
+              onChange={handlePageChange}
+            />
+          </footer>
+        </>
+      ) : (
+        <div className="page-gutter pb-6">
+          <EmptyAppCard
+            showIcon
+            type={EmptyCardType.Dataset}
+            onClick={() => showModal()}
+          />
+        </div>
       )}
+
       {visible && (
         <DatasetCreatingDialog
           hideModal={hideModal}
@@ -178,6 +205,6 @@ export default function Datasets() {
           loading={datasetRenameLoading}
         ></RenameDialog>
       )}
-    </>
+    </article>
   );
 }
