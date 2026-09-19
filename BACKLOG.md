@@ -37,19 +37,29 @@ Direction: either key the map by 0-based pool index at the producer, or resolve
 `marker -> chunk id -> map entry` on the consumer. Needs a captured
 object-shaped payload to pin the expected contract before changing either side.
 
-## fix(chat): give repair_bad_citation_formats a marker numbering basis
+## feat(web): bound how far a citation's pool inheritance may reach
 
-`api/db/services/dialog_service.py:560` `repair_bad_citation_formats()` validates
-markers with `0 <= i < len(chunks)` (`safe_add`, line 564), yet it is called from
-two branches with different bases: `insert_citations` emits **0-based** markers
-(no markers from the model, line 889), while the model's own markers are
-**1-based** (line 903, and the agentic path at line 2153). Its digits are
-preserved (only the marker syntax is normalized), so the answer text is
-unaffected — but the citation index set is off by one in the 1-based branch.
+CLOSED FOR NOW — review in ~6 months, with the numbers below.
 
-Direction: pass the basis per call, or convert the model's markers to pool
-indexes before validating. Not changed with `cited_chunk_indexes()` because
-branch A is genuinely 0-based and needs a sample-driven decision.
+An answer that arrives with no pool of its own resolves against the last pool seen
+before it (`resolveAnswerPools`, `4496afd8e`). That is right for the shape it was
+written for: the tool loop can answer straight from the conversation history
+(`[Tool loop] Answering directly at step 1 — no tool needed`) and quote the previous
+answer's markers verbatim, which index that previous pool. It is wrong for one
+shape: if the model *invented* a marker rather than copying one, inheritance points
+it at whatever chunk sits at that position in the previous pool, and the reader
+opens an unrelated passage — a wrong attribution rather than a missing one.
+
+Measured before the server-side fix (`1c2de066f`), which removes most of the
+exposure by handing back the pool the model was numbered on: 12 of 49 cited answers
+had no resolving pool of their own, 10 of those resolved through inheritance, 2
+stayed unopenable. After the fix, inheritance only applies to turns that genuinely
+retrieved nothing.
+
+Direction when this is picked up: prefer "unopenable but honest" over "openable but
+possibly wrong" — resolve through inheritance only when the answer's markers are a
+subset of the previous answer's markers (a copy), and otherwise leave them as the
+muted `[n]` markers the renderer already draws for an unresolvable citation.
 
 ## feat(web): give a direct answer the pool it quotes, server-side
 

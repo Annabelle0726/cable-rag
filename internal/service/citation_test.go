@@ -513,3 +513,74 @@ func TestDecorateHarnessAnswerExpandsRangeCitations(t *testing.T) {
 		t.Fatalf("reference doc_aggs = %#v, want the single cited doc", res.Reference["doc_aggs"])
 	}
 }
+
+// ResolveCitationMarkers is the pass that keeps a marker meaning a chunk: it
+// drops the canonical citations that name no rendered block, and leaves a bare
+// "[2024]" alone because that is as likely to be a year as a citation. The
+// numbering here is 0-based — the compose renders the evidence blocks 0-based, and
+// the client indexes reference.chunks with the number the marker carries — which
+// is why "[ID:0]" is the FIRST chunk on this side while Python, whose kb_prompt
+// labels blocks 1-based, treats marker 0 as resolvable to nothing.
+func TestResolveCitationMarkersDropsWhatNamesNoBlock(t *testing.T) {
+	// Two rendered blocks, resolved to pool positions 10 and 11.
+	citeIdx := []int{10, 11}
+
+	cases := []struct {
+		name      string
+		answer    string
+		want      string
+		wantCited []int
+	}{
+		{
+			name:      "a resolvable marker keeps its number and reports the pool index",
+			answer:    "claim [ID:1].",
+			want:      "claim [ID:1].",
+			wantCited: []int{11},
+		},
+		{
+			name:      "a marker past the pool is dropped",
+			answer:    "claim [ID:9].",
+			want:      "claim .",
+			wantCited: nil,
+		},
+		{
+			name:      "the dropped marker takes nothing else with it",
+			answer:    "a [ID:0] b [ID:9] c [ID:1]",
+			want:      "a [ID:0] b  c [ID:1]",
+			wantCited: []int{11},
+		},
+		{
+			name:      "a bare bracketed number is left alone",
+			answer:    "see [2024] for the year",
+			want:      "see [2024] for the year",
+			wantCited: nil,
+		},
+		{
+			name:      "an empty pool leaves the answer untouched",
+			answer:    "claim [ID:1].",
+			want:      "claim [ID:1].",
+			wantCited: nil,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			pool := citeIdx
+			if tc.name == "an empty pool leaves the answer untouched" {
+				pool = nil
+			}
+			got, cited := ResolveCitationMarkers(tc.answer, pool)
+			if got != tc.want {
+				t.Fatalf("ResolveCitationMarkers(%q) = %q, want %q", tc.answer, got, tc.want)
+			}
+			if len(cited) != len(tc.wantCited) {
+				t.Fatalf("cited = %v, want %v", cited, tc.wantCited)
+			}
+			for i := range cited {
+				if cited[i] != tc.wantCited[i] {
+					t.Fatalf("cited = %v, want %v", cited, tc.wantCited)
+				}
+			}
+		})
+	}
+}

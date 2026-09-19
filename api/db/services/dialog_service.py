@@ -578,13 +578,32 @@ def _citation_pool(kbinfos: dict, cite_chunks) -> dict:
     return pool
 
 
-def repair_bad_citation_formats(answer: str, kbinfos: dict, idx: set):
+def repair_bad_citation_formats(answer: str, kbinfos: dict, idx: set, *, one_based: bool = True):
+    """Rewrite malformed citation shapes, and drop the ones that name no chunk.
+
+    `one_based` says how the numbers in `answer` are counted, because the two
+    callers differ: the model writes the 1-based numbers `kb_prompt` labels the
+    evidence with ("ID: 1" … "ID: n"), while `rag/nlp/search.py:insert_citations`
+    emits the 0-based chunk positions of its own accord. Getting this wrong is not
+    cosmetic — the raw number is added to `idx`, which selects the documents the
+    answer is reported as citing — so each caller states it rather than inheriting
+    a guess.
+
+    A marker that resolves to nothing is **removed** rather than left standing: an
+    unusable marker reaches the reader as a number they cannot open, which is
+    exactly the shape reported from production (`… 以该表为准 135。`). Go already
+    drops these (`service.ResolveCitationMarkers`, called from
+    `chat_pipeline.go:3278` with the same "canonical marker only" care); this is
+    the Python half of that rule.
+    """
     max_index = len(kbinfos["chunks"])
     normalized_answer = normalize_arabic_digits(answer) or ""
+    offset = 1 if one_based else 0
 
     def safe_add(i):
-        if 0 <= i < max_index:
-            idx.add(i)
+        index = i - offset
+        if 0 <= index < max_index:
+            idx.add(index)
             return True
         return False
 
@@ -611,8 +630,9 @@ def repair_bad_citation_formats(answer: str, kbinfos: dict, idx: set):
                 digit_start, digit_end = match.span(group_index)
                 digits_original = answer[digit_start:digit_end]
                 parts.append(f"[{repl(digits_original)}]")
-            else:
-                parts.append(answer[match.start() : match.end()])
+            # else: the marker names no chunk, so nothing is appended — the text
+            # around it closes up instead of leaving a number the client cannot
+            # resolve.
             last_idx = match.end()
 
         parts.append(answer[last_idx:])
@@ -623,6 +643,62 @@ def repair_bad_citation_formats(answer: str, kbinfos: dict, idx: set):
         find_and_replace(pattern)
 
     return answer, idx
+
+
+# A range the model merged on its own ("[ID:1-3]"), which resolves to no single
+# chunk. Mirrors the Go `rangeCitationPattern`.
+RANGE_CITATION_PATTERN = re.compile(r"(?i)\[\s*ID\s*[:： ]*\s*(\d+)\s*[-–—~～]\s*(\d+)\s*\]")
+
+# A citation marker carrying the literal `ID:` — the form the citation rules
+# prescribe, and the only shape safe to delete from an answer: a bare `[2024]` in
+# prose is as likely to be a year or a footnote. Mirrors Go's
+# `canonicalIDMarkerPattern`.
+CANONICAL_CITATION_PATTERN = re.compile(
+    r"(?i)\[\s*ID\s*[:： ]*\s*([0-9\u0660-\u0669\u06F0-\u06F9]+)\s*\]"
+)
+
+
+def resolve_citation_markers(answer: str, chunk_count: int, *, one_based: bool = True) -> str:
+    """Drop canonical citations that name no chunk; expand valid merged ranges.
+
+    A marker carrying the literal `ID:` prefix is the form the citation rules
+    prescribe, so it is the only one that can be removed safely: a bare `[2024]`
+    in prose is as likely to be a year or a footnote, and deleting text the user
+    meant to read is worse than leaving a marker the client cannot open. Go makes
+    the same distinction (`canonicalIDMarkerPattern`).
+
+    A range expands only when both bounds name a chunk — `[ID:1-3]` over a 6-chunk
+    pool becomes `[ID:1][ID:2][ID:3]`, so its citations survive — and is removed
+    when either bound is outside the pool. Go's `ExpandRangeCitations` does the
+    same, one layer earlier.
+    """
+    if not answer or chunk_count <= 0:
+        return answer if answer else ""
+
+    offset = 1 if one_based else 0
+    in_pool = lambda n: 0 <= n - offset < chunk_count  # noqa: E731
+
+    def expand(match):
+        a, b = int(match.group(1)), int(match.group(2))
+        if a > b:
+            a, b = b, a
+        if not (in_pool(a) and in_pool(b)):
+            return ""
+        return "".join(f"[ID:{i}]" for i in range(a, b + 1))
+
+    answer = RANGE_CITATION_PATTERN.sub(expand, answer)
+
+    def drop(match):
+        # Arabic-Indic digits are normalized before the check so the pool test
+        # reads them the same way the client does.
+        digits = normalize_arabic_digits(match.group(1)) or match.group(1)
+        try:
+            n = int(digits)
+        except ValueError:
+            return match.group(0)
+        return match.group(0) if in_pool(n) else ""
+
+    return CANONICAL_CITATION_PATTERN.sub(drop, answer)
 
 
 def _empty_response_applies(knowledges: list, text_attachments_content: str, image_attachments: list, image_files: list) -> bool:
@@ -906,6 +982,11 @@ async def async_chat(dialog, messages, stream=True, **kwargs):
 
         if knowledges and (prompt_config.get("quote", True) and kwargs.get("quote", True)):
             idx = set([])
+            # Which numbering the answer's markers carry, decided by the branch
+            # that produced them: `insert_citations` emits 0-based chunk
+            # positions, the model writes the 1-based numbers `kb_prompt` labels
+            # the evidence with.
+            one_based = True
             normalized_answer = normalize_arabic_digits(answer) or ""
             if embd_mdl and not CITATION_MARKER_PATTERN.search(normalized_answer):
                 # Main retrieval no longer ships chunk vectors back from ES.
@@ -919,11 +1000,13 @@ async def async_chat(dialog, messages, stream=True, **kwargs):
                     tkweight=1 - dialog.vector_similarity_weight,
                     vtweight=dialog.vector_similarity_weight,
                 )
+                one_based = False
             else:
                 # The model's own markers are 1-based ("ID: 1" … "ID: n").
                 idx = cited_chunk_indexes(answer, len(kbinfos["chunks"]))
 
-            answer, idx = repair_bad_citation_formats(answer, kbinfos, idx)
+            answer, idx = repair_bad_citation_formats(answer, kbinfos, idx, one_based=one_based)
+            answer = resolve_citation_markers(answer, len(kbinfos["chunks"]), one_based=one_based)
 
             idx = set([kbinfos["chunks"][int(i)]["doc_id"] for i in idx])
             recall_docs = [d for d in kbinfos["doc_aggs"] if d["doc_id"] in idx]
@@ -2180,6 +2263,12 @@ async def rag_agent(dialog, messages, stream=True, **kwargs):
         idx = cited_chunk_indexes(answer, len(pool["chunks"]))
 
         answer, idx = repair_bad_citation_formats(answer, pool, idx)
+
+        # The model's markers are 1-based, and a marker that names no chunk in the
+        # pool the client is about to receive is removed rather than left as a
+        # number the reader cannot open. Valid merged ranges are expanded first, so
+        # their citations survive.
+        answer = resolve_citation_markers(answer, len(pool["chunks"]))
 
         doc_ids = set()
         for citation in idx:
