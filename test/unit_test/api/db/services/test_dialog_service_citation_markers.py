@@ -58,12 +58,11 @@ class TestMarkersThatNameNothingAreDropped:
         # Go makes the same distinction (canonicalIDMarkerPattern).
         assert resolve_citation_markers("参见 [2024] 年报告。", 6) == "参见 [2024] 年报告。"
 
-    def test_an_empty_pool_drops_every_canonical_marker(self):
-        assert resolve_citation_markers("结论 [ID:1]。", 0) == "结论 [ID:1]。"
-
-    def test_markers_are_unchanged_when_the_pool_is_not_known(self):
-        # chunk_count 0 means "no pool to judge against"; the caller decides what
-        # to do with markers it cannot resolve.
+    def test_without_a_pool_markers_are_left_for_the_client_to_resolve(self):
+        # chunk_count 0 means "no pool to judge against". Dropping every marker
+        # here would strip the citations from an answer the client can still
+        # resolve through the pool the answer quoted — the case the renderer and
+        # `resolveAnswerPools` exist for.
         assert resolve_citation_markers("结论 [ID:1]。", 0) == "结论 [ID:1]。"
 
 
