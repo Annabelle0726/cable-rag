@@ -205,6 +205,30 @@ module.exports = {
           indicator: 'var(--cable-nav-indicator)',
         },
 
+        /* 深绿顶栏：全宽实心国网绿；`hover` 是加深色，Hover 与选中态共用它，
+           选中态另加 2px 白线与加粗（见 tailwind.css 的 .gov-nav-link-active）。 */
+        'gov-header': {
+          DEFAULT: 'var(--gov-header-bg)',
+          hover: 'var(--gov-header-hover)',
+          fg: 'var(--gov-header-fg)',
+          border: 'var(--gov-header-border)',
+        },
+        /* 工业级面板与数据表格的 1px 实线边框。 */
+        'panel-border': 'var(--panel-border)',
+        'table-border': 'var(--table-border)',
+        'table-head-ink': 'var(--table-head-ink)',
+        /* 状态徽标：可用（绿）/ 已归档（灰）。 */
+        'status-available': {
+          DEFAULT: 'var(--status-available-surface)',
+          ink: 'var(--status-available-ink)',
+          border: 'var(--status-available-border)',
+        },
+        'status-archived': {
+          DEFAULT: 'var(--status-archived-surface)',
+          ink: 'var(--status-archived-ink)',
+          border: 'var(--status-archived-border)',
+        },
+
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
@@ -249,48 +273,64 @@ module.exports = {
           ring: 'hsl(var(--sidebar-ring))',
         },
       },
-      backgroundImage: {
-        'metallic-gradient':
-          'linear-gradient(104deg, rgb(var(--text-primary)) 30%, var(--metallic) 50%, rgb(var(--text-primary)) 70%)',
-      },
+      /* 无渐变设计：不再声明任何 backgroundImage 工具类。 */
+      /* 政企后台用 1px 实线边框划定区域，不用悬浮阴影：默认阴影标尺整体归零，
+         历史 class 名（shadow-sm / shadow-lg / shadow-2xl…）仍然可写但不再投影。 */
       boxShadow: {
-        /* Cable surfaces: soft elevation in light mode, flat in dark mode. */
+        none: 'none',
+        xs: 'none',
+        sm: 'none',
+        DEFAULT: 'none',
+        md: 'none',
+        lg: 'none',
+        xl: 'none',
+        '2xl': 'none',
+        inner: 'none',
+        /* Cable surfaces: flat in both themes. */
         'cable-surface': 'var(--cable-shadow)',
         'cable-surface-hover': 'var(--cable-shadow-hover)',
-        /* Slide-over drawer panel: casts leftwards, so it stays readable in both
-           themes (a "none" shadow would flatten the panel against the chat). */
         'cable-drawer': 'var(--cable-drawer-shadow)',
-        /* Single-colour accent glow, for the few surfaces that should read as
-           "energised" (primary actions, the active nav item). */
-        'accent-glow': '0 4px 20px -2px var(--shadow-accent)',
-        /* Ceramic enamel: an inner top highlight plus a drop shadow, composed
-           from the ceramic tokens so light and dark keep the same shadow
-           structure and therefore interpolate smoothly on hover. */
+        /* 主操作强调色不再发光。 */
+        'accent-glow': 'none',
         ceramic: 'var(--ceramic-elevation)',
         'ceramic-hover': 'var(--ceramic-elevation-hover)',
-        /* Sign-in card: the ceramic elevation with one wide accent bloom under
-           it, so the card is the focal point without a second colour. */
         'login-card': 'var(--login-card-glow)',
       },
+      /* 工业级直角：整条圆角标尺压到 2px，任何历史 class（含 rounded-full、
+         rounded-xl…）都保留名字但只渲染 2px 直角，胶囊与圆角胶囊从此不可能出现。 */
       borderRadius: {
+        none: '0px',
         px: '1px',
-
-        '4xl': '1rem' /* 16px */,
-        '3xl': '0.75rem' /* 12px */,
-        '2xl': '0.625rem' /* 10px */,
-        xl: '0.5rem' /* 8px */,
-        lg: '0.4375rem' /* 7px */,
-        DEFAULT: '0.375rem' /* 6px */,
-        sm: '0.3125rem' /* 5px */,
-        xs: '0.25rem' /* 4px */,
-        '2xs': '0.1875rem' /* 3px */,
-        '3xs': '0.125' /* 2px */,
+        '3xs': '2px',
+        '2xs': '2px',
+        xs: '2px',
+        sm: '2px',
+        DEFAULT: '2px',
+        md: '2px',
+        lg: '2px',
+        xl: '2px',
+        '2xl': '2px',
+        '3xl': '2px',
+        '4xl': '2px',
+        full: '2px',
       },
       fontFamily: {
-        /* Both stacks are declared once in global.less: a native CJK UI stack
-           and a monospace fallback for identifiers, units and logs. */
-        sans: ['var(--font-sans)', ...fontFamily.sans],
-        mono: ['var(--font-mono)', ...fontFamily.mono],
+        /* 国网/政企系统标准中文无衬线字体栈 */
+        sans: [
+          '"Microsoft YaHei"',
+          '"微软雅黑"',
+          '"PingFang SC"',
+          '"Hiragino Sans GB"',
+          'Arial',
+          'sans-serif',
+        ],
+        mono: [
+          'Consolas',
+          '"Courier New"',
+          'SimSun',
+          '"宋体"',
+          'monospace',
+        ],
       },
       keyframes: {
         'accordion-down': {

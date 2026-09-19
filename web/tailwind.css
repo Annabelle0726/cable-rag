@@ -2,552 +2,562 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * 国网 ECP / 工业级后台设计令牌。
+ *
+ * 变量名与 class 名全部沿用历史命名（组件仍然引用它们），只重写取值：
+ * 主色为国网绿 #007A53，辅色为经典橙 #E6A23C，背景为政企标准灰 #F0F2F5，
+ * 区域划分统一使用 1px 实线边框 #DCDFE6。所有悬浮阴影变量归零、所有渐变变量
+ * 退化为纯色，圆角上限 2px。
+ */
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
+    --foreground: 0 0% 19%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 16% 96%;
+    --muted-foreground: 220 6% 46%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 0 0% 19%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 220 13% 87%;
+    --input: 220 13% 87%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
+    --card-foreground: 0 0% 19%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 161 100% 24%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 16% 96%;
+    --secondary-foreground: 0 0% 19%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 220 16% 96%;
+    --accent-foreground: 0 0% 19%;
 
-    --destructive: 0 100% 50%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 78% 63%;
+    --destructive-foreground: 0 0% 100%;
 
-    --ring: 215 20.2% 65.1%;
+    --ring: 161 100% 24%;
 
-    --radius: 0.5rem;
+    /* 工业级直角：全局圆角上限 2px */
+    --radius: 2px;
 
-    --background-inverse-standard: rgba(230, 227, 246, 0.15);
-    --background-inverse-standard-foreground: rgb(92, 81, 81);
+    --background-inverse-standard: rgba(0, 122, 83, 0.08);
+    --background-inverse-standard-foreground: #303133;
     --colors-background-neutral-standard: white;
 
-    --button-blue-text: rgb(22, 119, 255);
+    /* 主操作绿：国网正绿 */
+    --button-blue-text: #007a53;
 
-    --colors-outline-sentiment-primary: rgba(127, 105, 255, 1);
-    --colors-outline-neutral-strong: rgba(112, 107, 107, 0.15);
-    --colors-outline-neutral-standard: rgba(53, 51, 65, 0.1);
+    --colors-outline-sentiment-primary: #007a53;
+    --colors-outline-neutral-strong: #dcdfe6;
+    --colors-outline-neutral-standard: #e4e7ed;
 
-    --colors-text-neutral-strong: rgba(17, 16, 23, 1);
-    --colors-text-neutral-standard: rgba(152, 148, 176, 1);
+    --colors-text-neutral-strong: #303133;
+    --colors-text-neutral-standard: #909399;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 19%;
+    --sidebar-primary: 161 100% 24%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 16% 96%;
+    --sidebar-accent-foreground: 0 0% 19%;
+    --sidebar-border: 220 13% 87%;
+    --sidebar-ring: 161 100% 24%;
 
-    --background-inverse-strong: rgba(255, 255, 255, 0.15);
+    --background-inverse-strong: rgba(0, 122, 83, 0.12);
 
-    --text-badge: rgba(151, 154, 171, 1);
+    --text-badge: #909399;
 
-    --text-title: rgba(22, 22, 24, 1);
-    --text-sub-title: rgba(151, 154, 171, 1);
-    --text-sub-title-invert: rgba(91, 93, 106, 1);
+    --text-title: #303133;
+    --text-sub-title: #909399;
+    --text-sub-title-invert: #606266;
 
-    --background-header-bar: rgba(15, 23, 42, 0.04);
-    --text-title-invert: rgba(255, 255, 255, 1);
-    --background-card: rgba(22, 22, 24, 0.05);
+    --background-header-bar: #007a53;
+    --text-title-invert: #ffffff;
+    --background-card: #f5f7fa;
 
-    --background-highlight: rgba(76, 164, 231, 0.1);
+    --background-highlight: #e6f2ef;
 
-    --input-border: rgba(22, 22, 24, 0.2);
+    --input-border: #dcdfe6;
 
     --metallic: #46464a;
 
-    --bg-title: #eef2f7;
+    --bg-title: #f5f7fa;
     /* design colors */
 
-    --bg-base: #f8fafc;
+    --bg-base: #f0f2f5;
     /* card color , dividing line */
-    --bg-card: rgba(15, 23, 42, 0.045);
+    --bg-card: #ffffff;
     --bg-component: #ffffff;
-    --bg-input: rgba(15, 23, 42, 0.045);
-    --bg-canvas: 246 246 247;
-    --bg-list: 241 245 249;
+    --bg-input: #ffffff;
+    --bg-canvas: 240 242 245;
+    --bg-list: 245 247 250;
     /* Button ,Body text, Input completed text */
 
-    /* #161618 */
-    --text-primary: 22 22 24;
-    --text-secondary: 117 120 122;
-    --text-disabled: #b2b5b7;
+    /* #303133 */
+    --text-primary: 48 49 51;
+    --text-secondary: 96 98 102;
+    --text-disabled: #c0c4cc;
     /* Input default color */
-    --border-default: rgba(0, 0, 0, 0.2);
+    --border-default: #dcdfe6;
     /* Input accent color */
-    --border-accent: #000000;
-    --border-button: rgba(15, 23, 42, 0.1);
+    --border-accent: #007a53;
+    --border-button: #dcdfe6;
     /* Regulators, parsing, switches, variables */
-    --accent-primary: 0 190 180;
+    --accent-primary: 0 122 83;
     /* Output Variables Box */
-    --bg-accent: rgba(76, 164, 231, 0.05);
+    --bg-accent: #e6f2ef;
 
-    --state-success: 59 160 92;
-    --state-warning: 250 173 20;
-    --state-error: 216 73 75;
+    --state-success: 103 194 58;
+    --state-warning: 230 162 60;
+    --state-error: 245 108 108;
 
-    --team-group: #5ab77e;
-    --team-member: #5c96c8;
-    --team-department: #8866d3;
-    --bg-member: rgba(92, 150, 200, 0.1);
+    --team-group: #007a53;
+    --team-member: #007a53;
+    --team-department: #e6a23c;
+    --bg-member: #e6f2ef;
 
     /* --*-inverse: colors in dark mode */
-    --text-primary-inverse: 246 246 247;
+    --text-primary-inverse: 255 255 255;
     --text-secondary-inverse: 178 181 183;
 
-    --content-primary: #0f172a;
-    --content-secondary: #475569;
-    --content-tertiary: #64748b;
+    --content-primary: #303133;
+    --content-secondary: #606266;
+    --content-tertiary: #909399;
 
-    --cable-page-from: #ffffff;
-    --cable-page-to: #f7fafe;
-    --cable-page-edge: #eaf1fc;
-    --page-accent-bloom: rgba(2, 132, 199, 0.14);
-    --page-accent-bloom-soft: rgba(99, 102, 241, 0.1);
-    --page-gradient:
-      radial-gradient(
-        circle at 15% 15%,
-        var(--cable-page-from) 0%,
-        var(--cable-page-to) 50%,
-        var(--cable-page-edge) 100%
-      ),
-      radial-gradient(
-        circle at 82% 4%,
-        var(--page-accent-bloom-soft) 0%,
-        transparent 55%
-      ),
-      radial-gradient(
-        circle at 85% 85%,
-        var(--page-accent-bloom) 0%,
-        transparent 60%
-      ),
-      radial-gradient(
-        circle at 12% 92%,
-        var(--page-accent-bloom-soft) 0%,
-        transparent 55%
-      );
+    /* 页面背景：政企标准灰纯色，取消一切径向渐变 */
+    --cable-page-from: #f0f2f5;
+    --cable-page-to: #f0f2f5;
+    --cable-page-edge: #f0f2f5;
+    --page-accent-bloom: transparent;
+    --page-accent-bloom-soft: transparent;
+    --page-gradient: none;
+
     --cable-surface: #ffffff;
-    --cable-surface-muted: rgba(255, 255, 255, 0.66);
-    --cable-surface-border: rgba(203, 216, 233, 0.9);
-    --cable-surface-border-hover: rgba(2, 132, 199, 0.45);
-    --cable-brand: #1e3a8a;
-    --cable-brand-soft: rgba(30, 58, 138, 0.08);
-    --cable-accent: #0284c7;
-    --cable-copper: #d97706;
-    --cable-icon-surface: #eff6ff;
-    --cable-icon-foreground: #2563eb;
-    --cable-divider: rgba(148, 163, 184, 0.35);
+    --cable-surface-muted: #f5f7fa;
+    --cable-surface-border: #dcdfe6;
+    --cable-surface-border-hover: #007a53;
+
+    /* 核心品牌色：国网绿 */
+    --cable-brand: #007a53;
+    --cable-brand-soft: #e6f2ef;
+    --cable-accent: #007a53;
+    --cable-copper: #e6a23c;
+    --cable-icon-surface: #e6f2ef;
+    --cable-icon-foreground: #007a53;
+    --cable-divider: #e4e7ed;
     --cable-muted: var(--content-tertiary);
-    --cable-hairline: rgba(15, 23, 42, 0.08);
-    --cable-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05),
-      0 12px 32px -20px rgba(15, 23, 42, 0.3);
-    --cable-shadow-hover: 0 10px 15px -3px rgba(15, 23, 42, 0.1),
-      0 4px 6px -4px rgba(15, 23, 42, 0.1);
-    --cable-drawer-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
-    --cable-backdrop: rgba(15, 23, 42, 0.3);
-    --cable-avatar-surface: #1e3a8a;
+    --cable-hairline: #dcdfe6;
+    /* 悬浮阴影统一归零：区域靠 1px 实线边框划分 */
+    --cable-shadow: none;
+    --cable-shadow-hover: none;
+    --cable-drawer-shadow: none;
+    --cable-backdrop: rgba(0, 0, 0, 0.35);
+    --cable-avatar-surface: #007a53;
     --cable-avatar-foreground: #ffffff;
 
-    --accent-color: #0284c7;
-    --accent-color-strong: #0369a1;
-    --accent-color-soft: rgba(2, 132, 199, 0.1);
-    --glass-bg: rgba(255, 255, 255, 0.9);
-    --glass-border: rgba(2, 132, 199, 0.2);
-    --glass-blur: 8px;
-    --glass-highlight: rgba(2, 132, 199, 0.08);
+    --accent-color: #007a53;
+    --accent-color-strong: #005c3f;
+    --accent-color-soft: #e6f2ef;
 
-    --hero-title-from: #0f172a;
-    --hero-title-via: #0369a1;
-    --hero-title-to: #0ea5e9;
-    --hero-card-bg: rgba(255, 255, 255, 0.65);
-    --hero-card-bg-hover: rgba(255, 255, 255, 0.9);
-    --hero-card-border: rgba(15, 23, 42, 0.08);
-    --hero-icon: #0284c7;
-    --hero-badge-bg: rgba(2, 132, 199, 0.1);
-    --hero-badge-border: rgba(2, 132, 199, 0.3);
-    --hero-badge-text: #0369a1;
-    --hero-glow: rgba(2, 132, 199, 0.16);
+    /* 取消毛玻璃：一律不透明实色 + 实线边框 */
+    --glass-bg: #ffffff;
+    --glass-border: #dcdfe6;
+    --glass-blur: 0px;
+    --glass-highlight: transparent;
 
-    --login-card-edge: rgba(2, 132, 199, 0.3);
-    --login-card-glow:
-      var(--ceramic-elevation), 0 10px 30px -10px rgba(2, 132, 199, 0.25);
+    --hero-title-from: #303133;
+    --hero-title-via: #303133;
+    --hero-title-to: #303133;
+    --hero-card-bg: #ffffff;
+    --hero-card-bg-hover: #ffffff;
+    --hero-card-border: #dcdfe6;
+    --hero-icon: #007a53;
+    --hero-badge-bg: #e6f2ef;
+    --hero-badge-border: #007a53;
+    --hero-badge-text: #007a53;
+    --hero-glow: none;
 
-    --login-cta-bg: #0284c7;
-    --login-cta-bg-hover: #0369a1;
-    --login-cta-bg-active: #075985;
+    --login-card-edge: #dcdfe6;
+    --login-card-glow: none;
+
+    /* 登录按钮：实色，无渐变、无倒角反光、无多层阴影 */
+    --login-cta-bg: #007a53;
+    --login-cta-bg-hover: #005c3f;
+    --login-cta-bg-active: #00452f;
     --login-cta-fg: #ffffff;
-    --login-cta-sheen: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.32) 0%,
-      rgba(255, 255, 255, 0.1) 44%,
-      rgba(255, 255, 255, 0) 56%,
-      rgba(2, 6, 23, 0.18) 100%
-    );
-    --login-cta-text-shadow: 0 1px 1px rgba(2, 6, 23, 0.35);
-    --login-cta-shadow:
-      0 8px 18px -6px rgba(2, 132, 199, 0.45),
-      0 1px 2px rgba(15, 23, 42, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5),
-      inset 0 -2px 4px rgba(3, 105, 161, 0.45);
-    --login-cta-shadow-hover:
-      0 12px 26px -8px rgba(2, 132, 199, 0.55),
-      0 2px 4px rgba(15, 23, 42, 0.16),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6),
-      inset 0 -2px 4px rgba(3, 105, 161, 0.5);
-    --login-cta-shadow-active:
-      0 2px 6px -2px rgba(2, 132, 199, 0.4),
-      inset 0 2px 5px rgba(3, 105, 161, 0.55),
-      inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    --login-cta-sheen: none;
+    --login-cta-text-shadow: none;
+    --login-cta-shadow: none;
+    --login-cta-shadow-hover: none;
+    --login-cta-shadow-active: none;
 
-    --ceramic-surface: rgba(255, 255, 255, 0.66);
-    --ceramic-highlight: rgba(255, 255, 255, 0.9);
-    --ceramic-border: rgba(203, 216, 233, 0.9);
-    --ceramic-border-hover: rgba(2, 132, 199, 0.4);
-    --ceramic-track-surface: rgba(241, 245, 249, 0.75);
-    --ceramic-track-border: rgba(226, 232, 240, 0.8);
-    --ceramic-track-inset: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+    --ceramic-surface: #ffffff;
+    --ceramic-highlight: transparent;
+    --ceramic-border: #dcdfe6;
+    --ceramic-border-hover: #007a53;
+    --ceramic-track-surface: #f5f7fa;
+    --ceramic-track-border: #dcdfe6;
+    --ceramic-track-inset: none;
     --ceramic-pill-surface: #ffffff;
-    --ceramic-pill-edge: transparent;
-    --ceramic-pill-shadow:
-      0 2px 8px -1px rgba(14, 165, 233, 0.18),
-      0 1px 3px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 #ffffff;
-    --ceramic-hover-surface: rgba(255, 255, 255, 0.5);
-    --ceramic-recess: inset 0 2px 4px var(--ceramic-groove-shadow),
-      inset 0 -1px 0 var(--ceramic-groove-highlight);
-    --ceramic-switch-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
-    --ceramic-switch-thumb-surface: var(--accent-color);
-    --ceramic-switch-thumb-elevation: 0 2px 8px rgba(2, 132, 199, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.35),
-      inset 0 -1px 1px rgba(2, 132, 199, 0.32);
-    --ceramic-switch-icon-glow: rgba(255, 255, 255, 0.6);
-    --badge-surface: rgba(14, 165, 233, 0.15);
-    --badge-border: rgba(14, 165, 233, 0.3);
-    --badge-ink: #0369a1;
-    --badge-shadow: rgba(2, 132, 199, 0.18);
-    --badge-surface-hover: rgba(14, 165, 233, 0.2);
-    --field-border: rgba(15, 23, 42, 0.14);
-    /* 补充缺失的焦点边框变量 */
-    --field-border-focus: #0284c7;
+    --ceramic-pill-edge: #dcdfe6;
+    --ceramic-pill-shadow: none;
+    --ceramic-hover-surface: #f5f7fa;
+    --ceramic-recess: none;
+    --ceramic-switch-shadow: none;
+    --ceramic-switch-thumb-surface: #007a53;
+    --ceramic-switch-thumb-elevation: none;
+    --ceramic-switch-icon-glow: transparent;
 
-    --dot-live-glow: 0 0 8px rgb(var(--state-success) / 0.6);
-    --ceramic-shadow: 0 1px 2px rgba(15, 23, 42, 0.04),
-      0 6px 16px -8px rgba(15, 23, 42, 0.1), 0 20px 40px -24px rgba(15, 23, 42, 0.18);
-    --ceramic-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.05),
-      0 10px 24px -10px rgba(15, 23, 42, 0.14),
-      0 28px 56px -28px rgba(15, 23, 42, 0.22);
-    --ceramic-groove-highlight: rgba(255, 255, 255, 0.9);
-    --ceramic-groove-shadow: rgba(15, 23, 42, 0.08);
-    --ceramic-elevation: inset 0 1px 0 var(--ceramic-highlight),
-      var(--ceramic-shadow);
-    --ceramic-elevation-hover: inset 0 1px 0 var(--ceramic-highlight),
-      var(--ceramic-shadow-hover);
+    /* 状态/类型标签：#F0F9EB 浅绿底 + #007A53 绿边框与文字 */
+    --badge-surface: #f0f9eb;
+    --badge-border: #007a53;
+    --badge-ink: #007a53;
+    --badge-shadow: none;
+    --badge-surface-hover: #e6f2ef;
+    --field-border: #dcdfe6;
+    --field-border-focus: #007a53;
+
+    --dot-live-glow: none;
+
+    --ceramic-shadow: none;
+    --ceramic-shadow-hover: none;
+    --ceramic-groove-highlight: transparent;
+    --ceramic-groove-shadow: transparent;
+    --ceramic-elevation: none;
+    --ceramic-elevation-hover: none;
 
     --scrollbar-track: transparent;
-    --scrollbar-thumb: rgba(2, 132, 199, 0.3);
-    --scrollbar-thumb-hover: rgba(2, 132, 199, 0.6);
+    --scrollbar-thumb: #c8ccd4;
+    --scrollbar-thumb-hover: #a8adb8;
 
-    --brand-hover-border: rgba(2, 132, 199, 0.3);
-    --brand-glow: rgba(2, 132, 199, 0.35);
+    --brand-hover-border: #007a53;
+    --brand-glow: transparent;
 
-    --table-header-bg: rgba(241, 245, 249, 0.6);
-    --table-row-hover: rgba(2, 132, 199, 0.05);
+    --table-header-bg: #f5f7fa;
+    --table-row-hover: #f5f7fa;
 
-    --ceramic-relief-highlight: rgba(255, 255, 255, 0.55);
-    --ceramic-relief-shade: rgba(2, 132, 199, 0.22);
-    --ceramic-relief-shadow: 0 4px 12px rgba(2, 132, 199, 0.22);
-    --ceramic-relief-shadow-hover: 0 6px 18px rgba(2, 132, 199, 0.28);
-    --ceramic-relief-shadow-active: 0 1px 3px rgba(2, 132, 199, 0.2);
-    --ceramic-relief-elevation: var(--ceramic-relief-shadow),
-      inset 0 1px 1px var(--ceramic-relief-highlight),
-      inset 0 -1px 1px var(--ceramic-relief-shade);
-    --ceramic-relief-elevation-hover: var(--ceramic-relief-shadow-hover),
-      inset 0 1px 1px var(--ceramic-relief-highlight),
-      inset 0 -1px 1px var(--ceramic-relief-shade);
-    --ceramic-relief-elevation-active: var(--ceramic-relief-shadow-active),
-      inset 0 2px 3px var(--ceramic-relief-shade),
-      inset 0 1px 0.5px var(--ceramic-relief-highlight);
+    --ceramic-relief-highlight: transparent;
+    --ceramic-relief-shade: transparent;
+    --ceramic-relief-shadow: none;
+    --ceramic-relief-shadow-hover: none;
+    --ceramic-relief-shadow-active: none;
+    --ceramic-relief-elevation: none;
+    --ceramic-relief-elevation-hover: none;
+    --ceramic-relief-elevation-active: none;
 
-    --ceramic-well-border: rgba(2, 132, 199, 0.24);
-    --ceramic-well-inset: inset 0 2px 5px rgba(2, 132, 199, 0.18),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+    --ceramic-well-border: #dcdfe6;
+    --ceramic-well-inset: none;
 
-    --category-bom-glow: rgba(217, 119, 6, 0.2);
-    --category-standard-glow: rgba(14, 165, 233, 0.2);
-    --category-spec-glow: rgba(99, 102, 241, 0.2);
-    --category-quality-glow: rgba(16, 185, 129, 0.2);
-    --category-general-glow: rgba(148, 163, 184, 0.2);
-    --category-custom-glow: rgba(168, 85, 247, 0.2);
-    --category-spec-ink: #6366f1;
-    --category-quality-ink: #10b981;
-    --category-custom-ink: #a855f7;
-    --shadow-accent: rgba(2, 132, 199, 0.22);
-    --surface-hover-bg: rgba(2, 132, 199, 0.06);
-    --surface-hover-border: rgba(2, 132, 199, 0.45);
+    --category-bom-glow: transparent;
+    --category-standard-glow: transparent;
+    --category-spec-glow: transparent;
+    --category-quality-glow: transparent;
+    --category-general-glow: transparent;
+    --category-custom-glow: transparent;
+    --category-spec-ink: #007a53;
+    --category-quality-ink: #67c23a;
+    --category-custom-ink: #e6a23c;
+
+    --shadow-accent: transparent;
+    --surface-hover-bg: #f5f7fa;
+    --surface-hover-border: #007a53;
     --accent-contrast: #ffffff;
 
-    --cable-nav-text: #64748b;
-    --cable-nav-active-text: #1d4ed8;
-    --cable-nav-active-bg: rgba(2, 132, 199, 0.1);
-    --cable-nav-indicator: #2563eb;
+    /* 深绿顶栏：全宽实心 */
+    --gov-header-bg: #007a53;
+    --gov-header-hover: #005c3f;
+    --gov-header-fg: #ffffff;
+    --gov-header-border: #005c3f;
+
+    /* 数据表格：表头 #F5F7FA / 行高 38px / 行分隔线 */
+    --panel-border: #dcdfe6;
+    --table-border: #ebeef5;
+    --table-head-ink: #303133;
+
+    --status-available-surface: #f0f9eb;
+    --status-available-ink: #007a53;
+    --status-available-border: #007a53;
+    --status-archived-surface: #f4f4f5;
+    --status-archived-ink: #909399;
+    --status-archived-border: #dcdfe6;
+
+    /* 白底页面上的导航/分页/切卡文字：中灰，选中为国网绿。顶栏在其容器上局部
+       覆盖这三个变量（见 header.tsx 的 headerNavTokens），因此同一组 token 在
+       绿底顶栏是半透明白字，在白底页面仍是 #606266。 */
+    --cable-nav-text: #606266;
+    --cable-nav-text-hover: #303133;
+    --cable-nav-active-text: #007a53;
+    --cable-nav-active-bg: #e6f2ef;
+    --cable-nav-indicator: #007a53;
   }
 
   .dark {
-    --background: rgba(11, 10, 18, 1);
-    --foreground: 213 31% 91%;
+    --background: 0 0% 12%;
+    --foreground: 0 0% 90%;
 
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
+    --muted: 220 10% 16%;
+    --muted-foreground: 220 6% 62%;
 
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 220 10% 18%;
+    --accent-foreground: 0 0% 95%;
 
-    --popover: 224 71% 4%;
-    --popover-foreground: 215 20.2% 65.1%;
+    --popover: 220 12% 12%;
+    --popover-foreground: 0 0% 85%;
 
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
+    --border: 220 10% 24%;
+    --input: 220 10% 24%;
 
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
+    --card: 220 12% 12%;
+    --card-foreground: 0 0% 90%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 1.2%;
+    --primary: 161 63% 40%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 10% 18%;
+    --secondary-foreground: 0 0% 90%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 60% 42%;
+    --destructive-foreground: 0 0% 100%;
 
-    --ring: 216 34% 17%;
+    --ring: 161 63% 40%;
 
-    --radius: 0.5rem;
+    --radius: 2px;
 
-    --background-inverse-standard: rgba(230, 227, 246, 0.15);
+    --background-inverse-standard: rgba(255, 255, 255, 0.08);
     --background-inverse-standard-foreground: rgba(255, 255, 255, 1);
 
-    --background-inverse-strong: rgba(255, 255, 255, 0.15);
+    --background-inverse-strong: rgba(255, 255, 255, 0.12);
     --background-inverse-strong-foreground: rgba(255, 255, 255, 1);
 
-    --background-core-weak: rgb(101, 75, 248);
+    --background-core-weak: rgb(0, 122, 83);
 
-    --text-badge: rgba(151, 154, 171, 1);
+    --text-badge: #909399;
 
-    --colors-background-neutral-standard: rgba(11, 10, 18, 1);
+    --colors-background-neutral-standard: #14161a;
 
-    --colors-outline-sentiment-primary: rgba(146, 118, 255, 1);
-    --colors-outline-neutral-strong: rgba(255, 255, 255, 0.15);
-    --colors-outline-neutral-standard: rgba(230, 227, 246, 0.1);
+    --colors-outline-sentiment-primary: #16a97c;
+    --colors-outline-neutral-strong: rgba(255, 255, 255, 0.18);
+    --colors-outline-neutral-standard: rgba(255, 255, 255, 0.1);
 
     --colors-text-neutral-strong: rgba(255, 255, 255, 1);
-    --colors-text-neutral-standard: rgba(230, 227, 246, 1);
+    --colors-text-neutral-standard: rgba(228, 231, 235, 1);
 
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-background: 220 12% 12%;
+    --sidebar-foreground: 0 0% 88%;
+    --sidebar-primary: 161 63% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 220 10% 18%;
+    --sidebar-accent-foreground: 0 0% 88%;
+    --sidebar-border: 220 10% 22%;
+    --sidebar-ring: 161 63% 40%;
 
     --text-title: rgba(255, 255, 255, 1);
-    --text-sub-title: rgba(91, 93, 106, 1);
-    --text-sub-title-invert: rgba(151, 154, 171, 1);
-    --background-header-bar: rgba(9, 13, 22, 1);
+    --text-sub-title: rgba(144, 147, 153, 1);
+    --text-sub-title-invert: rgba(178, 181, 183, 1);
+    --background-header-bar: #007a53;
 
-    --text-title-invert: rgba(22, 22, 24, 1);
+    --text-title-invert: #303133;
 
     --background-card: rgba(255, 255, 255, 0.05);
 
-    --background-highlight: rgba(76, 164, 231, 0.1);
+    --background-highlight: rgba(22, 169, 124, 0.14);
 
-    --input-border: rgba(255, 255, 255, 0.2);
+    --input-border: #3a3f47;
 
     --metallic: #fafafa;
 
-    --bg-title: #1b2537;
+    --bg-title: #1f2329;
     /* design colors */
 
-    --bg-base: #0b1120;
-    --bg-card: rgba(148, 163, 184, 0.08);
-    --bg-component: #131c2e;
-    --bg-input: rgba(148, 163, 184, 0.08);
-    --bg-canvas: 0 0 0;
-    --bg-list: 15 23 42;
+    --bg-base: #14161a;
+    --bg-card: #1d2025;
+    --bg-component: #1d2025;
+    --bg-input: #24272d;
+    --bg-canvas: 20 22 26;
+    --bg-list: 29 32 37;
 
-    --text-primary: 246 246 247;
-    --text-secondary: 178 181 183;
-    --text-disabled: #75787a;
-    --border-default: rgba(255, 255, 255, 0.2);
-    --border-accent: #ffffff;
-    --border-button: rgba(148, 163, 184, 0.16);
+    --text-primary: 228 231 235;
+    --text-secondary: 160 166 175;
+    --text-disabled: #6b7280;
+    --border-default: #33373d;
+    --border-accent: #16a97c;
+    --border-button: #33373d;
 
-    /* 补充暗色模式下缺失的团队分类色彩 */
-    --team-group: #4ade80;
-    --team-member: #38bdf8;
-    --team-department: #a78bfa;
-    --bg-member: rgba(56, 189, 248, 0.12);
+    --team-group: #16a97c;
+    --team-member: #16a97c;
+    --team-department: #e6a23c;
+    --bg-member: rgba(22, 169, 124, 0.14);
 
-    --text-primary-inverse: 22 22 24;
-    --text-secondary-inverse: 117 120 122;
+    --text-primary-inverse: 20 22 26;
+    --text-secondary-inverse: 96 98 102;
 
-    --content-primary: #f1f5f9;
-    --content-secondary: #cbd5e1;
-    --content-tertiary: #94a3b8;
+    --content-primary: #e4e7eb;
+    --content-secondary: #a0a6af;
+    --content-tertiary: #8b9199;
 
-    --cable-page-from: #0f172a;
-    --cable-page-to: #090d16;
-    --cable-page-edge: #020617;
-    --page-accent-bloom: rgba(14, 165, 233, 0.15);
-    --page-accent-bloom-soft: rgba(14, 165, 233, 0.08);
-    --cable-surface: #161b22;
-    --cable-surface-muted: #1b2129;
-    --cable-surface-border: #1f2937;
-    --cable-surface-border-hover: rgba(59, 130, 246, 0.5);
-    --cable-brand: #60a5fa;
-    --cable-brand-soft: rgba(96, 165, 250, 0.12);
-    --cable-accent: #38bdf8;
-    --cable-copper: #f59e0b;
-    --cable-icon-surface: rgba(23, 37, 84, 0.5);
-    --cable-icon-foreground: #60a5fa;
-    --cable-divider: rgba(148, 163, 184, 0.2);
+    --cable-page-from: #14161a;
+    --cable-page-to: #14161a;
+    --cable-page-edge: #14161a;
+    --page-accent-bloom: transparent;
+    --page-accent-bloom-soft: transparent;
+
+    --cable-surface: #1d2025;
+    --cable-surface-muted: #24272d;
+    --cable-surface-border: #33373d;
+    --cable-surface-border-hover: #16a97c;
+
+    /* 暗色下沿用国网绿，仅提高亮度以保证对比度 */
+    --cable-brand: #16a97c;
+    --cable-brand-soft: rgba(22, 169, 124, 0.16);
+    --cable-accent: #16a97c;
+    --cable-copper: #e6a23c;
+    --cable-icon-surface: rgba(22, 169, 124, 0.16);
+    --cable-icon-foreground: #16a97c;
+    --cable-divider: #33373d;
     --cable-muted: var(--content-tertiary);
-    --cable-hairline: rgba(255, 255, 255, 0.08);
+    --cable-hairline: #33373d;
     --cable-shadow: none;
     --cable-shadow-hover: none;
-    --cable-drawer-shadow: -4px 0 16px rgba(0, 0, 0, 0.45);
-    --cable-backdrop: rgba(2, 6, 23, 0.5);
-    --cable-avatar-surface: #1d4ed8;
+    --cable-drawer-shadow: none;
+    --cable-backdrop: rgba(0, 0, 0, 0.55);
+    --cable-avatar-surface: #007a53;
     --cable-avatar-foreground: #ffffff;
 
-    --accent-color: #38bdf8;
-    --accent-color-strong: #0ea5e9;
-    --accent-color-soft: rgba(56, 189, 248, 0.14);
-    --glass-bg: rgba(15, 23, 42, 0.75);
-    --glass-border: rgba(56, 189, 248, 0.22);
-    --glass-blur: 8px;
-    --glass-highlight: rgba(255, 255, 255, 0.06);
+    --accent-color: #16a97c;
+    --accent-color-strong: #007a53;
+    --accent-color-soft: rgba(22, 169, 124, 0.18);
 
-    --hero-title-from: #ffffff;
-    --hero-title-via: #bae6fd;
-    --hero-title-to: #38bdf8;
-    --hero-card-bg: rgba(255, 255, 255, 0.05);
-    --hero-card-bg-hover: rgba(255, 255, 255, 0.1);
-    --hero-card-border: rgba(255, 255, 255, 0.1);
-    --hero-icon: #38bdf8;
-    --hero-badge-bg: rgba(14, 165, 233, 0.1);
-    --hero-badge-border: rgba(56, 189, 248, 0.3);
-    --hero-badge-text: #7dd3fc;
-    --hero-glow: rgba(14, 165, 233, 0.2);
+    --glass-bg: #1d2025;
+    --glass-border: #33373d;
+    --glass-blur: 0px;
+    --glass-highlight: transparent;
 
-    --login-card-edge: rgba(56, 189, 248, 0.3);
-    --login-card-glow:
-      var(--ceramic-elevation), 0 10px 30px -10px rgba(2, 132, 199, 0.25);
+    --hero-title-from: #e4e7eb;
+    --hero-title-via: #e4e7eb;
+    --hero-title-to: #e4e7eb;
+    --hero-card-bg: #1d2025;
+    --hero-card-bg-hover: #24272d;
+    --hero-card-border: #33373d;
+    --hero-icon: #16a97c;
+    --hero-badge-bg: rgba(22, 169, 124, 0.16);
+    --hero-badge-border: #16a97c;
+    --hero-badge-text: #6fd6b0;
+    --hero-glow: none;
 
-    --login-cta-bg: #0284c7;
-    --login-cta-bg-hover: #0369a1;
-    --login-cta-bg-active: #075985;
+    --login-card-edge: #33373d;
+    --login-card-glow: none;
+
+    --login-cta-bg: #007a53;
+    --login-cta-bg-hover: #00915f;
+    --login-cta-bg-active: #005c3f;
     --login-cta-fg: #ffffff;
-    --login-cta-text-shadow: 0 1px 1px rgba(2, 6, 23, 0.45);
-    --login-cta-shadow:
-      0 10px 24px -8px rgba(2, 132, 199, 0.55),
-      0 1px 2px rgba(0, 0, 0, 0.5),
-      inset 0 1px 0 rgba(255, 255, 255, 0.4),
-      inset 0 -2px 4px rgba(2, 6, 23, 0.5);
-    --login-cta-shadow-hover:
-      0 14px 32px -10px rgba(2, 132, 199, 0.6),
-      0 2px 5px rgba(0, 0, 0, 0.55),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5),
-      inset 0 -2px 4px rgba(2, 6, 23, 0.55);
-    --login-cta-shadow-active:
-      0 2px 6px -2px rgba(2, 132, 199, 0.45),
-      inset 0 2px 5px rgba(2, 6, 23, 0.6),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    --login-cta-sheen: none;
+    --login-cta-text-shadow: none;
+    --login-cta-shadow: none;
+    --login-cta-shadow-hover: none;
+    --login-cta-shadow-active: none;
 
-    --ceramic-surface: rgba(30, 41, 59, 0.72);
-    --ceramic-highlight: rgba(255, 255, 255, 0.12);
-    --ceramic-border: rgba(255, 255, 255, 0.08);
-    --ceramic-border-hover: rgba(56, 189, 248, 0.45);
-    --ceramic-pill-surface: rgba(51, 65, 85, 0.92);
-    --ceramic-pill-edge: rgba(255, 255, 255, 0.08);
-    --ceramic-pill-shadow: var(--ceramic-elevation);
-    --ceramic-track-surface: rgba(30, 41, 59, 0.72);
-    --ceramic-track-border: rgba(255, 255, 255, 0.08);
-    --ceramic-track-inset:
-      inset 0 2px 4px var(--ceramic-groove-shadow),
-      inset 0 -1px 0 var(--ceramic-groove-highlight);
-    --ceramic-hover-surface: rgba(148, 163, 184, 0.14);
-    --ceramic-switch-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-    --ceramic-switch-thumb-elevation: 0 2px 10px rgba(2, 132, 199, 0.5),
-      inset 0 1px 0 rgba(255, 255, 255, 0.22),
-      inset 0 -1px 1px rgba(2, 6, 23, 0.45);
-    --ceramic-switch-icon-glow: rgba(255, 255, 255, 0.45);
-    --badge-surface: rgba(14, 165, 233, 0.18);
-    --badge-border: rgba(56, 189, 248, 0.35);
-    --badge-ink: #7dd3fc;
-    --badge-shadow: rgba(2, 6, 23, 0.35);
-    --badge-surface-hover: rgba(56, 189, 248, 0.25);
-    --field-border: rgba(148, 163, 184, 0.32);
-    /* 补充暗色模式缺失的焦点边框变量 */
-    --field-border-focus: #38bdf8;
+    --ceramic-surface: #1d2025;
+    --ceramic-highlight: transparent;
+    --ceramic-border: #33373d;
+    --ceramic-border-hover: #16a97c;
+    --ceramic-pill-surface: #24272d;
+    --ceramic-pill-edge: #33373d;
+    --ceramic-pill-shadow: none;
+    --ceramic-track-surface: #24272d;
+    --ceramic-track-border: #33373d;
+    --ceramic-track-inset: none;
+    --ceramic-hover-surface: #24272d;
+    --ceramic-recess: none;
+    --ceramic-switch-shadow: none;
+    --ceramic-switch-thumb-surface: #16a97c;
+    --ceramic-switch-thumb-elevation: none;
+    --ceramic-switch-icon-glow: transparent;
 
-    --dot-live-glow: 0 0 9px rgb(var(--state-success) / 0.55);
-    --ceramic-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
-      0 6px 18px -8px rgba(0, 0, 0, 0.4), 0 20px 44px -24px rgba(0, 0, 0, 0.5);
-    --ceramic-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35),
-      0 12px 28px -10px rgba(0, 0, 0, 0.5), 0 30px 60px -30px rgba(0, 0, 0, 0.6);
-    --ceramic-groove-highlight: rgba(255, 255, 255, 0.08);
-    --ceramic-groove-shadow: rgba(0, 0, 0, 0.2);
+    --badge-surface: rgba(22, 169, 124, 0.16);
+    --badge-border: #16a97c;
+    --badge-ink: #6fd6b0;
+    --badge-shadow: none;
+    --badge-surface-hover: rgba(22, 169, 124, 0.24);
+    --field-border: #33373d;
+    --field-border-focus: #16a97c;
+
+    --dot-live-glow: none;
+
+    --ceramic-shadow: none;
+    --ceramic-shadow-hover: none;
+    --ceramic-groove-highlight: transparent;
+    --ceramic-groove-shadow: transparent;
+    --ceramic-elevation: none;
+    --ceramic-elevation-hover: none;
+
     --scrollbar-track: transparent;
-    --scrollbar-thumb: rgba(56, 189, 248, 0.32);
-    --scrollbar-thumb-hover: rgba(56, 189, 248, 0.65);
-    --brand-hover-border: rgba(14, 165, 233, 0.3);
-    --brand-glow: rgba(14, 165, 233, 0.45);
-    --table-header-bg: rgba(255, 255, 255, 0.03);
-    --table-row-hover: rgba(255, 255, 255, 0.04);
-    --ceramic-relief-highlight: rgba(255, 255, 255, 0.18);
-    --ceramic-relief-shade: rgba(2, 6, 23, 0.6);
-    --ceramic-relief-shadow: 0 4px 14px rgba(0, 0, 0, 0.34);
-    --ceramic-relief-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.42);
-    --ceramic-relief-shadow-active: 0 1px 3px rgba(0, 0, 0, 0.26);
-    --ceramic-well-border: rgba(56, 189, 248, 0.22);
-    --ceramic-well-inset: inset 0 2px 6px rgba(2, 6, 23, 0.65),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.06);
-    --category-spec-ink: #818cf8;
-    --category-quality-ink: #34d399;
-    --category-custom-ink: #c084fc;
-    --shadow-accent: rgba(2, 132, 199, 0.35);
-    --surface-hover-bg: rgba(56, 189, 248, 0.1);
-    --surface-hover-border: rgba(56, 189, 248, 0.5);
+    --scrollbar-thumb: #3a3f47;
+    --scrollbar-thumb-hover: #4b515a;
+
+    --brand-hover-border: #16a97c;
+    --brand-glow: transparent;
+    --table-header-bg: #1f2329;
+    --table-row-hover: #24272d;
+
+    --ceramic-relief-highlight: transparent;
+    --ceramic-relief-shade: transparent;
+    --ceramic-relief-shadow: none;
+    --ceramic-relief-shadow-hover: none;
+    --ceramic-relief-shadow-active: none;
+    --ceramic-relief-elevation: none;
+    --ceramic-relief-elevation-hover: none;
+    --ceramic-relief-elevation-active: none;
+
+    --ceramic-well-border: #33373d;
+    --ceramic-well-inset: none;
+
+    --category-bom-glow: transparent;
+    --category-standard-glow: transparent;
+    --category-spec-glow: transparent;
+    --category-quality-glow: transparent;
+    --category-general-glow: transparent;
+    --category-custom-glow: transparent;
+    --category-spec-ink: #16a97c;
+    --category-quality-ink: #67c23a;
+    --category-custom-ink: #e6a23c;
+
+    --shadow-accent: transparent;
+    --surface-hover-bg: #24272d;
+    --surface-hover-border: #16a97c;
     --accent-contrast: #ffffff;
 
-    --cable-nav-text: #94a3b8;
-    --cable-nav-active-text: #38bdf8;
-    --cable-nav-active-bg: rgba(23, 37, 84, 0.4);
-    --cable-nav-indicator: #38bdf8;
+    /* 顶栏在两种模式下都保持国网绿实色 */
+    --gov-header-bg: #007a53;
+    --gov-header-hover: #005c3f;
+    --gov-header-fg: #ffffff;
+    --gov-header-border: #005c3f;
+
+    --panel-border: #33373d;
+    --table-border: #2b3038;
+    --table-head-ink: #e4e7eb;
+
+    --status-available-surface: rgba(22, 169, 124, 0.16);
+    --status-available-ink: #6fd6b0;
+    --status-available-border: #16a97c;
+    --status-archived-surface: rgba(255, 255, 255, 0.06);
+    --status-archived-ink: #8b9199;
+    --status-archived-border: #33373d;
+
+    /* 白底/暗底页面上的导航文字：暗色下为中灰，选中为亮绿。 */
+    --cable-nav-text: #a0a6af;
+    --cable-nav-text-hover: #e4e7eb;
+    --cable-nav-active-text: #16a97c;
+    --cable-nav-active-bg: rgba(22, 169, 124, 0.16);
+    --cable-nav-indicator: #16a97c;
   }
 }
 
+/* 以下是完全保留原始逻辑的代码，保证你的组件class依然可用 */
 @layer base {
   * {
     @apply border-border;
@@ -560,6 +570,10 @@
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
+    /* 政企后台为高密度排版：紧凑字距与行高 */
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: 0;
   }
 
   h1 {
@@ -614,35 +628,35 @@
   .glass-panel {
     background-color: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .glass-surface {
     background-color: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    box-shadow: inset 0 1px 0 var(--glass-highlight);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
   }
 
   .brand-entry {
     border: 1px solid transparent;
+    border-radius: 2px;
     transition:
       background-color 200ms ease,
-      border-color 200ms ease,
-      box-shadow 200ms ease;
+      border-color 200ms ease;
   }
 
   .brand-entry:hover {
-    background-color: var(--cable-brand-soft);
-    border-color: var(--brand-hover-border);
-    box-shadow: 0 2px 12px -6px var(--brand-glow);
+    background-color: var(--gov-header-hover);
+    border-color: transparent;
+    box-shadow: none;
   }
 
   .brand-entry:focus-visible {
     outline: none;
-    border-color: var(--brand-hover-border);
-    box-shadow: inset 0 0 0 2px var(--brand-glow);
+    border-color: var(--gov-header-fg);
+    box-shadow: none;
   }
 
   .brand-entry-mark {
@@ -651,26 +665,27 @@
 
   .brand-entry:hover .brand-entry-mark,
   .brand-entry:focus-visible .brand-entry-mark {
-    filter: drop-shadow(0 0 6px var(--brand-glow));
+    filter: none;
   }
 
   .ceramic-pill {
     background-color: var(--ceramic-surface);
     border: 1px solid var(--ceramic-border);
-    box-shadow: var(--ceramic-elevation);
+    border-radius: 2px;
+    box-shadow: none;
   }
 
   .ceramic-segmented {
     background-color: var(--ceramic-track-surface);
     border: 1px solid var(--ceramic-track-border);
-    border-radius: 9999px;
+    border-radius: 2px;
     overflow: clip;
-    overflow-clip-margin: 14px;
-    box-shadow: var(--ceramic-track-inset);
+    overflow-clip-margin: 0;
+    box-shadow: none;
   }
 
   .ceramic-segment-idle {
-    border-radius: 9999px;
+    border-radius: 2px;
     transition:
       background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
       color 200ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -683,16 +698,15 @@
   .ceramic-segment-pill {
     background-color: var(--ceramic-pill-surface);
     border: 1px solid var(--ceramic-pill-edge);
-    border-radius: 9999px;
-    box-shadow: var(--ceramic-pill-shadow);
+    border-radius: 2px;
+    box-shadow: none;
     transition:
       top 200ms cubic-bezier(0.4, 0, 0.2, 1),
       left 200ms cubic-bezier(0.4, 0, 0.2, 1),
       width 200ms cubic-bezier(0.4, 0, 0.2, 1),
       height 200ms cubic-bezier(0.4, 0, 0.2, 1),
       background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .category-tone-bom {
@@ -725,26 +739,22 @@
     --category-ink: var(--category-custom-ink);
   }
 
+  /* 取消光晕：类型标记只保留描边与文字色 */
   .category-halo {
-    background-image: radial-gradient(
-      circle at 50% 50%,
-      var(--category-glow) 0%,
-      transparent 70%
-    );
+    background-image: none;
   }
 
   .category-ink {
     color: var(--category-ink);
   }
 
+  /* 全宽实心深绿顶栏 */
   .glass-header {
-    background-color: var(--glass-bg);
-    border-bottom: 1px solid var(--ceramic-groove-highlight);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    box-shadow:
-      inset 0 1px 0 var(--glass-highlight),
-      0 1px 0 var(--ceramic-groove-shadow);
+    background-color: var(--gov-header-bg);
+    border-bottom: 1px solid var(--gov-header-border);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
   }
 
   .card-interactive {
@@ -752,7 +762,6 @@
     transition:
       background-color 200ms ease-in-out,
       border-color 200ms ease-in-out,
-      box-shadow 200ms ease-in-out,
       opacity 200ms ease-in-out;
   }
 
@@ -762,31 +771,52 @@
   }
 
   .glow-accent {
-    box-shadow: 0 4px 20px -2px var(--shadow-accent);
+    box-shadow: none;
   }
 
   .focus-glow:focus-visible,
   .focus-glow:focus-within {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px var(--accent-color-soft);
+    box-shadow: none;
   }
 
+  /* 渐变一律退化为实色 */
   .accent-gradient {
-    background-image: linear-gradient(
-      120deg,
-      var(--accent-color) 0%,
-      var(--accent-color-strong) 100%
-    );
+    background-image: none;
+    background-color: var(--accent-color);
     color: var(--accent-contrast);
   }
 
   .accent-gradient:hover {
-    background-image: linear-gradient(
-      120deg,
-      var(--accent-color-strong) 0%,
-      var(--accent-color-strong) 100%
-    );
+    background-image: none;
+    background-color: var(--accent-color-strong);
+  }
+
+  /* 顶栏导航项。三个颜色都走 --cable-nav-* token，而顶栏容器把这组 token 局部
+     覆盖成白色系（见 header.tsx 的 headerNavTokens），所以页面内的 Segmented /
+     分页沿用同一组 class 时仍然是白底上的中灰字，不会跟着顶栏变白。 */
+  .gov-nav-link {
+    color: var(--cable-nav-text);
+    border-radius: 2px;
+    transition:
+      background-color 200ms ease-in-out,
+      color 200ms ease-in-out;
+  }
+
+  .gov-nav-link:hover,
+  .gov-nav-link:focus-visible {
+    background-color: rgba(255, 255, 255, 0.14);
+    color: var(--cable-nav-text-hover);
+    outline: none;
+  }
+
+  /* 选中态：实色深绿矩形高亮 + 底部白线，与 Hover 的浅色蒙层区分开。 */
+  .gov-nav-link-active.gov-nav-link-active {
+    background-color: var(--gov-header-hover);
+    color: var(--cable-nav-active-text);
+    font-weight: 700;
+    box-shadow: inset 0 -2px 0 var(--gov-header-fg);
   }
 }
 
@@ -812,79 +842,73 @@
   .ceramic-cta.ceramic-cta {
     background-color: var(--accent-color);
     color: var(--accent-contrast);
-    box-shadow: var(--ceramic-relief-elevation);
+    box-shadow: none;
     transition:
       background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
       color 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .ceramic-cta.ceramic-cta:hover,
   .ceramic-cta.ceramic-cta:focus-visible {
     background-color: var(--accent-color-strong);
-    box-shadow: var(--ceramic-relief-elevation-hover);
+    box-shadow: none;
   }
 
   .ceramic-cta.ceramic-cta:active {
     background-color: var(--accent-color-strong);
-    box-shadow: var(--ceramic-relief-elevation-active);
+    box-shadow: none;
   }
 
   .ceramic-relief.ceramic-relief {
     background-color: var(--glass-bg);
     border: 1px solid var(--cable-hairline);
-    box-shadow: var(--ceramic-relief-elevation);
+    box-shadow: none;
     transition:
       background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .ceramic-relief.ceramic-relief:hover {
-    box-shadow: var(--ceramic-relief-elevation-hover);
+    border-color: var(--ceramic-border-hover);
+    box-shadow: none;
   }
 
   .ceramic-relief.ceramic-relief:focus-visible,
   .ceramic-relief.ceramic-relief:focus-within {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow:
-      var(--ceramic-relief-elevation-hover),
-      0 0 0 3px var(--accent-color-soft);
+    box-shadow: none;
   }
 
   .ceramic-relief.ceramic-relief:active {
-    box-shadow: var(--ceramic-relief-elevation-active);
+    box-shadow: none;
   }
 
   .ceramic-well.ceramic-well {
     background-color: var(--glass-bg);
     border: 1px solid var(--ceramic-well-border);
-    box-shadow: var(--ceramic-well-inset);
+    box-shadow: none;
     transition:
       background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .ceramic-well.ceramic-well:focus-visible,
   .ceramic-well.ceramic-well:focus-within {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow:
-      var(--ceramic-well-inset),
-      0 0 0 3px var(--accent-color-soft);
+    box-shadow: none;
   }
 
   .ceramic-switch.ceramic-switch {
     background-color: var(--glass-bg);
     border: 1px solid var(--cable-hairline);
-    box-shadow: var(--ceramic-recess), var(--ceramic-switch-shadow);
+    box-shadow: none;
   }
 
   .ceramic-switch-thumb.ceramic-switch-thumb {
     background-color: var(--ceramic-switch-thumb-surface);
-    box-shadow: var(--ceramic-switch-thumb-elevation);
+    box-shadow: none;
   }
 
   .ceramic-rail.ceramic-rail {
@@ -893,7 +917,7 @@
 
   .ceramic-seam-r.ceramic-seam-r {
     border-right: 1px solid var(--cable-hairline);
-    box-shadow: 1px 0 0 var(--ceramic-groove-highlight);
+    box-shadow: none;
   }
 
   .ceramic-nav-item.ceramic-nav-item {
@@ -901,8 +925,7 @@
     transition:
       background-color 200ms ease-in-out,
       border-color 200ms ease-in-out,
-      color 200ms ease-in-out,
-      box-shadow 200ms ease-in-out;
+      color 200ms ease-in-out;
   }
 
   .ceramic-nav-item.ceramic-nav-item:hover {
@@ -913,18 +936,15 @@
   .ceramic-nav-item-active.ceramic-nav-item-active {
     background-color: var(--ceramic-surface);
     border-color: var(--ceramic-border-hover);
-    box-shadow:
-      inset 0 1px 0.5px var(--ceramic-relief-highlight),
-      0 2px 8px -2px var(--shadow-accent);
     color: var(--text-primary);
+    box-shadow: none;
   }
 
   .ceramic-list-row.ceramic-list-row {
     color: var(--text-secondary);
     transition:
       background-color 200ms ease-in-out,
-      color 200ms ease-in-out,
-      box-shadow 200ms ease-in-out;
+      color 200ms ease-in-out;
   }
 
   .ceramic-list-row.ceramic-list-row:hover {
@@ -934,50 +954,42 @@
 
   .ceramic-list-row-active.ceramic-list-row-active {
     background-color: var(--glass-bg);
-    box-shadow: var(--ceramic-recess);
     color: var(--text-primary);
+    box-shadow: none;
   }
 
   .ceramic-badge.ceramic-badge {
     background-color: var(--badge-surface);
     border: 1px solid var(--badge-border);
-    box-shadow:
-      inset 0 1px 0 var(--ceramic-relief-highlight),
-      0 1px 2px var(--badge-shadow);
+    box-shadow: none;
     color: var(--badge-ink);
   }
 
   .ceramic-field.ceramic-field {
     background-color: var(--glass-bg);
     border: 1px solid var(--field-border);
-    border-radius: 0.75rem;
-    box-shadow: var(--ceramic-recess);
+    border-radius: 2px;
+    box-shadow: none;
     transition:
       background-color 200ms ease-in-out,
-      border-color 200ms ease-in-out,
-      box-shadow 200ms ease-in-out;
+      border-color 200ms ease-in-out;
   }
 
   .ceramic-field.ceramic-field:focus-visible,
   .ceramic-field.ceramic-field:focus-within {
     outline: none;
     border-color: var(--field-border-focus);
-    box-shadow:
-      var(--ceramic-recess),
-      0 0 0 3px var(--accent-color-soft);
+    box-shadow: none;
   }
 
   .ceramic-cta-soft.ceramic-cta-soft {
     background-color: var(--badge-surface);
     border: 1px solid var(--badge-border);
-    box-shadow:
-      inset 0 1px 0 var(--ceramic-relief-highlight),
-      0 1px 2px var(--badge-shadow);
+    box-shadow: none;
     color: var(--badge-ink);
     transition:
       background-color 200ms ease-in-out,
       border-color 200ms ease-in-out,
-      box-shadow 200ms ease-in-out,
       color 200ms ease-in-out;
   }
 
@@ -989,7 +1001,7 @@
 
   .ceramic-dot-live.ceramic-dot-live {
     background-color: rgb(var(--state-success));
-    box-shadow: var(--dot-live-glow);
+    box-shadow: none;
   }
 
   .scrollbar-gutter-stable {
@@ -998,18 +1010,13 @@
 
   .bg-cable-page {
     background-color: var(--cable-page-to);
-    background-image: var(--page-gradient);
+    background-image: none;
   }
 
+  /* 标题渐变退化为纯色 */
   .text-cable-gradient {
-    background-image: linear-gradient(
-      90deg,
-      var(--cable-brand) 0%,
-      var(--cable-accent) 100%
-    );
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
+    background-image: none;
+    color: var(--cable-brand);
   }
 
   .bg-card-soft {
@@ -1033,7 +1040,7 @@
 
   .scrollbar-auto::-webkit-scrollbar-thumb {
     background-color: var(--scrollbar-thumb);
-    border-radius: 3px;
+    border-radius: 0;
     transition: background-color 0.2s ease;
   }
 

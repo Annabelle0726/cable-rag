@@ -18,17 +18,22 @@
 /*
  * Font stacks.
  *
- * Deliberately native: no webfont request, so the UI paints immediately and the
- * Chinese glyphs come from the platform's own UI font. `--font-mono` is used for
- * anything that is read character by character — model names, units, timestamps,
- * log lines — where a proportional font misaligns the columns.
+ * A 政企 system states its Chinese face explicitly: 微软雅黑 first, then the
+ * macOS/Linux equivalents, then a sans-serif fallback. No webfont request, so the
+ * UI paints immediately. `--font-mono` is used for anything read character by
+ * character — model names, units, timestamps, log lines — where a proportional
+ * font misaligns the columns.
+ *
+ * `tailwind.css` reads this variable from a bare `html { font-family:
+ * var(--font-sans) }`, so the declaration has to sit on `:root` itself: nesting it
+ * one level deeper compiles to `:root :root`, which matches nothing and leaves the
+ * whole app on the browser's default serif face.
  */
 :root {
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue',
-    Helvetica, Arial, sans-serif;
-
-  --font-mono: 'JetBrains Mono', Fira Code, Consolas, Monaco, monospace;
+  --font-sans:
+    'Microsoft YaHei', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', Arial,
+    sans-serif;
+  --font-mono: Consolas, 'Courier New', SimSun, '宋体', monospace;
 }
 
 html,
