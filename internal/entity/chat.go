@@ -73,6 +73,16 @@ type ChatSession struct {
 	Message   json.RawMessage `gorm:"-" json:"message,omitempty"`
 	Reference json.RawMessage `gorm:"-" json:"reference"`
 	UserID    *string         `gorm:"column:user_id;size:255;index" json:"user_id,omitempty"`
+	// The pinned sessions lead the list (`chatSessionOrderClause`); the field has
+	// to exist here as well as in the model, because GORM omits columns its struct
+	// does not know and MySQL refuses an insert that leaves a NOT NULL column out
+	// (error 1364) — `is_pinned` is NOT NULL without a database default, the shape
+	// the Python migration gives it, matching the other boolean columns.
+	//
+	// No `not null` tag: the constraint belongs to the migration that creates the
+	// column, and repeating it here would have GORM build the migration tests'
+	// own tables with a NOT NULL column their fixtures insert past.
+	IsPinned bool `gorm:"column:is_pinned" json:"is_pinned"`
 	BaseModel
 }
 

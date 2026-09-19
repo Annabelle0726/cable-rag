@@ -99,11 +99,12 @@ func TestChatSessionOrderClauseGuardsTheConversationList(t *testing.T) {
 		desc    bool
 		want    string
 	}{
-		{name: "a column the list rows expose", orderby: "name", desc: true, want: "name DESC"},
-		{name: "empty keeps the previous default", orderby: "", want: "create_time ASC"},
-		{name: "empty keeps the requested direction", orderby: "", desc: true, want: "create_time DESC"},
-		{name: "a column of another entity", orderby: "size", want: "create_time ASC"},
-		{name: "an injected expression", orderby: "name; DROP TABLE conversation", desc: true, want: "create_time DESC"},
+		{name: "a column the list rows expose", orderby: "name", desc: true, want: "is_pinned DESC, name DESC"},
+		{name: "empty keeps the previous default", orderby: "", want: "is_pinned DESC, create_time ASC"},
+		{name: "empty keeps the requested direction", orderby: "", desc: true, want: "is_pinned DESC, create_time DESC"},
+		{name: "a column of another entity", orderby: "size", want: "is_pinned DESC, create_time ASC"},
+		{name: "an injected expression", orderby: "name; DROP TABLE conversation", desc: true, want: "is_pinned DESC, create_time DESC"},
+		{name: "the pinned column itself stays out of the terms", orderby: "is_pinned", want: "is_pinned DESC, create_time ASC"},
 	}
 
 	for _, tc := range cases {
@@ -112,6 +113,22 @@ func TestChatSessionOrderClauseGuardsTheConversationList(t *testing.T) {
 				t.Fatalf("chatSessionOrderClause(%q, %v) = %q, want %q", tc.orderby, tc.desc, got, tc.want)
 			}
 		})
+	}
+}
+
+// The pinned term is the row's own column rather than a caller's, so it is
+// applied whatever the request asks for — including a request that names no
+// column at all, which is what the list endpoint sends by default.
+func TestChatSessionOrderClauseAlwaysLeadsWithPinned(t *testing.T) {
+	for _, terms := range [][]OrderTerm{
+		nil,
+		{{Column: "create_time", Desc: true}},
+		{{Column: "update_time"}, {Column: "name", Desc: true}},
+	} {
+		got := chatSessionOrderClause(terms)
+		if len(got) < len("is_pinned DESC, ") || got[:len("is_pinned DESC, ")] != "is_pinned DESC, " {
+			t.Fatalf("chatSessionOrderClause(%v) = %q, want it to lead with is_pinned DESC", terms, got)
+		}
 	}
 }
 

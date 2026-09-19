@@ -226,8 +226,14 @@ func chatOrderClause(terms []OrderTerm) string {
 	return orderClause(chatOrderableColumns, terms, defaultOrderColumn)
 }
 
+// chatSessionOrderClause renders the conversation list's ORDER BY body: the
+// pinned sessions first, then whatever column the caller asked for. The pinned
+// term is the row's own column, not one of the caller's terms, so it is always
+// applied and nothing about it can be injected or dropped from the request — the
+// same rule the Python list applies (`is_pinned DESC` ahead of the requested
+// field, `conversation_service.get_list`).
 func chatSessionOrderClause(terms []OrderTerm) string {
-	return orderClause(chatSessionOrderableColumns, terms, defaultOrderColumn)
+	return "is_pinned DESC, " + orderClause(chatSessionOrderableColumns, terms, defaultOrderColumn)
 }
 
 func compilationTemplateGroupOrderClause(terms []OrderTerm) string {

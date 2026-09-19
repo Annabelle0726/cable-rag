@@ -51,19 +51,6 @@ Direction: pass the basis per call, or convert the model's markers to pool
 indexes before validating. Not changed with `cited_chunk_indexes()` because
 branch A is genuinely 0-based and needs a sample-driven decision.
 
-## fix(rag): keep the Go stage logs on one line too
-
-`f647402a6` moved the Python `[Formalize][pre_summary]` record onto one line, after
-its second line (`pre_summary=''直接说结论：…`) reached the answer body: the client
-collapses a forwarded record by its leading `[Stage]` tag, and an untagged second
-line cannot be recognised. The Go ports carry the same two-line format —
-`internal/rag/advanced_rag/agentic_rag_graph.go:4935` and
-`internal/rag/agentic-rag/graph_compose.go:350` — so a Go deployment still leaks
-the payload, minus the answer text glued to it (their `%q` follows the same
-shape). One-line change each; not applied with the Python fix because the Go tier
-cannot be built or tested from this checkout (native CGO libs absent, test-only
-`glebarez/sqlite` not fetchable).
-
 ## feat(web): give a direct answer the pool it quotes, server-side
 
 `4496afd8e` resolves an answer's citations against the last pool it quoted, but
@@ -74,4 +61,20 @@ entry the endpoints write for such a turn stays the empty placeholder
 share endpoints — therefore sees `[ID:1]` markers with no pool to resolve them.
 Server-side direction: when an answer arrives with markers and no pool of its own,
 attach the session's most recent non-empty reference, the way the UI already does.
+
+## fix(rag): make the Go agentic-rag subtree build again
+
+The Go half of the agentic pipeline does not compile in this checkout, so its
+stage logs could only be parse-checked when they were made single-line:
+
+- `internal/rag/agentic-rag/runtime/` holds two packages in one directory —
+  `action_session.go` declares `package runtime`, `tool_search_test.go` declares
+  `package harness`;
+- `internal/rag/advanced_rag/agentic_rag_graph.go` imports
+  `ragflow/internal/rag/advanced_rag/harness`, `…/harness/orchestrator` and
+  `…/slots`, none of which exist in the tree.
+
+Direction: decide whether the Go port is still carried — if it is, restore those
+packages and the `package` clause; if it is not, delete the subtree rather than
+leaving a directory that cannot be built or tested.
 

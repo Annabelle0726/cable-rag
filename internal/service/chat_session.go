@@ -237,6 +237,9 @@ type ChatSessionPayload struct {
 	Messages   []map[string]interface{} `json:"messages"`
 	Reference  []interface{}            `json:"reference"`
 	UserID     *string                  `json:"user_id,omitempty"`
+	// The client renders the row's pin from this; the list arrives pinned-first
+	// (`dao.chatSessionOrderClause`), so the flag is what explains the order.
+	IsPinned   bool                     `json:"is_pinned"`
 	Avatar     *string                  `json:"avatar,omitempty"`
 	CreateDate *time.Time               `json:"create_date,omitempty"`
 	UpdateDate *time.Time               `json:"update_date,omitempty"`
@@ -1242,6 +1245,7 @@ func (s *ChatSessionService) buildSessionPayload(session *entity.ChatSession, di
 		Messages:   parseMessages(session.Message),
 		Reference:  references,
 		UserID:     session.UserID,
+		IsPinned:   session.IsPinned,
 		Avatar:     avatar,
 		CreateDate: session.CreateDate,
 		UpdateDate: session.UpdateDate,

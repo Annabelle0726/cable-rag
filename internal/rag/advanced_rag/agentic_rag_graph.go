@@ -4928,11 +4928,18 @@ func ComposeAnswerWith(ctx context.Context, deps AnswerDeps, kb *harness.Kbinfos
 	callCtx, cancel := context.WithTimeout(ctx, deadlineToDuration(answerTimeoutS))
 	defer cancel()
 
-	logger.Printf("[Formalize][record] question=%q record_len=%d draft_summary_len=%d evidence_len=%d using=%s\nrecord=%q",
+	// One line each, deliberately: every record starting with "[" is forwarded
+	// into the answer stream, and the client collapses it by matching that
+	// leading "[Stage]" tag. A record that wrapped onto a second line left the
+	// line untagged — unrecognisable as a log line — so the payload it carried
+	// (`record='…'`, `pre_summary='…'`) was rendered at the top of the answer the
+	// user reads, with the answer glued to it. `%q` escapes newlines inside the
+	// value, so a single-line record is enough.
+	logger.Printf("[Formalize][record] question=%q record_len=%d draft_summary_len=%d evidence_len=%d using=%s record=%q",
 		trunc(question, 160), len(record), len(preSummary), len(prompt.user), recordSource(record),
 		truncateRunes(record, 3000))
 
-	logger.Printf("[Formalize][pre_summary] question=%q pre_summary_len=%d evidence_len=%d\npre_summary=%q",
+	logger.Printf("[Formalize][pre_summary] question=%q pre_summary_len=%d evidence_len=%d pre_summary=%q",
 		trunc(question, 160), len(preSummary), len(prompt.user), truncateRunes(preSummary, 3000))
 
 	// Python fits the composed prompt ONCE before the call:
@@ -5161,7 +5168,9 @@ func ComposeAnswerStream(ctx context.Context, deps AnswerDeps, model harness.Str
 	// Both the prompt and this log go through composedRecord, so the line below
 	// reports the record block the answer actually carried.
 	record := composedRecord(kb)
-	logger.Printf("[Formalize][record] question=%q record_len=%d draft_summary_len=%d evidence_len=%d using=%s\nrecord=%q",
+	// One line: see the note on the record log above — an untagged second line is
+	// forwarded to the answer as body text.
+	logger.Printf("[Formalize][record] question=%q record_len=%d draft_summary_len=%d evidence_len=%d using=%s record=%q",
 		trunc(question, 160), len(record), len(preSummary), len(prompt.user), recordSource(record),
 		truncateRunes(record, 3000))
 
