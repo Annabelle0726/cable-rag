@@ -62,6 +62,20 @@ share endpoints — therefore sees `[ID:1]` markers with no pool to resolve them
 Server-side direction: when an answer arrives with markers and no pool of its own,
 attach the session's most recent non-empty reference, the way the UI already does.
 
+The same entry should cover the other half of that gap, which the UI cannot close:
+a marker numbered against a pool the answer did not end up carrying. Measured over
+the stored history (75 answers, 49 of them cited): 12 answers had markers no pool
+could resolve, 10 of those resolved against the previous answer's pool in the UI,
+and 2 stayed unopenable — one citing `[ID:5]`/`[ID:0]` against a 3-chunk pool, one
+citing `[ID:1]` in a conversation whose first answer carried no pool at all.
+
+Direction: the search harness narrows its pool per step (`_narrow_or_keep`) while
+the reference handed back is built from the chat-side `rag_tools.kbinfos`, so the
+numbers the model saw and the pool the client receives can differ in both length
+and order. One pool, numbered where the model is prompted, is what makes a marker
+mean a chunk; `[ID:0]` also needs rejecting at the source, since the numbering is
+1-based.
+
 ## fix(rag): make the Go agentic-rag subtree build again
 
 The Go half of the agentic pipeline does not compile in this checkout, so its
