@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 import NextMarkdownContent from '..';
 
@@ -89,19 +89,32 @@ jest.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
   oneLight: {},
 }));
 
-const renderContent = (content: string, chunks: unknown[] = []) =>
+const fiveChunks = Array.from({ length: 5 }, (_, index) => ({
+  id: `chunk-${index + 1}`,
+  content_with_weight: `第 ${index + 1} 段`,
+  document_id: `doc-${index + 1}`,
+}));
+
+// `getReferenceInfo` resolves a chunk's document through `doc_aggs`, and the
+// click path needs the file extension it carries.
+const documentAggs = fiveChunks.map((chunk) => ({
+  doc_id: chunk.document_id,
+  doc_name: `${chunk.document_id}.pdf`,
+}));
+
+const renderContent = (
+  content: string,
+  chunks: unknown[] = [],
+  clickDocumentButton?: (documentId: string, chunk: unknown) => void,
+) =>
   render(
     <NextMarkdownContent
       content={content}
       loading={false}
-      reference={{ chunks } as never}
+      reference={{ chunks, doc_aggs: documentAggs } as never}
+      clickDocumentButton={clickDocumentButton as never}
     />,
   );
-
-const fiveChunks = Array.from({ length: 5 }, (_, index) => ({
-  id: `chunk-${index + 1}`,
-  content_with_weight: `第 ${index + 1} 段`,
-}));
 
 /** Everything the reader sees, with the collapsed log panels taken out. */
 const answerBody = (container: HTMLElement) =>
@@ -145,5 +158,46 @@ describe('citation markers in the chat transcript', () => {
     expect(screen.getByText('[2]')).toBeInTheDocument();
     expect(answerBody(container)).toContain('[6]');
     expect(answerBody(container)).not.toContain('NaN');
+  });
+
+  it('renders a resolvable marker as something that reads and behaves as a link', () => {
+    renderContent('见表 [ID:5]。', fiveChunks);
+
+    // The reported defect: a chip coloured two RGB units off the page with
+    // `cursor: auto` and no handler read as ordinary prose, so nobody hovered it
+    // and the working popover went unnoticed. It has to carry the app's link
+    // colour, a pointer cursor, and be a real control.
+    const chip = screen.getByText('[5]');
+    const control = chip.closest('button') as HTMLElement;
+
+    expect(control).not.toBeNull();
+    expect(control.className).toContain('text-accent-primary');
+    expect(control.className).toContain('cursor-pointer');
+    expect(control.className).toContain('hover:bg-accent-primary');
+  });
+
+  it('opens the passage a marker points at when it is clicked', () => {
+    const clicked: Array<{ documentId: unknown; chunk: unknown }> = [];
+    const clickDocumentButton = (documentId: unknown, chunk: unknown) => {
+      clicked.push({ documentId, chunk });
+    };
+    renderContent('见表 [ID:5]。', fiveChunks, clickDocumentButton);
+
+    fireEvent.click(screen.getByText('[5]'));
+
+    expect(clicked).toHaveLength(1);
+    expect(clicked[0].documentId).toBe('doc-5');
+    expect((clicked[0].chunk as { id: string }).id).toBe('chunk-5');
+  });
+
+  it('does not make an unopenable marker clickable', () => {
+    const clicked: unknown[] = [];
+    renderContent('见表 [ID:9]。', fiveChunks, (...args: unknown[]) =>
+      clicked.push(args),
+    );
+
+    fireEvent.click(screen.getByTestId('citation-unresolved'));
+
+    expect(clicked).toHaveLength(0);
   });
 });

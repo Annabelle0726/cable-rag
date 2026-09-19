@@ -63,6 +63,7 @@ import classNames from 'classnames';
 import { omit } from 'lodash';
 import pipe from 'lodash/fp/pipe';
 import reactStringReplace from 'react-string-replace';
+import CitationChip from '../citation-chip';
 import { LoadingDots } from '../loading-dots';
 import { Button } from '../ui/button';
 import {
@@ -311,6 +312,28 @@ function MarkdownContent({
     [fileThumbnails, reference],
   );
 
+  // A click on the marker opens the passage it points at — the same target the
+  // popover's document button opens. Factory-at-render, like the popover's own
+  // handler below, so no arrow is allocated per marker per render.
+  // `handleDocumentButtonClick` itself returns the click handler; return it
+  // rather than calling it, or the marker would swallow the click.
+  const handleCitationOpen = useCallback(
+    (chunkIndex: number) => {
+      const { chunkItem, documentId, fileExtension, documentUrl } =
+        getReferenceInfo(chunkIndex);
+      // A chunk whose document cannot be resolved has nothing to open, so the
+      // marker stays hover-only rather than offering a click that does nothing.
+      if (!documentId || !fileExtension) return undefined;
+      return handleDocumentButtonClick(
+        documentId,
+        chunkItem,
+        fileExtension,
+        documentUrl,
+      );
+    },
+    [getReferenceInfo, handleDocumentButtonClick],
+  );
+
   const renderPopoverContent = useCallback(
     (chunkIndex: number) => {
       const {
@@ -414,22 +437,19 @@ function MarkdownContent({
         }
 
         return (
-          <HoverCard key={i}>
-            <HoverCardTrigger>
-              <bdi className="text-text-secondary bg-bg-card rounded-2xl px-1 mx-1 text-nowrap inline-block">
-                [{chunkIndex + 1}]
-              </bdi>
-            </HoverCardTrigger>
-            <HoverCardContent className="max-w-3xl">
-              {renderPopoverContent(chunkIndex)}
-            </HoverCardContent>
-          </HoverCard>
+          <CitationChip
+            key={i}
+            index={chunkIndex}
+            onOpen={handleCitationOpen(chunkIndex)}
+          >
+            {renderPopoverContent(chunkIndex)}
+          </CitationChip>
         );
       });
 
       return replacedText;
     },
-    [reference?.chunks, renderPopoverContent, t],
+    [reference?.chunks, renderPopoverContent, handleCitationOpen, t],
   );
 
   const dir = getDirAttribute(content.replace(citationMarkerReg, ''));
