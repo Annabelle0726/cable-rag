@@ -260,6 +260,35 @@ const ANSWER_MEDIA_RE =
  */
 const LOG_CONTINUATION_RE = /^(?:\||[ \t]{2,}|[│┃├└┌┐┘┤┬┴─])/;
 
+/**
+ * The payload line of a log record: an internal field assignment — the
+ * `pre_summary='…'` the compose stage logs on the line after
+ * `[Formalize][pre_summary] …evidence_len=N`. The record's first line carries its
+ * `[Stage]` tag and is recognised wherever it appears, but the payload line
+ * carries no tag at all, and the stage logs immediately before it starts
+ * composing — so the answer text ends up glued to that line
+ * (`pre_summary=''直接说结论：…`). That is how an internal field reached the answer
+ * body: the tagged line was collapsed as a log, its payload was not.
+ */
+const LOG_FIELD_PAYLOAD_RE =
+  /^[a-z][a-z0-9_]{0,31}=(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|\S*)/;
+
+/** The field assignment a log payload line starts with, `''` when there is none. */
+export function matchLogFieldPayload(line: string = ''): string {
+  return line.match(LOG_FIELD_PAYLOAD_RE)?.[0] ?? '';
+}
+
+/**
+ * Drops a leading field assignment and returns what the rest of the line is —
+ * the answer, when the payload was glued to it. Dropping the whole line instead
+ * would take that answer text with it, which is why the assignment is removed
+ * rather than the line.
+ */
+export function stripLogFieldPayload(line: string = ''): string {
+  const payload = matchLogFieldPayload(line);
+  return payload ? line.slice(payload.length).replace(/^\s/, '') : line;
+}
+
 /** True when a line continues the log record opened by the preceding line. */
 export function isAgenticLogContinuation(line: string = ''): boolean {
   const trimmed = line.trimEnd();
@@ -502,6 +531,21 @@ export function replaceAgenticLogsToSection(
     }
 
     if (!sawLog) {
+      // The payload line of the record opened above is a field assignment, and
+      // the stage logs it right before composing — so the answer is glued to it
+      // (`pre_summary=''直接说结论：…`). The assignment goes to the panel and the
+      // rest of the line stays in the answer: dropping the whole line would take
+      // the answer's first paragraph with it.
+      const payload = logRunOpen ? matchLogFieldPayload(line) : '';
+      if (payload) {
+        logs.push(payload.trim());
+        logRunOpen = false;
+        const rest = stripLogFieldPayload(line);
+        if (rest.length > 0) {
+          kept.push(rest);
+        }
+        return;
+      }
       // A continuation of the record opened by the previous line belongs to the
       // panel as well; anything else ends the run and stays in the answer.
       if (logRunOpen && isAgenticLogContinuation(line)) {

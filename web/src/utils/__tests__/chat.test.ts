@@ -7,12 +7,14 @@ import {
   isAgenticPreambleLine,
   isPersistedConversationId,
   isTemporaryConversationId,
+  matchLogFieldPayload,
   orderConversations,
   pinConversation,
   preprocessLaTeX,
   promoteCaretExponentsToLaTeX,
   replaceAgenticLogsToSection,
   replaceThinkToSection,
+  stripLogFieldPayload,
   trimExtractionResidue,
 } from '../chat';
 // Type-only: a value import used in an annotation fails the Babel transform that
@@ -594,5 +596,58 @@ describe('conversation list order', () => {
     expect(readIds(input)).toEqual(['older', 'newest', 'middle']);
     expect(input[0].update_time).toBe(100);
     expect(input[0].is_pinned).toBe(false);
+  });
+});
+
+describe('internal log payloads', () => {
+  // The shape the pipeline emits: a tagged header line, then the field assignment
+  // on the next line, with the answer glued to it because the stage logs
+  // immediately before composing.
+  const LEAKED =
+    "[Formalize][pre_summary] question='规范中是否有针对高落差敷设环境的条款' pre_summary_len=0 evidence_len=3392\n" +
+    "pre_summary=''直接说结论：**没有发现专门针对该敷设环境的电缆结构或固定条款。**\n" +
+    '\n' +
+    '不过有一点值得注意——规范里其实留了口子 [ID:1][ID:3][ID:5]。';
+
+  it('reports the field assignment a payload line carries', () => {
+    expect(matchLogFieldPayload("pre_summary=''直接说结论：…")).toBe(
+      "pre_summary=''",
+    );
+    expect(matchLogFieldPayload("pre_summary='草稿内容'正文")).toBe(
+      "pre_summary='草稿内容'",
+    );
+    expect(matchLogFieldPayload('直接说结论：没有相关条款')).toBe('');
+  });
+
+  it('keeps the answer that was glued to the payload line', () => {
+    expect(stripLogFieldPayload("pre_summary=''直接说结论：**没有发现**")).toBe(
+      '直接说结论：**没有发现**',
+    );
+    expect(stripLogFieldPayload("record=''")).toBe('');
+    expect(stripLogFieldPayload('普通正文')).toBe('普通正文');
+  });
+
+  it('moves the field assignment into the log panel, not the answer', () => {
+    const result = replaceAgenticLogsToSection(LEAKED, 'Log');
+    // The panel keeps the record (that is what the panel is for); what matters is
+    // that the answer body — everything outside the panel — is free of it.
+    const answer = result.replace(/<details[\s\S]*?<\/details>/g, '');
+
+    expect(result).toContain('<details class="agentic-log">');
+    expect(answer).not.toContain('pre_summary');
+    expect(answer).not.toContain('evidence_len');
+    // ...while the answer glued to the payload line stays complete.
+    expect(answer).toContain('直接说结论：**没有发现专门针对该敷设环境的');
+    expect(answer).toContain('不过有一点值得注意');
+    expect(answer).toContain('[ID:1][ID:3][ID:5]');
+  });
+
+  it('drops a payload line that carries nothing but the assignment', () => {
+    const text = "[Formalize] kept verbatim: 问题\npre_summary=''\n答案是 42。";
+    const result = replaceAgenticLogsToSection(text, 'Log');
+    const answer = result.replace(/<details[\s\S]*?<\/details>/g, '');
+
+    expect(answer).not.toContain('pre_summary');
+    expect(answer).toContain('答案是 42。');
   });
 });
