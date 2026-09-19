@@ -54,7 +54,8 @@ Measured before the server-side fix (`1c2de066f`), which removes most of the
 exposure by handing back the pool the model was numbered on: 12 of 49 cited answers
 had no resolving pool of their own, 10 of those resolved through inheritance, 2
 stayed unopenable. After the fix, inheritance only applies to turns that genuinely
-retrieved nothing.
+retrieved nothing. The route guard (`88bc44336`) removes that shape on the dialog path,
+so re-measure before acting on this entry as well.
 
 Direction when this is picked up: prefer "unopenable but honest" over "openable but
 possibly wrong" — resolve through inheritance only when the answer's markers are a
@@ -63,37 +64,48 @@ muted `[n]` markers the renderer already draws for an unresolvable citation.
 
 ## feat(web): give a direct answer the pool it quotes, server-side
 
-Still open, and only this half: an answer composed without retrieval of its own
-(`[Tool loop] Answering directly at step 1 — no tool needed`) persists the empty
-placeholder `{"chunks": [], "doc_aggs": []}` while quoting the previous answer's
-markers. The UI resolves those against the pool the answer quoted
-(`resolveAnswerPools`, `4496afd8e`); anything reading the raw stream — the SDK, the
-bot endpoints — still sees markers with no pool behind them, because the pool
-never leaves the client.
+DEFERRED — evaluate after the route fix, which is what produced this shape.
+
+An answer composed without retrieval of its own persists the empty placeholder
+`{"chunks": [], "doc_aggs": []}` while quoting the previous answer's markers. The UI
+resolves those against the pool the answer quoted (`resolveAnswerPools`, `4496afd8e`);
+anything reading the raw stream — the SDK, the bot endpoints — still sees markers with
+no pool behind them, because the pool never leaves the client.
 
 Server-side direction: when an answer arrives with markers and no pool of its own,
 attach the session's most recent non-empty reference, the way the UI already does.
+
+Why it waits: the route guard (`88bc44336`) makes a knowledge-base-bound assistant
+retrieve on every user turn, so `[Tool loop] Answering directly at step 1 — no tool
+needed` no longer happens on the dialog path, and with it the answers that arrive
+quoting a pool they never retrieved. Re-measure with
+`tools/scripts/audit_answer_rendering.py --since <date>` before writing the patch: if
+no answer arrives with markers and an empty pool, this entry has no subject left.
 
 The other half of this gap is closed: markers used to be numbered against the
 compose-stage pool (`cite_chunks`) while the reference came from the chat-side
 accumulator, so a valid marker could name a passage the client never received.
 `_citation_pool` (`1c2de066f`) hands back the pool the model was numbered on.
-Measured after that change the remaining failures are the two above, which no
-server-side pool exists for.
+The failures measured after that change were two answers that arrived with markers and
+no pool of their own — the shape the route guard removes.
 
-## fix(rag): make the Go agentic-rag subtree build again
+## fix(go): rewire cmd off the deleted rag port
 
-The Go half of the agentic pipeline does not compile in this checkout, so its
-stage logs could only be parse-checked when they were made single-line:
+The ported subtrees are gone (`37337127b`): `internal/rag/advanced_rag` and
+`internal/rag/agentic-rag` are deleted (81 files, the abandoned Go agentic loop), and
+the one subpackage another tree used — `prompts` — moved to `internal/prompts`. Its
+only real importer, `internal/agent/component/prompts/citation.go`, was repointed.
+`go build ./internal/...` is clean and `go test ./internal/prompts/ ./internal/dao/`
+passes.
 
-- `internal/rag/agentic-rag/runtime/` holds two packages in one directory —
-  `action_session.go` declares `package runtime`, `tool_search_test.go` declares
-  `package harness`;
-- `internal/rag/advanced_rag/agentic_rag_graph.go` imports
-  `ragflow/internal/rag/advanced_rag/harness`, `…/harness/orchestrator` and
-  `…/slots`, none of which exist in the tree.
+What is still failing is the wiring: `cmd/ragflow_server.go` imports
+`ragflow/internal/rag/agentic-rag` (line 42) and `…/agentic-rag/runtime` (line 43) and
+makes 28 qualified calls into them across lines 108-2208. `go build ./...` reports
+exactly those two errors and nothing else. Go is not a shipped path in this fork's
+image (`/ragflow/bin` holds only `.gitkeep` and the Dockerfile never runs `go build`),
+so production is unaffected.
 
-Direction: decide whether the Go port is still carried — if it is, restore those
-packages and the `package` clause; if it is not, delete the subtree rather than
-leaving a directory that cannot be built or tested.
+Direction: delete the cmd wiring for the agentic-rag server surface — the Python
+`rag_agent` is the shipped path — then confirm no reference to the deleted packages
+survives anywhere in the tree.
 
