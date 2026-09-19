@@ -10,6 +10,11 @@ import { cn } from '@/lib/utils';
  * text-flowing logo keeps the header grid and the nav-overflow measurement
  * stable when the artwork changes.
  *
+ * The artwork fills only about three quarters of its own 24-unit viewBox, so the
+ * render size is the slot's 32px rather than 24px: at 24px the drawn mark came
+ * out around 18x12px in a 32px box, which read as a mark floating in a slot
+ * twice its size next to the 32px avatars elsewhere in the header.
+ *
  * The slot carries no surface of its own: the mark and the wordmark sit in the
  * one capsule their parent draws, so the header does not read as a box inside a
  * box. The glow class is what lights the mark when that capsule is hovered.
@@ -30,8 +35,8 @@ export function BrandMark({
     >
       <SvgIcon
         name="brand-logo"
-        width={24}
-        height={24}
+        width={32}
+        height={32}
         imgClass="brand-entry-mark"
       />
       <span className="sr-only">{label}</span>

@@ -227,7 +227,10 @@ export function Sessions({
       // Flush against the chat box: the two panes meet at one hairline instead
       // of a rounded floating card with a 24px gutter around it. One column
       // with a single gap value, so the rail reads as evenly spaced blocks.
-      className="glass-surface flex h-full w-[296px] shrink-0 flex-col gap-2 border-r border-cable-hairline p-5"
+      // The 12px top is the one margin under the header: the 20px it had was a
+      // second one, and it pushed this rail's first row below the transcript's
+      // content beside it. Both panes now start their content on the same line.
+      className="glass-surface flex h-full w-[296px] shrink-0 flex-col gap-2 border-r border-cable-hairline px-5 pb-5 pt-3"
       role="complementary"
       data-testid="chat-detail-sessions"
     >

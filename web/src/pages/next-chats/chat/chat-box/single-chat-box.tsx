@@ -81,9 +81,13 @@ export function SingleChatBox({ conversation }: IProps) {
 
   return (
     <section className="flex flex-col h-full gap-4">
+      {/* 12px on top rather than 20: the chat pane sits directly under the
+          header bar, so the larger value read as a second margin under it and
+          pushed the transcript down. The sides and the bottom keep their 20px,
+          which is what lines the messages up with the composer below. */}
       <div
         ref={messageContainerRef}
-        className="p-5 flex-1 overflow-auto min-h-0 scrollbar-auto"
+        className="px-5 pt-3 pb-5 flex-1 overflow-auto min-h-0 scrollbar-auto"
       >
         <div className="w-full pr-5">
           {messages?.map((message, i) => (
