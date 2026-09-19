@@ -45,12 +45,30 @@ findings:
 
     python tools/scripts/audit_answer_rendering.py --since "2026-09-19 18:00"
 
-Pair that with the tool loop's own log line for the turn
-(`docker logs cablerag-cpu --since 10m`): a knowledge-base turn must show
-`running rag`, either `Step 1: running rag...` from the model or
-`Route guard: running rag before the model answers`. `Answering directly at step 1
-— no tool needed` on such a turn means the answer was composed without retrieval —
-the defect the route guard exists to remove.
+Pair that with the tool loop's own log line for the turn. The server writes it to
+`/ragflow/logs/ragflow_server.log` inside the container (`docker logs` carries only
+part of it):
+
+    docker exec cablerag-cpu grep -E "Route guard|Tool loop|Answering directly" \
+        /ragflow/logs/ragflow_server.log | tail -20
+
+A knowledge-base turn must show retrieval: either `Step 1: running rag...` from the
+model, or `Route guard: running rag before the model answers` when the guard ran the
+retrieval itself. `Answering directly at step 1 — no tool needed` on such a turn means
+the answer was composed without retrieval — the defect the route guard removes.
+
+Two preconditions decide whether the tool loop runs at all, and neither is the guard's
+business:
+
+* The turn must be agentic. `rag_agent` delegates to the regular RAG chat when the
+  assistant's thinking/reasoning mode is off (`dialog_service.py:2143-2147`); that path
+  retrieves through `kb_prompt` and never enters the tool loop, so no `Tool loop` line
+  appears and the answer is grounded anyway.
+* The chat model must be tool-bound. `LLMBundle` only routes into
+  `async_chat[_streamly]_with_tools` when both `bundle.is_tools` and `mdl.is_tools` are
+  true (`llm_service.py:475-481`), and `mdl.is_tools` is set by `bind_tools`. Read the
+  live flags with:
+  `docker exec cablerag-cpu python3 -c "from api.db.services.dialog_service import DialogService, get_models; _, d = DialogService.get_by_id('<dialog id>'); _,_,_,chat,_ = get_models(d); print(chat.is_tools, getattr(chat.mdl, 'is_tools', None))"`
 """
 
 from __future__ import annotations
