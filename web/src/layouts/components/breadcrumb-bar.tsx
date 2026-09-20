@@ -180,13 +180,17 @@ export function BreadcrumbBar({ className }: { className?: string }) {
     >
       <ol className="flex min-w-0 items-center gap-2">
         {levels.map((level, index) => {
+          // The last level is the page the operator is standing on: it is the only
+          // one that is not a link, and the only one that is highlighted.
           const isCurrent = index === levels.length - 1;
           const label = labelOf(level);
 
           return (
             <Fragment key={`${level.kind}-${label}-${index}`}>
               {index > 0 && (
-                <li aria-hidden className="shrink-0 text-text-disabled">
+                /* A pale separator that keeps its own ink, so it never reads as
+                   part of the level beside it. */
+                <li aria-hidden className="shrink-0 text-content-tertiary">
                   &gt;
                 </li>
               )}
@@ -196,7 +200,10 @@ export function BreadcrumbBar({ className }: { className?: string }) {
                     aria-current={isCurrent ? 'page' : undefined}
                     className={cn(
                       'truncate',
-                      isCurrent && 'font-medium text-text-primary',
+                      // 当前页：主题主色 + 加粗。父级：次级灰，指针移上去转主色。
+                      isCurrent
+                        ? 'font-semibold text-text-primary'
+                        : 'text-text-secondary',
                     )}
                   >
                     {label}
@@ -205,7 +212,7 @@ export function BreadcrumbBar({ className }: { className?: string }) {
                   <Link
                     to={level.to}
                     title={label}
-                    className="truncate transition-colors hover:text-cable-brand"
+                    className="truncate text-text-secondary transition-colors hover:text-text-primary"
                   >
                     {label}
                   </Link>
