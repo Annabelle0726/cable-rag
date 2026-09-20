@@ -62,7 +62,7 @@ jest.mock('../hooks/use-rename-session', () => ({
   useRenameSession: () => ({ renameSession: jest.fn(), loading: false }),
 }));
 
-const renderSessions = (route: string) =>
+const renderSessions = (route: string, loadingConversationId?: string) =>
   render(
     <MemoryRouter initialEntries={[route]}>
       <TooltipProvider>
@@ -75,6 +75,7 @@ const renderSessions = (route: string) =>
                 visible
                 onVisibleChange={jest.fn()}
                 onOpenSettings={jest.fn()}
+                loadingConversationId={loadingConversationId}
               />
             }
           />
@@ -121,5 +122,47 @@ describe('pinned conversations in the list', () => {
     expect(row.className).toContain('border-l-2');
     expect(row.className).toContain('border-l-cable-accent');
     expect(row).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
+// The row whose messages are in flight reports it itself, so the rail answers the
+// click even when the transcript is still empty.
+describe('the session being fetched', () => {
+  it('swaps its rename action for a spinner and marks the row busy', () => {
+    renderSessions('/chat/dialog-1', 'server-pinned');
+
+    const row = rowFor('国标查询');
+
+    expect(
+      row.querySelector("[data-testid='chat-detail-session-loading']"),
+    ).not.toBeNull();
+    expect(
+      row.querySelector("[data-testid='chat-detail-session-rename']"),
+    ).toBeNull();
+    expect(row).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('refuses a second click while its request is in flight', () => {
+    renderSessions('/chat/dialog-1', 'server-pinned');
+
+    const button = rowFor('国标查询').querySelector(
+      "[data-testid='chat-detail-session-item']",
+    ) as HTMLButtonElement;
+
+    expect(button.disabled).toBe(true);
+  });
+
+  it('leaves every other row with its own actions', () => {
+    renderSessions('/chat/dialog-1', 'server-pinned');
+
+    const other = rowFor('临时问题');
+
+    expect(
+      other.querySelector("[data-testid='chat-detail-session-rename']"),
+    ).not.toBeNull();
+    expect(
+      other.querySelector("[data-testid='chat-detail-session-loading']"),
+    ).toBeNull();
+    expect(other).not.toHaveAttribute('aria-busy');
   });
 });
