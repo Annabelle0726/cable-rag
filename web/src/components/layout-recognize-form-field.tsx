@@ -18,12 +18,13 @@ import { useTranslate } from '@/hooks/common-hooks';
 import { useFetchAllAddedModels } from '@/hooks/use-llm-request';
 import { cn } from '@/lib/utils';
 import { camelCase } from 'lodash';
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useCallback, useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { MinerUOptionsFormField } from './mineru-options-form-field';
 import { buildModelTree } from './model-tree-select';
 import { PaddleOCROptionsFormField } from './paddleocr-options-form-field';
 import { TreeSelect, TreeSelectNode } from './tree-select';
+import { Button } from './ui/button';
 import {
   FormControl,
   FormField,
@@ -63,6 +64,21 @@ export function LayoutRecognizeFormField({
   const form = useFormContext();
 
   const { t } = useTranslate('knowledgeDetails');
+
+  /**
+   * The guidance for standard/scanned PDFs, as a one-click value instead of
+   * prose the reader has to map onto the dropdown: DeepDOC is the right default
+   * for born-digital PDFs (it keeps table structure and page positions), but on
+   * a scanned standard it was measured to merge adjacent lines and flatten a
+   * wide table row — the failure that made a coal-industry standard report its
+   * own 表3 as missing.
+   */
+  const handleUsePlainTextPreset = useCallback(() => {
+    form.setValue(name, ParseDocumentType.PlainText, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  }, [form, name]);
   const {
     data: allAddedModels,
     isFetched: modelsFetched,
@@ -149,6 +165,25 @@ export function LayoutRecognizeFormField({
               <div className="flex pt-1">
                 <div className={horizontal ? 'w-1/4' : 'w-full'}></div>
                 <FormMessage />
+              </div>
+              <div
+                className={cn(
+                  'flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-xs',
+                  { 'pl-[25%]': horizontal },
+                )}
+              >
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-xs text-accent-primary"
+                  onClick={handleUsePlainTextPreset}
+                >
+                  {t('plainTextPreset')}
+                </Button>
+                <span className="text-text-secondary">
+                  {t('plainTextPresetTip')}
+                </span>
               </div>
             </FormItem>
             {showMineruOptions && <MinerUOptionsFormField />}

@@ -624,6 +624,13 @@ export default {
       layoutRecognize: 'PDF解析器',
       layoutRecognizeTip:
         '使用视觉模型进行 PDF 布局分析，以更好地识别文档结构，找到标题、文本块、图像和表格的位置。 如果选择 Naive 选项，则只能获取 PDF 的纯文本。请注意该功能只适用于 PDF 文档，对其他文档不生效。欲了解更多信息，请参阅 https://ragflow.io/docs/dataset_configuration#document-parsing-configuration。',
+      plainTextPreset: '规范 / 扫描件：改用 Plain Text（文本保真优先）',
+      plainTextPresetTip:
+        '扫描件，或文本层较差的规范 PDF，DeepDOC 可能把相邻两行并到一起、把宽表格的多列并成一行（表现为乱码或丢格）。选 Plain Text 可让正文逐行保真、表格数值按原顺序保留；代价是失去表格的 HTML 结构与“引用跳转到原文位置”的能力。',
+      reparseAfterParserChangeTitle: '解析器已更新，是否立即重新解析？',
+      reparseAfterParserChangeTip:
+        '已入库的切片是用旧解析器生成的，不重新解析会一直沿用旧切片。重新解析会先删除该文档现有切片，再按新解析器重建。',
+      reparseNow: '立即重新解析',
       taskPageSize: '任务页面大小',
       taskPageSizeMessage: '请输入您的任务页面大小！',
       taskPageSizeTip:
