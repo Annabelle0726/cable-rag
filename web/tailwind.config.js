@@ -369,7 +369,6 @@ module.exports = {
   },
   plugins: [
     require('tailwindcss-animate'),
-    require('@tailwindcss/line-clamp'),
     require('tailwind-scrollbar'),
     require('@tailwindcss/container-queries'),
     require('@tailwindcss/typography'),
