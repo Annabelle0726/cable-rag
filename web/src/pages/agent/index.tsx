@@ -4,6 +4,8 @@ import EmbedDialog, {
 } from '@/components/embed-dialog';
 import { useShowEmbedModal } from '@/components/embed-dialog/use-show-embed-dialog';
 import { PageHeader } from '@/components/page-header';
+import { CardIdentityIcon } from '@/components/card-identity-icon';
+import { TruncatedText } from '@/components/truncated-text';
 import { Button, ButtonLoading } from '@/components/ui/button';
 import {
   BreadcrumbTrail,
@@ -297,9 +299,24 @@ export default function Agent() {
 
       <section className="h-full" data-testid="agent-detail">
         <PageHeader>
-          <section>
-            <div className="text-xs text-text-secondary translate-y-3">
-              {t('flow.autosaved')} {time}
+          {/* The editor's identity block: the same mark `AgentCard` shows, so the
+              agent wears one icon on its card and at the top of the page that card
+              opens, instead of the card's bot glyph and the title's initial "T". */}
+          <section className="flex min-w-0 items-center gap-3">
+            <CardIdentityIcon kind="agent" avatar={agentDetail.avatar} />
+
+            <div className="flex min-w-0 flex-col">
+              <TruncatedText
+                as="h2"
+                className="min-w-0 truncate text-base font-semibold text-text-primary"
+                tooltip={agentDetail.title}
+                testId="agent-detail-title"
+              >
+                {agentDetail.title}
+              </TruncatedText>
+              <span className="text-xs text-text-secondary">
+                {t('flow.autosaved')} {time}
+              </span>
             </div>
           </section>
           <div className="flex items-center gap-5">

@@ -1,4 +1,4 @@
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { LanguageAbbreviation } from '@/constants/common';
@@ -20,19 +20,22 @@ export function TemplateCard({ data, showModal }: IProps) {
     showModal(data);
   }, [data, showModal]);
 
-  const language = (
-    i18n.language === LanguageAbbreviation.Zh ? 'zh' : 'en'
-  ) as 'en' | 'zh';
+  const language = (i18n.language === LanguageAbbreviation.Zh ? 'zh' : 'en') as
+    | 'en'
+    | 'zh';
 
   return (
     <Card className="border-colors-outline-neutral-standard group relative min-h-40">
       <CardContent className="p-4 ">
         <div className="flex justify-start items-center gap-4 mb-4">
-          <RAGFlowAvatar
-            className="w-7 h-7"
-            avatar={data.avatar ? data.avatar : 'https://github.com/shadcn.png'}
-            name={data?.title[language] || 'CN'}
-          ></RAGFlowAvatar>
+          {/* An agent template is an agent: same mark as the agent card, and no
+              placeholder image borrowed from an unrelated repository. */}
+          <CardIdentityIcon
+            kind="agent"
+            avatar={data.avatar}
+            className="size-7"
+            iconClassName="size-3.5"
+          />
           <div
             className="text-[18px] font-bold break-words hyphens-auto overflow-hidden"
             lang={language}

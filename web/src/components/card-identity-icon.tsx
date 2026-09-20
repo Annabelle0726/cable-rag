@@ -17,20 +17,35 @@
 
 import { cn } from '@/lib/utils';
 import {
+  Bot,
   Brain,
   Compass,
+  Database,
+  FileStack,
   MessageSquareCode,
+  User,
   type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 
 /** The card families that carry a vector identity mark. */
-export type CardIdentityKind = 'chat' | 'search' | 'memory';
+export type CardIdentityKind =
+  | 'chat'
+  | 'search'
+  | 'memory'
+  | 'agent'
+  | 'template'
+  | 'dataset'
+  | 'user';
 
 const CARD_IDENTITY_ICONS: Record<CardIdentityKind, LucideIcon> = {
   chat: MessageSquareCode,
   search: Compass,
   memory: Brain,
+  agent: Bot,
+  template: FileStack,
+  dataset: Database,
+  user: User,
 };
 
 /**
@@ -51,18 +66,24 @@ type CardIdentityIconProps = {
    * instead of stretching a 16px one.
    */
   iconClassName?: string;
+  'data-testid'?: string;
 };
 
 /**
- * The mark that opens a card row on the chat, search and memory pages.
+ * The mark that opens a card row on the chat, search, memory, agent, template and
+ * account surfaces.
  *
- * These cards used to fall back to `RAGFlowAvatar`, which paints the first one or
- * two letters of the name onto one of four hardcoded saturated gradients. That
- * block repeats a character the title already shows and reads as a broken image,
- * so the fallback is a vector mark for the card's own kind instead — the same
- * halo the knowledge-base cards give their class icon. An uploaded image still
- * wins, in a frame cut to the same geometry, and a broken URL degrades back to
- * the vector mark rather than to the browser's broken-image glyph.
+ * These slots used to fall back to `RAGFlowAvatar`, which paints the first one or
+ * two letters of the name — a person's initial is the useful case there, but for
+ * an entity it repeats a character the title already shows and reads as a broken
+ * image (`电缆技术规范助手` → one glyph, `Cable` → `C`). The fallback is a vector
+ * mark for the slot's own kind instead — the same halo the knowledge-base cards
+ * give their class icon — and `user` is the person mark, so the settings rail and
+ * the team tables stop inventing a letter for an account that has no picture.
+ *
+ * An uploaded image still wins, in a frame cut to the same geometry, and a broken
+ * URL degrades back to the vector mark rather than to the browser's broken-image
+ * glyph.
  *
  * The detail sidebars render this same component with the same props, so a card
  * and the page it opens cannot disagree about an entity's mark.
@@ -72,13 +93,14 @@ export function CardIdentityIcon({
   avatar,
   className,
   iconClassName,
+  'data-testid': testId,
 }: CardIdentityIconProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const Icon = CARD_IDENTITY_ICONS[kind];
 
   if (avatar && !imageFailed) {
     return (
-      <span className={cn(HALO_CLASS, className)}>
+      <span className={cn(HALO_CLASS, className)} data-testid={testId}>
         <img
           src={avatar}
           alt=""
@@ -90,7 +112,10 @@ export function CardIdentityIcon({
   }
 
   return (
-    <span className={cn(HALO_CLASS, 'bg-cable-icon', className)}>
+    <span
+      className={cn(HALO_CLASS, 'bg-cable-icon', className)}
+      data-testid={testId}
+    >
       <Icon
         className={cn('size-4 text-cable-icon-foreground', iconClassName)}
         aria-hidden

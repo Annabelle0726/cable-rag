@@ -1,3 +1,4 @@
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { RAGFlowAvatar } from '@/components/ragflow-avatar';
 import { Button, ButtonLoading } from '@/components/ui/button';
 import {
@@ -111,11 +112,9 @@ export function PublishConfirmDialog({
 
             <section className="bg-bg-input px-2.5 py-4 rounded border border-border-default">
               <div className="flex gap-2.5 items-center">
-                <RAGFlowAvatar
-                  avatar={agentDetail.avatar}
-                  name={agentDetail.title}
-                  className="size-8"
-                />
+                {/* The agent's own mark, so the confirmation names the agent the
+                    way its card and its editor header do. */}
+                <CardIdentityIcon kind="agent" avatar={agentDetail.avatar} />
                 <span className="text-text-primary text-lg">
                   {agentDetail.title}
                 </span>

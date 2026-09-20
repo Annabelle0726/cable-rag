@@ -1,3 +1,4 @@
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { HomeCard } from '@/components/home-card';
 import { MoreButton } from '@/components/more-button';
 import { SharedBadge } from '@/components/shared-badge';
@@ -70,7 +71,10 @@ function AgentTags({ tags }: { tags?: string }) {
       <TooltipTrigger asChild>
         {/* One clamped line beside the agent's name: the card holds three lines,
             so a long tag list is trimmed there and the tooltip shows the rest. */}
-        <div ref={containerRef} className="line-clamp-1 min-w-0 shrink leading-6">
+        <div
+          ref={containerRef}
+          className="line-clamp-1 min-w-0 shrink leading-6"
+        >
           {list.map((tag) => (
             <Badge
               key={tag}
@@ -113,6 +117,10 @@ export function AgentCard({ data, showAgentRenameModal }: DatasetCardProps) {
         description: data.description || '',
         release_time: data.release_time,
       }}
+      // The agent's mark, from the same component the editor's header renders: an
+      // uploaded avatar stays, and the bot glyph replaces the first-letter
+      // placeholder the card used to fall back to.
+      leading={<CardIdentityIcon kind="agent" avatar={data.avatar} />}
       moreDropdown={
         <AgentDropdown showAgentRenameModal={showAgentRenameModal} agent={data}>
           <MoreButton></MoreButton>
