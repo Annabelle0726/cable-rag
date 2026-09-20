@@ -1,11 +1,5 @@
 import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useChangeLanguage } from '@/hooks/logic-hooks';
 import {
   useFetchUserInfo,
@@ -29,23 +23,13 @@ import { supportedLanguages } from '@/locales/config';
 
 /**
  * One shared shape for every header control, so the right-hand cluster reads as a
- * single row of micro-components instead of a row of mixed buttons. The ink is
- * spelled out in utilities rather than in a components-layer class: the `Button`
- * primitive already ships `text-text-secondary`, and a utility emitted later in
- * the stylesheet is the only thing that outranks it.
+ * single row of micro-components instead of a row of mixed buttons.
  */
 const headerControlClass =
   'size-8 shrink-0 p-0 text-white/85 hover:bg-gov-header-hover hover:text-white focus-visible:bg-gov-header-hover focus-visible:text-white';
 
 /**
  * Local override of the shared `--cable-nav-*` tokens.
- *
- * Those tokens are also read by white-background surfaces — the segmented tab
- * switch, the pagination, the file cells — where the ink has to stay mid-grey
- * (`#606266`) with a 国网绿 selection. On the solid green bar the same three
- * tokens must resolve to white ink instead, so they are re-declared here rather
- * than redefined globally: everything inside the header inherits the white ramp,
- * and every surface outside it keeps the page ramp untouched.
  */
 const headerNavTokens =
   '[--cable-nav-text:rgba(255,255,255,0.85)] [--cable-nav-text-hover:#ffffff] [--cable-nav-active-text:#ffffff] [--cable-nav-active-bg:#005c3f] [--cable-nav-indicator:#ffffff]';
@@ -54,12 +38,12 @@ export function Header({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { pathname } = useLocation();
   const changeLanguage = useChangeLanguage();
 
   const {
-    data: { language = 'en', avatar },
+    data: { language, avatar },
   } = useFetchUserInfo();
 
   const { data: tenantData } = useListTenant();
@@ -68,7 +52,16 @@ export function Header({
     [tenantData],
   );
 
-  const currentLanguage = supportedLanguages.find((x) => x.code === language);
+  // 获取当前正在使用的语言（优先以 i18n 实例为准， fallback 到用户信息中的 language）
+  const currentLangCode = i18n.resolvedLanguage || language || 'zh';
+
+  // 计算目标语言：如果当前是中文，点击切换到英文 ('en')；否则切换到中文 ('zh')
+  const nextLangCode = currentLangCode.startsWith('zh') ? 'en' : 'zh';
+  const nextLangObj = supportedLanguages.find((x) => x.code === nextLangCode);
+
+  const handleToggleLanguage = () => {
+    changeLanguage(nextLangCode);
+  };
 
   const {
     headerRef,
@@ -76,7 +69,7 @@ export function Header({
     expandedRightMeasureRef,
     navMeasureRef,
     isCompact,
-  } = useHeaderNavLayout(`${hasNotification}-${language}`);
+  } = useHeaderNavLayout(`${hasNotification}-${currentLangCode}`);
 
   return (
     <>
@@ -84,10 +77,6 @@ export function Header({
         ref={headerRef}
         key="app-navbar"
         className={cn(
-          // The bar is a fixed 48px rail. `page-gutter` only aligns these controls
-          // with the page columns below, and `items-center` keeps every control on
-          // the bar's centre line. The solid green surface belongs to the
-          // full-width bar in the layout, not to this row.
           'page-gutter flex h-12 min-w-0 items-center gap-2 sm:gap-4',
           headerNavTokens,
           className,
@@ -101,8 +90,6 @@ export function Header({
             />
           )}
           <div ref={logoRef} className="inline-flex shrink-0 items-center">
-            {/* Mark and wordmark share one capsule: the mark has no surface of
-                its own, so nothing reads as a box inside a box. */}
             <Link
               to={Routes.Root}
               aria-current={pathname === Routes.Root ? 'page' : undefined}
@@ -132,36 +119,22 @@ export function Header({
           )}
           data-testid="auth-status"
         >
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className={headerControlClass}
-                aria-label={currentLanguage?.displayName}
-                title={currentLanguage?.displayName}
-              >
-                <LucideLanguages className="size-[1.05rem]" />
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end">
-              {supportedLanguages.map((x) => (
-                <DropdownMenuItem
-                  key={x.code}
-                  onClick={() => changeLanguage(x.code)}
-                >
-                  {x.displayName}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* 单击直接切换中/英文 */}
+          <Button
+            variant="ghost"
+            className={headerControlClass}
+            onClick={handleToggleLanguage}
+            aria-label={nextLangObj?.displayName || 'Switch Language'}
+            title={nextLangObj?.displayName || 'Switch Language'}
+          >
+            <LucideLanguages className="size-[1.05rem]" />
+          </Button>
 
           {!isCompact && hasNotification && (
             <BellButton className={headerControlClass} />
           )}
 
-          {/* Dark/light switch. The bar keeps its green in both modes, so the
-              control only swaps its icon. */}
+          {/* Dark/light switch. */}
           <ThemeButton className={headerControlClass} />
 
           <Link
@@ -173,9 +146,6 @@ export function Header({
             )}
             data-testid="settings-entrypoint"
           >
-            {/* The account mark rather than the account's first letter: the
-                settings rail shows the email beside it, so a glyph taken from that
-                email was the one letter in the shell with nothing to say. */}
             <CardIdentityIcon
               kind="user"
               avatar={avatar}
@@ -186,6 +156,7 @@ export function Header({
         </div>
       </header>
 
+      {/* 隐藏的测量节点（用于响应式计算），也同步更新为单按钮样式 */}
       <div
         className="pointer-events-none invisible fixed -left-[9999px] top-0"
         aria-hidden
@@ -193,8 +164,6 @@ export function Header({
         <div ref={navMeasureRef}>
           <DesktopNavbar />
         </div>
-        {/* Mirrors the expanded right-hand cluster so the compact/nav-overflow
-            measurement matches what actually renders. Keep the two in sync. */}
         <div
           ref={expandedRightMeasureRef}
           className="inline-flex shrink-0 items-center justify-end gap-1"
