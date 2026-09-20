@@ -27,11 +27,11 @@ type TopSelectProps = {
 };
 
 export const TopSelect = forwardRef<HTMLButtonElement, TopSelectProps>(
-  function TopSelect({ max = 100, value = 10, onChange }, ref) {
+  function TopSelect({ max = 100, value = 5, onChange }, ref) {
     const { t } = useTranslation();
 
     const sizeChangerOptions = useMemo(() => {
-      return [10, 20, 50, 100]
+      return [5, 10, 20, 50, 100]
         .filter((x) => x <= max)
         .map((x) => ({
           label: <span>{t('common.top', { top: x })}</span>,

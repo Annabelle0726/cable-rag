@@ -48,6 +48,7 @@ import {
 import { useSearchParams } from 'react-router';
 import { ISearchAppDetailProps } from '../next-searches/hooks';
 import { useClickDrawer } from './document-preview-modal/hooks';
+import { useSearchHistoryStore } from './search-history-store';
 
 export interface ISearchingProps {
   searchText?: string;
@@ -338,17 +339,21 @@ export const useSendQuestion = (
   const { testChunkAll } = useTestChunkAllRetrieval(tenantId);
   const [sendingLoading, setSendingLoading] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState({} as IAnswer);
+  const rememberQuestion = useSearchHistoryStore((state) => state.remember);
   const { fetchRelatedQuestions, data: relatedQuestions } =
     useFetchRelatedQuestions(tenantId, searchId);
   const [searchStr, setSearchStr] = useState<string>('');
   const [isFirstRender, setIsFirstRender] = useState(true);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
-  const [pageSize, setPageSize] = useState(10);
+  // The result page opens with the same handful of passages it renders: asking
+  // the backend for more than the reader is shown only padded the response.
+  const [pageSize, setPageSize] = useState(5);
 
   const sendQuestion = useCallback(
     (question: string, enableAI: boolean = true) => {
       const q = trim(question);
       if (isEmpty(q)) return;
+      rememberQuestion(q);
       setIsFirstRender(false);
       setCurrentAnswer({} as IAnswer);
       setSelectedDocumentIds([]);
@@ -389,6 +394,7 @@ export const useSendQuestion = (
       searchId,
       sharedId,
       related_search,
+      rememberQuestion,
     ],
   );
 
@@ -445,9 +451,15 @@ export const useSendQuestion = (
   );
 
   useEffect(() => {
-    if (!isEmpty(answer)) {
-      setCurrentAnswer(answer);
-    }
+    if (isEmpty(answer)) return;
+    // The stream's terminal frame carries the reference and an empty answer, so
+    // replacing the state with it would wipe the summary the page just
+    // streamed: the citations would survive and the text would not.
+    setCurrentAnswer((previous) => ({
+      ...previous,
+      ...answer,
+      answer: answer.answer || previous.answer || '',
+    }));
   }, [answer]);
 
   useEffect(() => {
@@ -517,12 +529,25 @@ export const useSearching = ({
   const { visible, hideModal, documentId, selectedChunk, clickDocumentButton } =
     useClickDrawer();
 
+  // The question typed on the search home arrives here as `searchText`, and this
+  // effect ran twice for it — React re-invokes a mount effect in development,
+  // and `sendQuestion`'s own identity changes while the parent has yet to clear
+  // the text. Two streams share one answer state, so the one that finished
+  // second blanked the summary the first had produced. One question, one stream.
+  const sentSearchTextRef = useRef('');
   useEffect(() => {
-    if (searchText) {
-      setSearchStr(searchText);
-      sendQuestion(searchText, searchData.search_config.summary);
-      setSearchText?.('');
+    if (!searchText) {
+      sentSearchTextRef.current = '';
+      return;
     }
+    if (sentSearchTextRef.current === searchText) {
+      return;
+    }
+
+    sentSearchTextRef.current = searchText;
+    setSearchStr(searchText);
+    sendQuestion(searchText, searchData.search_config.summary);
+    setSearchText?.('');
   }, [
     searchText,
     sendQuestion,

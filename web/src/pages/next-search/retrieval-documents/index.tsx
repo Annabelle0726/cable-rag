@@ -93,14 +93,6 @@ const RetrievalDocuments = ({
         label: item.doc_name,
         value: item.doc_id,
         disabled: item.doc_name === 'Disabled User',
-        // suffix: (
-        //   <div className="flex justify-between gap-3 ">
-        //     <div>{item.count}</div>
-        //     <div>
-        //       <Eye />
-        //     </div>
-        //   </div>
-        // ),
       };
     });
   }, [useDocuments]);
@@ -110,10 +102,8 @@ const RetrievalDocuments = ({
   };
 
   const onValueChange = (value: string[]) => {
-    console.log(value);
     onTesting(value);
     setSelectedDocumentIds(value);
-    // handleDatasetSelectChange(value, field.onChange);
   };
   const handleClear = () => {
     setSelectedValues([]);
@@ -144,18 +134,22 @@ const RetrievalDocuments = ({
           <Button
             onClick={handleTogglePopover}
             className={cn(
-              'flex w-full p-1 rounded-md text-base text-text-primary border min-h-10 h-auto items-center justify-between bg-inherit hover:bg-inherit [&_svg]:pointer-events-auto',
+              // The control sizes to its own label instead of sitting in a fixed
+              // rail: a fixed 176px squeezed "3/5 文件列表" onto a second line and
+              // pushed the clear/expand cluster out of the border, which is what
+              // made this row look collapsed.
+              'flex w-auto max-w-full p-1 rounded-md text-base text-text-primary border min-h-10 h-auto items-center justify-between bg-inherit hover:bg-inherit [&_svg]:pointer-events-auto',
             )}
           >
-            <div className="flex justify-between items-center w-full">
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
                 <Files />
                 <span>
                   {selectedDocumentIds?.length ?? 0}/{useDocuments?.length ?? 0}
                 </span>
                 {t('knowledgeDetails.subbarFiles')}
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex shrink-0 items-center">
                 <XIcon
                   className="h-4 mx-2 cursor-pointer text-muted-foreground"
                   onClick={(event) => {

@@ -16,8 +16,6 @@
 
 import { EmptyType } from '@/components/empty/constant';
 import Empty from '@/components/empty/empty';
-import { FileIcon } from '@/components/icon-font';
-import { ImageWithPopover } from '@/components/image';
 import { SkeletonCard } from '@/components/skeleton-card';
 import { TopSelect } from '@/components/top-select';
 import { Button } from '@/components/ui/button';
@@ -26,12 +24,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { IReference } from '@/interfaces/database/chat';
+import { IReference, IReferenceChunk } from '@/interfaces/database/chat';
+import { ITestingChunk } from '@/interfaces/database/dataset';
 import { useAutoResizeTextarea } from '@/hooks/use-auto-resize-textarea';
 import { cn } from '@/lib/utils';
 import { isEmpty } from 'lodash';
 import { ListTree, Search, X } from 'lucide-react';
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { ISearchAppDetailProps } from '../next-searches/hooks';
 import PdfDrawer from './document-preview-modal';
@@ -40,17 +46,11 @@ import { ISearchReturnProps } from './hooks';
 import './index.less';
 import MarkdownContent from './markdown-content';
 import MindMapSheet from './mindmap-sheet';
+import ReferenceSlices from './reference-slices';
 import { SearchBrandMark } from './search-brand-mark';
+import SearchHistory from './search-history';
 import RetrievalDocuments from './retrieval-documents';
-import { sanitizeHtmlWithImagesAsText } from '@/utils/dom-util';
-import classNames from 'classnames';
 
-const formatMetadataValue = (value: unknown) => {
-  if (Array.isArray(value)) return value.join(', ');
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
-};
 export default function SearchingView({
   setIsSearching,
   searchData,
@@ -95,26 +95,40 @@ export default function SearchingView({
   }, [searchStr, setSearchText]);
 
   const isMultiLine = useAutoResizeTextarea(searchInputRef, searchText);
+
+  const handleReturnToHome = useCallback(() => {
+    setIsSearching?.(false);
+  }, [setIsSearching]);
+
+  // The drawer owns the reference type; the list hands it the retrieved
+  // passage, which carries the same fields under the retrieval-side names.
+  const handleOpenDocument = useCallback(
+    (documentId: string, chunk: ITestingChunk) => {
+      clickDocumentButton(documentId, chunk as unknown as IReferenceChunk);
+    },
+    [clickDocumentButton],
+  );
+
+  // Same as the home box: a history tag fills the input and asks the question.
+  const handleSelectHistory = useCallback(
+    (question: string) => {
+      setSearchText(question);
+      handleSearch(question);
+    },
+    [handleSearch],
+  );
+
   return (
-    <section
-      className={cn(
-        'relative w-full flex transition-all justify-start items-center h-full',
-      )}
-    >
-      {/* search header */}
-      <div
-        className={cn(
-          'relative z-10 px-8 pt-8 flex  text-transparent justify-start items-start w-full h-full',
-        )}
-      >
-        <SearchBrandMark
-          onClick={() => {
-            setIsSearching?.(false);
-          }}
-        ></SearchBrandMark>
+    <section className={cn('relative flex h-full w-full flex-col')}>
+      <div className="relative z-10 flex h-full w-full flex-col px-8 pt-6">
+        {/* The brand mark is the way back to the search home, so it sits above
+            the results rather than beside them. As a left column it reserved
+            about a fifth of a wide screen and pushed the search box, the answer
+            and the references to start well right of the page's own gutter. */}
+        <SearchBrandMark onClick={handleReturnToHome}></SearchBrandMark>
         <div
           className={cn(
-            ' rounded-lg text-primary text-xl sticky flex flex-col justify-center  transform scale-100 ml-16 h-full flex-1 3xl:w-2/3 3xl:flex-none',
+            'relative mt-4 flex min-h-0 w-full flex-1 flex-col text-primary text-xl',
           )}
         >
           <div className={cn('flex flex-col justify-start items-start w-full')}>
@@ -179,12 +193,15 @@ export default function SearchingView({
                 </button>
               </div>
             </div>
+            {!searchText && (
+              <SearchHistory onSelect={handleSelectHistory}></SearchHistory>
+            )}
           </div>
-          {/* search body */}
-          <div
-            className="w-full mt-5 overflow-auto scrollbar-thin "
-            style={{ height: 'calc(100vh - 250px)' }}
-          >
+          {/* search body. The results area is the page's own scroll container:
+              it takes the height left under the search box, instead of a
+              viewport arithmetic that only held while the header kept the exact
+              height it had when the constant was measured. */}
+          <div className="mt-5 min-h-0 w-full flex-1 overflow-y-auto scrollbar-thin">
             {searchData.search_config.summary && !isSearchStrEmpty && (
               <>
                 <div className="flex justify-start items-start text-text-primary text-2xl">
@@ -211,130 +228,62 @@ export default function SearchingView({
                 )}
               </>
             )}
-            {/* retrieval documents */}
+            {/* retrieval documents. The two controls size to their own content:
+                a fixed 176px rail truncated the file-list label and clipped the
+                count beside it, which is what made the row read as broken. */}
             {!isSearchStrEmpty && !sendingLoading && (
-              <section className="flex justify-start items-center gap-4">
-                <div className="w-44 ">
-                  <RetrievalDocuments
-                    selectedDocumentIds={selectedDocumentIds}
-                    setSelectedDocumentIds={setSelectedDocumentIds}
-                    onTesting={(vals: string[]) =>
-                      handleTestChunk(vals, 1, pageSize)
-                    }
-                    setLoading={(loading: boolean) => {
-                      setRetrievalLoading(loading);
-                    }}
-                  ></RetrievalDocuments>
-                </div>
-                <div className="w-44">
-                  <TopSelect
-                    max={
-                      searchData.search_config.rerank_candidates_count ?? 100
-                    }
-                    value={pageSize}
-                    onChange={handleTopChange}
-                  ></TopSelect>
-                </div>
+              <section className="flex flex-wrap items-center gap-3">
+                <RetrievalDocuments
+                  selectedDocumentIds={selectedDocumentIds}
+                  setSelectedDocumentIds={setSelectedDocumentIds}
+                  onTesting={(vals: string[]) =>
+                    handleTestChunk(vals, 1, pageSize)
+                  }
+                  setLoading={(loading: boolean) => {
+                    setRetrievalLoading(loading);
+                  }}
+                ></RetrievalDocuments>
+                <TopSelect
+                  max={searchData.search_config.rerank_candidates_count ?? 100}
+                  value={pageSize}
+                  onChange={handleTopChange}
+                ></TopSelect>
                 <span className="ml-auto text-sm text-text-secondary pr-2">
                   {t('common.total')}: {total}
                 </span>
               </section>
             )}
-            <div className="mt-3 ">
-              {chunks?.length > 0 && (
+            <ReferenceSlices
+              chunks={chunks ?? []}
+              onOpenDocument={handleOpenDocument}
+            ></ReferenceSlices>
+            {relatedQuestions?.length > 0 &&
+              searchData.search_config.related_search && (
                 <>
-                  {chunks.map((chunk, index) => {
-                    return (
-                      <div key={index}>
-                        <div className="w-full flex flex-col">
-                          <div className="w-full">
-                            {chunk.image_id && (
-                              <ImageWithPopover
-                                id={chunk.image_id}
-                              ></ImageWithPopover>
-                            )}
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: sanitizeHtmlWithImagesAsText(
-                                  chunk.highlight || chunk.content,
-                                ).trim(),
-                              }}
-                              className={classNames(
-                                // Keep whitespaces?
-                                'text-wrap break-words whitespace-pre text-base',
-                                '[&_em]:text-accent-primary [&_em]:not-italic',
-                              )}
-                            />
-                          </div>
-                          {chunk.document_metadata &&
-                            Object.keys(chunk.document_metadata).length > 0 && (
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {Object.entries(chunk.document_metadata).map(
-                                  ([key, value]) => (
-                                    <div
-                                      key={key}
-                                      className="text-xs border border-border-default rounded px-2 py-1"
-                                    >
-                                      <span className="text-text-secondary">
-                                        {key}:
-                                      </span>{' '}
-                                      <span className="text-text-primary">
-                                        {formatMetadataValue(value)}
-                                      </span>
-                                    </div>
-                                  ),
-                                )}
-                              </div>
-                            )}
-                          <div
-                            className="flex gap-2 items-center text-xs text-text-secondary border p-1 rounded-lg w-fit mt-3"
-                            onClick={() =>
-                              clickDocumentButton(
-                                chunk.document_id,
-                                chunk as any,
-                              )
-                            }
-                          >
-                            <FileIcon name={chunk.document_keyword}></FileIcon>
-                            {chunk.document_keyword}
-                          </div>
-                        </div>
-                        {index < chunks.length - 1 && (
-                          <div className="w-full border-b border-border-default/80 mt-6 mb-2"></div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  <div className="w-full border-b border-border-default/80 mt-6"></div>
+
+                  <div className="mt-6 w-full overflow-hidden opacity-100 max-h-96">
+                    <p className="text-text-primary mb-2 text-xl">
+                      {t('search.relatedSearch')}
+                    </p>
+                    <div className="mt-2 flex flex-wrap justify-start gap-2">
+                      {relatedQuestions?.map((x, idx) => (
+                        <Button
+                          key={idx}
+                          variant="transparent"
+                          className="bg-bg-card text-text-secondary"
+                          onClick={handleClickRelatedQuestion(
+                            x,
+                            searchData.search_config.summary,
+                          )}
+                        >
+                          {x}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
                 </>
               )}
-              {relatedQuestions?.length > 0 &&
-                searchData.search_config.related_search && (
-                  <>
-                    <div className="w-full border-b border-border-default/80 mt-6"></div>
-
-                    <div className="mt-6 w-full overflow-hidden opacity-100 max-h-96">
-                      <p className="text-text-primary mb-2 text-xl">
-                        {t('search.relatedSearch')}
-                      </p>
-                      <div className="mt-2 flex flex-wrap justify-start gap-2">
-                        {relatedQuestions?.map((x, idx) => (
-                          <Button
-                            key={idx}
-                            variant="transparent"
-                            className="bg-bg-card text-text-secondary"
-                            onClick={handleClickRelatedQuestion(
-                              x,
-                              searchData.search_config.summary,
-                            )}
-                          >
-                            {x}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-            </div>
             {!isSearchStrEmpty &&
               !retrievalLoading &&
               !answer.answer &&
