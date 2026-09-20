@@ -70,6 +70,7 @@ export function AgentDropdown({
             content={{
               node: (
                 <ConfirmDeleteDialogNode
+                  kind="agent"
                   avatar={{ avatar: agent.avatar, name: agent.title }}
                   name={agent.title}
                 />

@@ -15,7 +15,7 @@
  */
 
 import FileStatusBadge from '@/components/file-status-badge';
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { RAGFlowPagination } from '@/components/ui/ragflow-pagination';
 import {
   Table,
@@ -162,10 +162,13 @@ const columns = ({
               handleToDataSetDetail(row.original.kb_id);
             }}
           >
-            <RAGFlowAvatar
+            {/* The knowledge base's own mark — this column names a dataset, so a
+                letter taken from its name was the wrong identity entirely. */}
+            <CardIdentityIcon
+              kind="dataset"
               avatar={row.original.avatar}
-              name={row.original.kb_name}
               className="size-4"
+              iconClassName="size-3"
             />
             <span className="truncate">{row.original.kb_name}</span>
           </div>

@@ -39,7 +39,7 @@ export function CompilationTemplateDropdown({
           title={t('knowledgeCompilation.deleteTemplateGroupTitle')}
           content={{
             title: t('knowledgeCompilation.deleteTemplateGroupDescription'),
-            node: <ConfirmDeleteDialogNode name={data.name} />,
+            node: <ConfirmDeleteDialogNode kind="template" name={data.name} />,
           }}
           onOk={handleDelete}
         >

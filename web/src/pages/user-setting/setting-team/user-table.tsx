@@ -18,7 +18,7 @@ import {
   ConfirmDeleteDialog,
   ConfirmDeleteDialogNode,
 } from '@/components/confirm-delete-dialog';
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { SearchHighlight } from '@/components/search-highlight';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -138,11 +138,13 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
               >
                 <TableCell className="p-4">
                   <div className="flex gap-1 items-center">
-                    <RAGFlowAvatar
-                      isPerson
-                      className="size-4"
+                    {/* A person's mark, never the first letter of the nickname:
+                        the name is printed right beside it. */}
+                    <CardIdentityIcon
+                      kind="user"
                       avatar={record.avatar}
-                      name={record.nickname}
+                      className="size-4"
+                      iconClassName="size-3"
                     />
                     <SearchHighlight
                       text={record.nickname}

@@ -1,4 +1,4 @@
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -59,7 +59,7 @@ export function Header({
   const changeLanguage = useChangeLanguage();
 
   const {
-    data: { language = 'en', avatar, nickname, email },
+    data: { language = 'en', avatar },
   } = useFetchUserInfo();
 
   const { data: tenantData } = useListTenant();
@@ -173,12 +173,14 @@ export function Header({
             )}
             data-testid="settings-entrypoint"
           >
-            <RAGFlowAvatar
-              name={nickname}
-              email={email}
+            {/* The account mark rather than the account's first letter: the
+                settings rail shows the email beside it, so a glyph taken from that
+                email was the one letter in the shell with nothing to say. */}
+            <CardIdentityIcon
+              kind="user"
               avatar={avatar}
-              isPerson
               className="size-8"
+              data-testid="account-identity"
             />
           </Link>
         </div>
@@ -203,13 +205,7 @@ export function Header({
           <ThemeButton className={headerControlClass} />
           {hasNotification && <BellButton className={headerControlClass} />}
           <div className="relative ms-2 flex size-8 shrink-0 items-center justify-center">
-            <RAGFlowAvatar
-              name={nickname}
-              email={email}
-              avatar={avatar}
-              isPerson
-              className="size-8"
-            />
+            <CardIdentityIcon kind="user" avatar={avatar} className="size-8" />
           </div>
         </div>
       </div>

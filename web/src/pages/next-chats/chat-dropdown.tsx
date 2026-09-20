@@ -54,6 +54,7 @@ export function ChatDropdown({
           content={{
             node: (
               <ConfirmDeleteDialogNode
+                kind="chat"
                 avatar={{ avatar: chat.icon, name: chat.name }}
                 name={chat.name}
               />

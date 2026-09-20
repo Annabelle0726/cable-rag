@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import ThemeSwitch from '@/components/theme-switch';
 import { Button } from '@/components/ui/button';
 import { Domain } from '@/constants/common';
@@ -85,11 +85,12 @@ export function SideBar() {
         {/* The account block sits in its own relief capsule, so the rail reads as
             a canvas with a card on it rather than as one flat slab. */}
         <h1 className="ceramic-relief flex items-center justify-center gap-2.5 rounded-full px-2 py-2 font-normal md:justify-start md:px-3">
-          <RAGFlowAvatar
+          {/* The account mark, not the account's first letter: an uploaded picture
+              still wins, and without one the slot shows a person glyph. */}
+          <CardIdentityIcon
+            kind="user"
             avatar={userInfo?.avatar}
-            name={userInfo?.nickname}
-            email={userInfo?.email}
-            isPerson
+            data-testid="account-identity"
           />
 
           <p className="hidden md:block text-sm text-text-primary truncate">

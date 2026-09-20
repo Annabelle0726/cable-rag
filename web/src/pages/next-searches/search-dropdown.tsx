@@ -66,6 +66,7 @@ export function SearchDropdown({
           content={{
             node: (
               <ConfirmDeleteDialogNode
+                kind="search"
                 avatar={{ avatar: dataset.avatar, name: dataset.name }}
                 name={dataset.name}
               />

@@ -135,6 +135,7 @@ export function DatasetDropdown({
           content={{
             node: (
               <ConfirmDeleteDialogNode
+                kind="dataset"
                 avatar={{ avatar: dataset.avatar, name: dataset.name }}
                 name={dataset.name}
               />

@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { SearchHighlight } from '@/components/search-highlight';
 import { Button } from '@/components/ui/button';
 import {
@@ -127,11 +127,12 @@ const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
                 className="ceramic-list-row border-cable-hairline"
               >
                 <TableCell className="p-4 flex gap-1 items-center">
-                  <RAGFlowAvatar
-                    isPerson
-                    className="size-4"
+                  {/* A person's mark, never the first letter of the nickname. */}
+                  <CardIdentityIcon
+                    kind="user"
                     avatar={tenant.avatar}
-                    name={tenant.nickname}
+                    className="size-4"
+                    iconClassName="size-3"
                   />
                   <SearchHighlight text={tenant.nickname} query={searchTerm} />
                 </TableCell>

@@ -29,7 +29,9 @@ import {
 import { DialogProps } from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { CardIdentityIcon } from './card-identity-icon';
 import { RAGFlowAvatar } from './ragflow-avatar';
+import type { CardIdentityKind } from './card-identity-icon';
 import { Separator } from './ui/separator';
 
 interface IProps {
@@ -134,11 +136,18 @@ export function ConfirmDeleteDialog({
 
 export const ConfirmDeleteDialogNode = ({
   avatar,
+  kind,
   name,
   warnText,
   children,
 }: {
   avatar?: { avatar?: string; name?: string; isPerson?: boolean };
+  /**
+   * What the record is, so the slot wears a vector mark instead of a letter taken
+   * from its name. Omitted for people, whose initial `RAGFlowAvatar` still reads
+   * as an account rather than as a broken image.
+   */
+  kind?: CardIdentityKind;
   name?: string;
   warnText?: string;
   children?: React.ReactNode;
@@ -147,14 +156,21 @@ export const ConfirmDeleteDialogNode = ({
     <div className="flex flex-col gap-2.5">
       {(avatar || name) && (
         <div className="flex items-center border-0.5 text-text-secondary border-border-button rounded-lg px-3 py-4">
-          {avatar && (
-            <RAGFlowAvatar
-              className="w-8 h-8"
-              avatar={avatar.avatar}
-              isPerson={avatar.isPerson}
-              name={avatar.name}
-            />
-          )}
+          {avatar &&
+            (kind ? (
+              <CardIdentityIcon
+                kind={kind}
+                avatar={avatar.avatar}
+                data-testid="delete-target-identity"
+              />
+            ) : (
+              <RAGFlowAvatar
+                className="w-8 h-8"
+                avatar={avatar.avatar}
+                isPerson={avatar.isPerson}
+                name={avatar.name}
+              />
+            ))}
           {name && <div className="ml-3">{name}</div>}
         </div>
       )}

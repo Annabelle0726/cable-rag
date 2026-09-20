@@ -51,6 +51,7 @@ export function MemoryDropdown({
           content={{
             node: (
               <ConfirmDeleteDialogNode
+                kind="memory"
                 avatar={{ avatar: memory.avatar, name: memory.name }}
                 name={memory.name}
                 warnText={t('memories.delMemoryWarn')}
