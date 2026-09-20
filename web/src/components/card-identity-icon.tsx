@@ -48,12 +48,8 @@ const CARD_IDENTITY_ICONS: Record<CardIdentityKind, LucideIcon> = {
   user: User,
 };
 
-/**
- * The 32px box the card avatar occupied, kept exactly so swapping the fallback
- * for a vector mark does not move the card's outer box or its text column.
- */
 const HALO_CLASS =
-  'flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-cable-hairline';
+  'flex size-8 shrink-0 items-center justify-center overflow-hidden bg-background';
 
 type CardIdentityIconProps = {
   kind: CardIdentityKind;
@@ -69,25 +65,6 @@ type CardIdentityIconProps = {
   'data-testid'?: string;
 };
 
-/**
- * The mark that opens a card row on the chat, search, memory, agent, template and
- * account surfaces.
- *
- * These slots used to fall back to `RAGFlowAvatar`, which paints the first one or
- * two letters of the name — a person's initial is the useful case there, but for
- * an entity it repeats a character the title already shows and reads as a broken
- * image (`电缆技术规范助手` → one glyph, `Cable` → `C`). The fallback is a vector
- * mark for the slot's own kind instead — the same halo the knowledge-base cards
- * give their class icon — and `user` is the person mark, so the settings rail and
- * the team tables stop inventing a letter for an account that has no picture.
- *
- * An uploaded image still wins, in a frame cut to the same geometry, and a broken
- * URL degrades back to the vector mark rather than to the browser's broken-image
- * glyph.
- *
- * The detail sidebars render this same component with the same props, so a card
- * and the page it opens cannot disagree about an entity's mark.
- */
 export function CardIdentityIcon({
   kind,
   avatar,
@@ -104,7 +81,7 @@ export function CardIdentityIcon({
         <img
           src={avatar}
           alt=""
-          className="size-full object-cover"
+          className="block size-full object-cover"
           onError={() => setImageFailed(true)}
         />
       </span>

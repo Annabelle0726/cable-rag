@@ -1,0 +1,51 @@
+TOTALS
+  answers: 75
+  answers_with_leaked_field: 2
+  answers_with_markers: 49
+  answers_with_unresolvable_markers: 12
+  fixed_by_pool_inheritance: 10
+  still_unresolvable_after_inheritance: 2
+  unresolvable_but_retrieved: 10
+  unresolvable_no_retrieval: 2
+
+FINDINGS (12 answers)
+
+1e75226b · '引用渲染验证' · answer#2 · 2026-09-19 16:16:00 · len=310
+    - 1 field payload(s) in the body
+    - markers reach 5, own pool 0, inherited 6, retrieved=False
+    field line: pre_summary=''直接说结论：**在目前能查到的这几份采购技术规范里，没有发现专门针对抽水蓄能电站高落差（竖井/斜井）敷设环境的电缆结构或固定条款。**
+
+71969aee · '电缆技术规范助手' · answer#3 · 2026-09-19 15:50:50.434000 · len=2475
+    - 1 field payload(s) in the body
+    - markers reach 6, own pool 0, inherited 6, retrieved=True
+    field line: pre_summary=''直接说结论：**在目前能查到的这几份采购技术规范里，没有发现专门针对抽水蓄能电站高落差（竖井/斜井）敷设环境的电缆结构或固定条款。**
+
+7708606d · 'Cable Assistant' · answer#7 · 2026-09-19 10:23:36.525000 · len=3559
+    - markers reach 5, own pool 0, inherited 3, retrieved=True
+
+7708606d · 'Cable Assistant' · answer#10 · 2026-09-19 10:23:36.525000 · len=2445
+    - markers reach 1, own pool 0, inherited 1, retrieved=True
+
+7708606d · 'Cable Assistant' · answer#21 · 2026-09-19 10:23:36.525000 · len=3193
+    - markers reach 2, own pool 0, inherited 3, retrieved=True
+
+60c33582 · 'Test' · answer#3 · 2026-09-17 13:29:42.824000 · len=2211
+    - markers reach 1, own pool 0, inherited 2, retrieved=True
+
+d8359d1a · '柔性技术规格书' · answer#3 · 2026-09-17 09:48:59.431000 · len=2725
+    - markers reach 1, own pool 0, inherited 1, retrieved=True
+
+d8359d1a · '柔性技术规格书' · answer#4 · 2026-09-17 09:48:59.431000 · len=2774
+    - markers reach 1, own pool 0, inherited 1, retrieved=True
+
+ec1a96e7 · 'QA - GB' · answer#3 · 2026-09-17 07:17:08.418000 · len=2650
+    - markers reach 4, own pool 0, inherited 5, retrieved=True
+
+ec1a96e7 · 'QA - GB' · answer#4 · 2026-09-17 07:17:08.418000 · len=375
+    - markers reach 4, own pool 0, inherited 5, retrieved=False
+
+ec1a96e7 · 'QA - GB' · answer#5 · 2026-09-17 07:17:08.418000 · len=2767
+    - markers reach 5, own pool 0, inherited 5, retrieved=True
+
+b226a758 · 'QA - GB' · answer#1 · 2026-09-16 21:01:54.980000 · len=2440
+    - markers reach 1, own pool 0, inherited 0, retrieved=True

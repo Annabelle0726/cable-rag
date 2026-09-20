@@ -8,7 +8,6 @@ account is registered when the sign-in is rejected.
 
 import os
 import sys
-import uuid
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -28,12 +27,7 @@ PASSWORD_INPUT = "input[data-testid='auth-password'], [data-testid='auth-passwor
 
 def new_page(browser, theme: str):
     page = browser.new_page(viewport=VIEWPORT)
-    page.add_init_script(
-        "try {"
-        "  localStorage.setItem('lng', 'zh-Hans');"
-        f"  localStorage.setItem('{THEME_KEY}', '{theme}');"
-        "} catch (e) {}"
-    )
+    page.add_init_script("try {" "  localStorage.setItem('lng', 'zh-Hans');" f"  localStorage.setItem('{THEME_KEY}', '{theme}');" "} catch (e) {}")
     return page
 
 
@@ -85,9 +79,7 @@ def main() -> int:
         register_page.goto(f"{BASE}/login-next", wait_until="networkidle")
         register_page.wait_for_timeout(2500)
         try:
-            register_page.locator("[data-testid='auth-toggle-register']").first.click(
-                force=True, timeout=5000
-            )
+            register_page.locator("[data-testid='auth-toggle-register']").first.click(force=True, timeout=5000)
             register_page.wait_for_timeout(1600)
             shot(register_page, "probe-register-light.png")
         except Exception as exc:  # noqa: BLE001 - a probe, not a test

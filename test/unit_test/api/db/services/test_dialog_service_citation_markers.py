@@ -47,10 +47,7 @@ class TestMarkersThatNameNothingAreDropped:
 
     def test_a_run_of_mostly_valid_markers_keeps_only_the_valid_ones(self):
         # The reported shape: three citations where only two resolve.
-        assert (
-            resolve_citation_markers("以该表为准 [ID:1][ID:3][ID:9]。", 6)
-            == "以该表为准 [ID:1][ID:3]。"
-        )
+        assert resolve_citation_markers("以该表为准 [ID:1][ID:3][ID:9]。", 6) == "以该表为准 [ID:1][ID:3]。"
 
     def test_bare_bracketed_numbers_are_left_alone(self):
         # A bare `[2024]` is as likely to be a year or a footnote as a citation;
@@ -68,10 +65,7 @@ class TestMarkersThatNameNothingAreDropped:
 
 class TestMergedRanges:
     def test_a_valid_range_expands_so_its_citations_survive(self):
-        assert (
-            resolve_citation_markers("见表 [ID:1-3]。", 6)
-            == "见表 [ID:1][ID:2][ID:3]。"
-        )
+        assert resolve_citation_markers("见表 [ID:1-3]。", 6) == "见表 [ID:1][ID:2][ID:3]。"
 
     def test_a_reversed_range_expands_too(self):
         assert resolve_citation_markers("[ID:3-1]。", 6) == "[ID:1][ID:2][ID:3]。"
