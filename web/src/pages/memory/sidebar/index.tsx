@@ -1,4 +1,4 @@
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { Button } from '@/components/ui/button';
 import { useSecondPathName } from '@/hooks/route-hook';
 import { cn } from '@/lib/utils';
@@ -35,11 +35,14 @@ export function SideBar() {
   return (
     <aside className="relative p-5 space-y-8">
       <div className="flex gap-2.5 max-w-[200px] items-center">
-        <RAGFlowAvatar
+        {/* The same mark `MemoryCard` shows, never the first character of the
+            name. */}
+        <CardIdentityIcon
+          kind="memory"
           avatar={data.avatar}
-          name={data.name}
           className="size-16"
-        ></RAGFlowAvatar>
+          iconClassName="size-7"
+        />
         <div className=" text-text-secondary text-xs space-y-1 overflow-hidden">
           <h3 className="text-lg font-semibold line-clamp-1 text-text-primary text-ellipsis overflow-hidden">
             {data.name}

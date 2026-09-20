@@ -9,7 +9,7 @@ import {
   LucideTextSearch,
 } from 'lucide-react';
 
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
+import { DatasetIdentityMark } from '@/components/dataset-category';
 import { Button } from '@/components/ui/button';
 import { useSecondPathName } from '@/hooks/route-hook';
 import { cn, formatBytes } from '@/lib/utils';
@@ -69,10 +69,13 @@ export function SideBar({ dataset: data }: PropType) {
           gridTemplateAreas: '"avatar title" "avatar stats"',
         }}
       >
-        <RAGFlowAvatar
-          avatar={data.avatar}
-          name={data.name}
+        {/* The same mark the knowledge-base card shows: the owner's uploaded image
+            when there is one, the class icon otherwise — never the first character
+            of the name. */}
+        <DatasetIdentityMark
+          dataset={data}
           className="size-16"
+          iconClassName="size-7"
           style={{ gridArea: 'avatar' }}
         />
 

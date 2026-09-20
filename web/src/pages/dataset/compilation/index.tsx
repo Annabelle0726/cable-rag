@@ -3,7 +3,7 @@ import {
   SelectWithSearch,
   type SelectWithSearchFlagOptionType,
 } from '@/components/originui/select-with-search';
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
+import { DatasetIdentityMark } from '@/components/dataset-category';
 import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
 import { useFetchKnowledgeBaseConfiguration } from '@/hooks/use-knowledge-request';
 import { useCallback, useMemo, useState } from 'react';
@@ -50,11 +50,16 @@ export default function Compilation() {
 
         <section className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <RAGFlowAvatar
-              avatar={knowledgeBase?.avatar}
-              name={knowledgeBase?.name}
-              className="size-10 rounded-lg"
-            />
+            {/* The knowledge base's card mark, so the third-level header names the
+                same entity the same way the list and the sidebar do. Nothing is
+                drawn until the record arrives, rather than a placeholder letter. */}
+            {knowledgeBase && (
+              <DatasetIdentityMark
+                dataset={knowledgeBase}
+                className="size-10"
+                iconClassName="size-5"
+              />
+            )}
             <h2 className="text-xl font-medium text-text-primary">
               {knowledgeBase?.name}
               {t('knowledgeCompilation.compilationTitleSuffix')}

@@ -16,7 +16,12 @@
  */
 
 import { cn } from '@/lib/utils';
-import { Brain, Compass, MessageSquareCode, type LucideIcon } from 'lucide-react';
+import {
+  Brain,
+  Compass,
+  MessageSquareCode,
+  type LucideIcon,
+} from 'lucide-react';
 import { useState } from 'react';
 
 /** The card families that carry a vector identity mark. */
@@ -40,6 +45,12 @@ type CardIdentityIconProps = {
   /** Owner-supplied image. When present it replaces the vector mark. */
   avatar?: string;
   className?: string;
+  /**
+   * Size of the glyph inside the frame. The frame is sized with `className`; a
+   * sidebar header is a taller frame than a card row, so it asks for a larger mark
+   * instead of stretching a 16px one.
+   */
+  iconClassName?: string;
 };
 
 /**
@@ -52,11 +63,15 @@ type CardIdentityIconProps = {
  * halo the knowledge-base cards give their class icon. An uploaded image still
  * wins, in a frame cut to the same geometry, and a broken URL degrades back to
  * the vector mark rather than to the browser's broken-image glyph.
+ *
+ * The detail sidebars render this same component with the same props, so a card
+ * and the page it opens cannot disagree about an entity's mark.
  */
 export function CardIdentityIcon({
   kind,
   avatar,
   className,
+  iconClassName,
 }: CardIdentityIconProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const Icon = CARD_IDENTITY_ICONS[kind];
@@ -76,7 +91,10 @@ export function CardIdentityIcon({
 
   return (
     <span className={cn(HALO_CLASS, 'bg-cable-icon', className)}>
-      <Icon className="size-4 text-cable-icon-foreground" aria-hidden />
+      <Icon
+        className={cn('size-4 text-cable-icon-foreground', iconClassName)}
+        aria-hidden
+      />
     </span>
   );
 }

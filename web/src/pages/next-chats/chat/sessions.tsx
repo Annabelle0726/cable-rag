@@ -1,6 +1,6 @@
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { MoreButton } from '@/components/more-button';
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SearchInput } from '@/components/ui/input';
@@ -212,10 +212,11 @@ export function Sessions({
           onClick={switchVisible}
           data-testid="chat-detail-sessions-open"
         >
-          <RAGFlowAvatar
+          {/* The assistant's card mark, not the first character of its name. */}
+          <CardIdentityIcon
+            kind="chat"
             avatar={data.icon}
-            name={data.name}
-            className="size-8 cursor-pointer"
+            className="cursor-pointer"
           />
         </Button>
       </div>
@@ -236,11 +237,9 @@ export function Sessions({
     >
       <header className="flex items-center text-base justify-between gap-4">
         <div className="flex gap-3 items-center min-w-0">
-          <RAGFlowAvatar
-            avatar={data.icon}
-            name={data.name}
-            className="size-8"
-          />
+          {/* Same component and same props as `ChatCard`, so the assistant wears
+              one mark on its card and in the header of the page that card opens. */}
+          <CardIdentityIcon kind="chat" avatar={data.icon} />
 
           <span className="flex-1 truncate">{data.name}</span>
         </div>

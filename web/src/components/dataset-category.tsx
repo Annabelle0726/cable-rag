@@ -24,38 +24,95 @@ import {
 import { IDataset } from '@/interfaces/database/dataset';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { RAGFlowAvatar } from './ragflow-avatar';
 
 type DatasetCategoryIconProps = {
   category: DatasetCategory;
   className?: string;
+  /** Glyph size inside the frame; the frame itself is sized with `className`. */
+  iconClassName?: string;
+  style?: React.CSSProperties;
 };
 
 /**
- * The class icon in its halo, sized to the 32px slot the card avatar used to
- * occupy so a card's outer box does not change. Sized by the caller when the
- * menu needs a smaller mark.
+ * The class icon in its frame, sized to the 32px slot the card avatar used to
+ * occupy so a card's outer box does not change. Sized by the caller when a
+ * sidebar header needs a taller mark.
+ *
+ * The tile is a neutral surface with the shared 1px hairline rather than a green
+ * one: the glyph carries the class colour (`--category-ink`), and a green field
+ * behind an orange BOM mark or a violet custom mark would fight it.
  */
 export function DatasetCategoryIcon({
   category,
   className,
+  iconClassName,
+  style,
 }: DatasetCategoryIconProps) {
   const { icon: Icon, toneClass } = DatasetCategoryDefinitions[category];
 
   return (
     <span
+      style={style}
       className={cn(
-        'category-halo flex size-8 shrink-0 items-center justify-center rounded-lg',
+        'category-halo flex size-8 shrink-0 items-center justify-center rounded-lg border border-panel-border bg-bg-title',
         toneClass,
         className,
       )}
     >
-      <Icon className="category-ink size-4" aria-hidden />
+      <Icon className={cn('category-ink size-4', iconClassName)} aria-hidden />
     </span>
   );
 }
 
+/**
+ * How a knowledge base shows its mark, everywhere it is shown: the owner's
+ * uploaded image when there is one, the class icon otherwise.
+ *
+ * The list card, the detail sidebar's header and the compilation header all render
+ * this, so the mark a card shows is the mark the page it opens shows — the header
+ * used to fall back to `RAGFlowAvatar` and print the first character of the name
+ * instead.
+ */
+export function DatasetIdentityMark({
+  dataset,
+  className,
+  iconClassName,
+  style,
+}: {
+  dataset: Pick<IDataset, 'name' | 'description' | 'avatar' | 'category'>;
+  className?: string;
+  iconClassName?: string;
+  /** Grid placement, for the sidebar header that positions the mark by area. */
+  style?: React.CSSProperties;
+}) {
+  if (dataset.avatar) {
+    return (
+      <RAGFlowAvatar
+        avatar={dataset.avatar}
+        name={dataset.name}
+        className={className}
+        style={style}
+      />
+    );
+  }
+
+  const { category } = resolveDatasetCategory(dataset);
+
+  return (
+    <DatasetCategoryIcon
+      category={category}
+      className={className}
+      iconClassName={iconClassName}
+      style={style}
+    />
+  );
+}
+
 type DatasetCategoryChipProps = {
-  dataset: Pick<IDataset, 'name' | 'description'> & { category?: string | null };
+  dataset: Pick<IDataset, 'name' | 'description'> & {
+    category?: string | null;
+  };
   className?: string;
 };
 
@@ -72,7 +129,11 @@ export function DatasetCategoryChip({
 }: DatasetCategoryChipProps) {
   const { t } = useTranslation();
   const { category, customTag } = resolveDatasetCategory(dataset);
-  const { chipKey, icon: Icon, toneClass } = DatasetCategoryDefinitions[category];
+  const {
+    chipKey,
+    icon: Icon,
+    toneClass,
+  } = DatasetCategoryDefinitions[category];
 
   return (
     <span
