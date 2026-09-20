@@ -113,13 +113,14 @@ export function DatasetNavMenu({
 
       <PopoverContent
         align="start"
-        sideOffset={4}
+        sideOffset={0} /* 设为 0，紧贴顶部导航按钮 */
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
         onOpenAutoFocus={handlePreventAutoFocus}
         className={cn(
           'z-50 w-[min(92vw,26rem)] overflow-hidden outline-none',
-          'rounded-lg border border-panel-border bg-bg-component p-0 shadow-lg',
+          /* 去除顶部圆角(rounded-t-none)，仅保留底部圆角(rounded-b-lg)，实现接缝处平整无缝贴合 */
+          'rounded-b-lg rounded-t-none border border-panel-border bg-bg-component p-0 shadow-lg',
           'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         )}
         data-testid="nav-dataset-menu"
