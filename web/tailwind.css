@@ -869,6 +869,12 @@
   }
 
   .ceramic-relief.ceramic-relief:hover {
+    /* The background has to be declared here, not left to the primitive: a flat
+       control rendered through `Button` also carries the ink variant's
+       `hover:bg-text-primary/90`, and a `:hover` utility outranks a plain class.
+       This rule already wins on specificity (two classes plus the pseudo-class),
+       so naming the wash here is what stops the ink fill from taking over. */
+    background-color: var(--ceramic-hover-surface);
     border-color: var(--ceramic-border-hover);
     box-shadow: none;
   }
