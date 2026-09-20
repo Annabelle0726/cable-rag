@@ -223,6 +223,13 @@ const routeConfigOptions = [
             path: `${Routes.DatasetBase}${Routes.DataSetSetting}/:id`,
             Component: () => import('@/pages/dataset/setting'),
           },
+          // Registered here rather than at the top level: the Artifacts view is one
+          // of a knowledge base's sub-pages, and outside the layout group it rendered
+          // with no header and no breadcrumb rail, the only console page that did.
+          {
+            path: `${Routes.DatasetBase}${Routes.Compilation}/:id`,
+            Component: () => import('@/pages/dataset/compilation'),
+          },
         ],
       },
       {
@@ -342,10 +349,6 @@ const routeConfigOptions = [
   {
     path: `${Routes.SearchShare}`,
     Component: () => import('@/pages/next-search/share'),
-  },
-  {
-    path: `${Routes.DatasetBase}${Routes.Compilation}/:id`,
-    Component: () => import('@/pages/dataset/compilation'),
   },
   {
     path: Routes.Agent,
