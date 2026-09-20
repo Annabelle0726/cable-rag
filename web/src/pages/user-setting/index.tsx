@@ -1,23 +1,44 @@
-/*
- *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
-
-import { Outlet } from 'react-router';
+import { usePublishBreadcrumbTrail } from '@/layouts/components/breadcrumb-context';
+import { Routes } from '@/routes';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Outlet, useLocation } from 'react-router';
 import { SideBar } from './sidebar';
 
+/**
+ * The settings rail's own tabs, in the order it lists them. Keyed by the route
+ * constant the rail navigates to, so the crumb and the highlighted tab cannot
+ * drift apart; the labels are the same keys the rail renders.
+ */
+const SectionLabelKeys: Record<string, string> = {
+  [Routes.Model]: 'setting.model',
+  [Routes.DataSource]: 'setting.dataSources',
+  [Routes.Team]: 'setting.team',
+  [Routes.Profile]: 'setting.profile',
+  [Routes.Api]: 'setting.api',
+};
+
 function UserSetting() {
+  const { pathname } = useLocation();
+  const { t } = useTranslation();
+
+  /**
+   * 用户设置 > 当前 Tab.
+   *
+   * The tab is the second path segment — the same rule the rail uses to highlight
+   * one of its own entries, rather than a second copy of the state. A sub-page that
+   * is not a rail tab (a data-source detail, a chat channel) publishes nothing and
+   * leaves the crumb at 用户设置 on its own.
+   */
+  const trail = useMemo(() => {
+    const section = `/${pathname.split('/')[2] ?? ''}`;
+    const labelKey = SectionLabelKeys[section];
+
+    return labelKey ? [{ label: t(labelKey) }] : [];
+  }, [pathname, t]);
+
+  usePublishBreadcrumbTrail(trail);
+
   return (
     // Fills exactly what the app shell leaves below the header, because `main`
     // in the shell is the `1fr` row that is left once the bar is laid out.

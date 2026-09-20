@@ -123,7 +123,10 @@ const resolvePath = (pathname: string): Trail => {
   }
 
   if (isUnder(pathname, Routes.UserSetting)) {
-    return { module: [Key('header.setting')] };
+    // The module level stays a link even though the page below publishes a second
+    // level: `/user-setting` redirects to its default tab, so stepping up from
+    // 团队 lands on the settings landing page instead of on nothing.
+    return { module: [Key('header.setting', Routes.UserSetting)] };
   }
 
   return { module: [] };
