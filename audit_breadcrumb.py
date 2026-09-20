@@ -77,6 +77,38 @@ IDENTITY_JS = """
 }
 """
 
+# The three states the rail has to keep apart: parent link, current page, separator.
+STYLE_JS = """
+() => {
+  const nav = document.querySelector('nav[aria-label="breadcrumb"]');
+  if (!nav) return null;
+
+  const read = (el) => {
+    const s = getComputedStyle(el);
+    return { color: s.color, weight: s.fontWeight, size: s.fontSize };
+  };
+
+  return Array.from(nav.querySelectorAll(':scope > ol > li')).map((li) => {
+    const target = li.querySelector('a, span') || li;
+    return {
+      text: (li.textContent || '').trim(),
+      separator: li.getAttribute('aria-hidden') === 'true',
+      link: Boolean(li.querySelector('a')),
+      current: Boolean(li.querySelector('[aria-current="page"]')),
+      style: read(target),
+    };
+  });
+}
+"""
+
+# The pointer state of the first parent level, read while the pointer is on it.
+HOVER_JS = """
+() => {
+  const link = document.querySelector('nav[aria-label="breadcrumb"] a');
+  return link ? getComputedStyle(link).color : null;
+}
+"""
+
 # The routes worth reading, with the ids discovered at runtime.
 STATIC_ROUTES = [
     "/",
@@ -294,6 +326,21 @@ def main() -> int:
                 print(json.dumps(page.evaluate(TRAIL_JS), ensure_ascii=False))
                 if route.startswith(("/user-setting", "/agents", "/agent/")):
                     print("identity:", json.dumps(page.evaluate(IDENTITY_JS), ensure_ascii=False))
+
+                # The rail's own three states, plus the parent's pointer colour.
+                if route.startswith("/dataset/files/"):
+                    print("styles:", json.dumps(page.evaluate(STYLE_JS), ensure_ascii=False))
+                    parent = page.locator("nav[aria-label='breadcrumb'] a").first
+                    before = page.evaluate(HOVER_JS)
+                    parent.hover()
+                    page.wait_for_timeout(400)
+                    print(
+                        "parent hover:",
+                        json.dumps(
+                            {"idle": before, "hovered": page.evaluate(HOVER_JS)},
+                            ensure_ascii=False,
+                        ),
+                    )
             # The rail's own navigation: switching a tab has to move the second
             # crumb without a reload, so the click is exercised rather than only
             # the resulting URL.
