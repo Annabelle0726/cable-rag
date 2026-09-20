@@ -1,3 +1,19 @@
+/*
+ *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 import { CardContainer } from '@/components/card-container';
 import { EmptyCardType } from '@/components/empty/constant';
 import { EmptyAppCard } from '@/components/empty/empty';
@@ -18,10 +34,8 @@ import { ICreateMemoryProps, IMemory } from './interface';
 import { MemoryCard } from './memory-card';
 
 export default function MemoryList() {
-  // const { data } = useFetchFlowList();
   const { t } = useTranslate('memories');
   const [addOrEditType, setAddOrEditType] = useState<'add' | 'edit'>('add');
-  // const [isEdit, setIsEdit] = useState(false);
   const {
     data: list,
     isLoading,
@@ -40,7 +54,7 @@ export default function MemoryList() {
     openCreateModal,
     showMemoryRenameModal,
     hideMemoryModal,
-    searchRenameLoading,
+    memoryRenameLoading,
     onMemoryRenameOk,
     initialMemory,
   } = useRenameMemory();
@@ -50,17 +64,19 @@ export default function MemoryList() {
       refetchList();
     });
   };
+
   const openCreateModalFun = useCallback(() => {
-    // setIsEdit(false);
     setAddOrEditType('add');
     showMemoryRenameModal(defaultMemoryFields as unknown as IMemory);
   }, [showMemoryRenameModal]);
+
   const handlePageChange = useCallback(
     (page: number, pageSize?: number) => {
       setPagination({ page, pageSize });
     },
     [setPagination],
   );
+
   useGoToPreviousPageOnEmpty(list?.data?.memory_list?.length, isLoading, {
     deletionKey: ListDeletionKey.MemoryList,
     searchString,
@@ -72,13 +88,20 @@ export default function MemoryList() {
   const [searchUrl, setMemoryUrl] = useSearchParams();
   const { filters } = useSelectFilters(list?.data?.memory_list ?? []);
   const isCreate = searchUrl.get('isCreate') === 'true';
+
   useEffect(() => {
     if (isCreate) {
       openCreateModalFun();
-      searchUrl.delete('isCreate');
-      setMemoryUrl(searchUrl);
+      setMemoryUrl(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('isCreate');
+          return next;
+        },
+        { replace: true },
+      );
     }
-  }, [isCreate, openCreateModalFun, searchUrl, setMemoryUrl]);
+  }, [isCreate, openCreateModalFun, setMemoryUrl]);
 
   return (
     <>
@@ -98,13 +121,11 @@ export default function MemoryList() {
               value={filterValue}
               searchVariant="capsule"
             >
-              {/* The primary action matches the file manager: the branded ceramic
-                  capsule rather than the theme's ink-filled default button. */}
               <Button
-                className="ceramic-cta h-10 rounded-full px-5"
+                className="ceramic-cta h-8 rounded-[2px] px-3 text-xs font-medium gap-1.5"
                 onClick={() => openCreateModalFun()}
               >
-                <Plus className="size-[1em]" />
+                <Plus className="size-3.5" />
                 {t('createMemory')}
               </Button>
             </ListFilterBar>
@@ -134,7 +155,6 @@ export default function MemoryList() {
               </footer>
             </>
           ) : (
-            // Grid item in the same container the cards use: same size as a card.
             <CardContainer className="page-gutter flex-1 overflow-auto">
               <EmptyAppCard
                 showIcon
@@ -159,21 +179,13 @@ export default function MemoryList() {
           </CardContainer>
         </article>
       )}
-      {/* {openCreateModal && (
-        <RenameDialog
-          hideModal={hideMemoryRenameModal}
-          onOk={onMemoryRenameConfirm}
-          initialName={initialMemoryName}
-          loading={searchRenameLoading}
-          title={<HomeIcon name="memory" width={'24'} />}
-        ></RenameDialog>
-      )} */}
+
       {openCreateModal && (
         <AddOrEditModal
           initialMemory={initialMemory}
           isCreate={addOrEditType === 'add'}
           open={openCreateModal}
-          loading={searchRenameLoading}
+          loading={memoryRenameLoading}
           onClose={hideMemoryModal}
           onSubmit={onMemoryConfirm}
         />
