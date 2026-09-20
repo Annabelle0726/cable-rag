@@ -166,7 +166,7 @@ export function ChatSettings({
 
   useEffect(() => {
     const llmSettingEnabledValues = setLLMSettingEnabledValues(
-      data.llm_setting,
+      data?.llm_setting,
     );
     const referenceMetadata = data?.prompt_config?.reference_metadata;
     const normalizedReferenceMetadata =
@@ -179,9 +179,9 @@ export function ChatSettings({
     const nextData = {
       ...omit(data, 'top_k'),
       prompt_config: {
-        ...data.prompt_config,
+        ...data?.prompt_config,
         // reset() skips undefined values, so fall back to '' to clear the field
-        web_search_provider: getWebSearchProvider(data.prompt_config) ?? '',
+        web_search_provider: getWebSearchProvider(data?.prompt_config) ?? '',
         reference_metadata: normalizedReferenceMetadata,
       },
       ...llmSettingEnabledValues,
@@ -252,7 +252,7 @@ export function ChatSettings({
               <AccordionItem
                 key={section.value}
                 value={section.value}
-                className="rounded-xl border border-cable-border px-4 data-[state=open]:bg-cable-surface-muted"
+className="rounded-xl border border-cable-border px-4 data-[state=open]:bg-cable-surface-muted last:border-b last:border-cable-border"
               >
                 <AccordionTrigger
                   className="text-sm font-medium text-text-primary hover:no-underline"
@@ -264,6 +264,7 @@ export function ChatSettings({
               </AccordionItem>
             ))}
           </Accordion>
+          <div className="h-10 shrink-0 pointer-events-none" aria-hidden="true" />
         </form>
       </Form>
     </SettingsDrawer>
