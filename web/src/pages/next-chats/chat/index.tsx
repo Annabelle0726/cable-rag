@@ -8,8 +8,11 @@ import {
 } from '@/hooks/use-chat-request';
 import { useSetModalState } from '@/hooks/common-hooks';
 import { IClientConversation } from '@/interfaces/database/chat';
+import { BreadcrumbTrail } from '@/layouts/components/breadcrumb-context';
+import type { BreadcrumbCrumb } from '@/layouts/components/breadcrumb-context';
 import { RootLayoutContainer } from '@/layouts/root-layout';
 import { cn } from '@/lib/utils';
+import { Routes } from '@/routes';
 import { isPersistedConversationId } from '@/utils/chat';
 import { isEmpty } from 'lodash';
 import { LucideArrowBigLeft } from 'lucide-react';
@@ -96,6 +99,35 @@ export default function Chat() {
     );
   }, [conversationId, dialogList, t]);
 
+  /**
+   * 聊天 > 助手 > 会话.
+   *
+   * The level naming the assistant keeps a link back to `/chat/:id` with no
+   * `conversationId`, which is what drops the open session and lands on the
+   * assistant's main view. The session level only appears once the server has a
+   * named conversation for the id in the URL: a placeholder id, or a list that has
+   * not arrived yet, would otherwise put a "新会话" placeholder in the trail.
+   */
+  const breadcrumbTrail = useMemo(() => {
+    if (!chatId) {
+      return [];
+    }
+
+    const crumbs: BreadcrumbCrumb[] = [
+      {
+        label: currentDialog?.name || t('breadcrumb.newChat'),
+        to: `${Routes.Chat}/${chatId}`,
+      },
+    ];
+    const sessionName = dialogList.find((x) => x.id === conversationId)?.name;
+
+    if (isPersistedConversationId(conversationId) && sessionName) {
+      crumbs.push({ label: sessionName });
+    }
+
+    return crumbs;
+  }, [chatId, conversationId, currentDialog?.name, dialogList, t]);
+
   // The URL is the single source of truth for which conversation is open:
   // card clicks, "+" and the temp→real id swap after the first send all land
   // here. Clear first so the previous conversation's messages and references
@@ -168,6 +200,10 @@ export default function Chat() {
 
   return (
     <RootLayoutContainer>
+      {/* Rendered inside the shell this page owns, which is what puts the publish
+          within reach of the trail provider. */}
+      <BreadcrumbTrail crumbs={breadcrumbTrail} />
+
       <section className="h-full flex flex-col" data-testid="chat-detail">
         {/* One row filling the viewport: the conversation list and the chat box
             are two panes of the same surface, split by a single hairline. The
@@ -189,12 +225,9 @@ export default function Chat() {
               // A fixed-height row: the header can never grow into the
               // transcript, whatever it has to show.
               <header
-                className={cn(
-                  'flex h-12 shrink-0 flex-row items-center px-4',
-                  {
-                    'border-b border-cable-hairline': hasSingleChatBox,
-                  },
-                )}
+                className={cn('flex h-12 shrink-0 flex-row items-center px-4', {
+                  'border-b border-cable-hairline': hasSingleChatBox,
+                })}
               >
                 <ConversationHeader
                   chatId={chatId}

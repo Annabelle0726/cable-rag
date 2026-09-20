@@ -16,8 +16,12 @@
 
 import { Button } from '@/components/ui/button';
 import { useFetchUserInfo } from '@/hooks/use-user-setting-request';
+import {
+  usePublishBreadcrumbTrail,
+  type BreadcrumbCrumb,
+} from '@/layouts/components/breadcrumb-context';
 import { Settings } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ISearchAppDetailProps,
@@ -40,6 +44,16 @@ export default function SearchPage() {
   const { openSetting: checkOpenSetting } = useCheckSettings(
     SearchData as ISearchAppDetailProps,
   );
+
+  /** 搜索 > 名称. Absent while the detail is still loading, which leaves the module
+   *  level alone rather than naming a search that has not arrived. */
+  const breadcrumbTrail = useMemo<BreadcrumbCrumb[]>(() => {
+    const name = (SearchData as ISearchAppDetailProps)?.name;
+
+    return name ? [{ label: name }] : [];
+  }, [SearchData]);
+
+  usePublishBreadcrumbTrail(breadcrumbTrail);
   useEffect(() => {
     setOpenSetting(checkOpenSetting);
   }, [checkOpenSetting]);
@@ -56,10 +70,10 @@ export default function SearchPage() {
 
   return (
     <section
-      // The route already lives under the layout's header row, so this pane is
-      // the whole remaining area: no outer margin or padding to squeeze it, and
-      // the same frame-less glass surface the chat panes use instead of a hard
-      // 0.5px border with the page background behind it.
+      // This pane is registered under the layout group, so it is the whole
+      // remaining area beneath the header: no outer margin or padding to squeeze
+      // it, and the same frame-less glass surface the chat panes use instead of a
+      // hard 0.5px border with the page background behind it.
       className="relative flex size-full min-w-0 flex-1"
       data-testid="search-detail"
     >
