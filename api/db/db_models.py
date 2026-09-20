@@ -1655,35 +1655,7 @@ class Search(DataBaseModel):
     created_by = CharField(max_length=32, null=False, index=True)
     search_config = JSONField(
         null=False,
-        default={
-            "kb_ids": [],
-            "doc_ids": [],
-            "similarity_threshold": 0.2,
-            "vector_similarity_weight": 0.3,
-            "use_kg": False,
-            # rerank settings
-            "rerank_id": "",
-            "top_k": 1024,
-            # chat settings
-            "summary": False,
-            "chat_id": "",  # id of chat model in tenant_model table
-            "llm_setting": {
-                "temperature": 0.1,
-                "top_p": 0.3,
-                "frequency_penalty": 0.7,
-                "presence_penalty": 0.4,
-                "temperature_enabled": True,
-                "top_p_enabled": True,
-                "frequency_penalty_enabled": True,
-                "presence_penalty_enabled": True,
-            },
-            "chat_settingcross_languages": [],
-            "highlight": False,
-            "keyword": False,
-            "web_search": False,
-            "related_search": False,
-            "query_mindmap": False,
-        },
+        default=cable_defaults.search_config,
     )
     status = CharField(max_length=1, null=True, help_text="is it validate(0: wasted, 1: validate)", default="1", index=True)
 

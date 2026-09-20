@@ -23,6 +23,7 @@ from api.db.services.dialog_service import async_ask
 from api.apps import current_user, login_required
 
 from api.constants import DATASET_NAME_LIMIT
+from api.db import cable_defaults
 from api.db.db_models import DB
 from api.db.services import duplicate_name
 from api.db.services.knowledgebase_service import KnowledgebaseService
@@ -65,6 +66,11 @@ async def create():
     req["description"] = description
     req["tenant_id"] = current_user.id
     req["created_by"] = current_user.id
+    # A search app created by name alone — the UI's create dialog sends nothing
+    # else — starts from the cable retrieval defaults rather than from whatever
+    # RAGFlow's generic values happen to be, so the first search it serves is
+    # already tuned. A caller that names individual settings keeps them.
+    req["search_config"] = {**cable_defaults.search_config(), **(req.get("search_config") or {})}
     with DB.atomic():
         try:
             if not SearchService.save(**req):

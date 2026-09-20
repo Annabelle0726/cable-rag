@@ -223,6 +223,21 @@ def get_tenant_default_model_by_type(tenant_id: str, model_type: str | enum.Enum
     return resolve_model_config(tenant_id, model_type, model_name)
 
 
+def get_default_rerank_model_config(tenant_id: str) -> dict | None:
+    """The tenant's default rerank model, or ``None`` when it has not set one.
+
+    Rerank is on by default for the search surfaces, but a model id belongs to
+    the tenant, so the retrieval path asks here instead of hard-coding one. A
+    deployment that never added a reranker keeps answering from the hybrid
+    score alone rather than failing the request.
+    """
+    try:
+        return get_tenant_default_model_by_type(tenant_id, LLMType.RERANK)
+    except Exception:
+        logger.debug("tenant %s has no default rerank model; rerank stays off", tenant_id)
+        return None
+
+
 def split_model_name(model_name: str):
     # Parse model_name: {model_name} or {model_name}@{factory_name} or {model_name}@{instance_name}@{factory_name}
     #
