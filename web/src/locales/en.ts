@@ -175,6 +175,11 @@ export default {
     },
     breadcrumb: {
       datasetModule: 'Knowledge base admin',
+      artifact: 'Artifacts',
+      messages: 'Messages',
+      setting: 'Settings',
+      newChat: 'New chat',
+      newAgent: 'New agent',
     },
     footer: {
       copyright:

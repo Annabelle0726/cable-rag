@@ -156,6 +156,12 @@ export default {
     },
     breadcrumb: {
       datasetModule: '知识库管理',
+      /* 面包屑自己的子页面名，避免与侧边栏文案相互耦合。 */
+      artifact: 'Artifacts',
+      messages: '消息',
+      setting: '设置',
+      newChat: '新建聊天',
+      newAgent: '新建智能体',
     },
     footer: {
       copyright: '© XD芯导数字科技 | 工业标准与 QC 合规检验系统',
