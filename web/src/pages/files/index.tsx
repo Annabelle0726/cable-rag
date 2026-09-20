@@ -123,12 +123,11 @@ export default function Files() {
         >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              {/* Primary action: the branded ceramic capsule, raised off the
-                  surface, rather than the theme's ink-filled default button. */}
-              <Button className="ceramic-cta h-10 rounded-full px-5">
-                {/* `size-[1em]` matches every other create pill: a bare icon
-                    falls back to the primitive's 16px and reads heavier. */}
-                <LucidePlus className="size-[1em]" />
+              {/* Primary action: the same 32px ceramic CTA every other list
+                  toolbar carries, on the same rail as the search field beside it.
+                  The earlier 40px capsule sat above that rail. */}
+              <Button className="ceramic-cta h-8 rounded-[2px] px-3 text-xs font-medium gap-1.5">
+                <LucidePlus className="size-3.5" />
                 {t('knowledgeDetails.addFile')}
               </Button>
             </DropdownMenuTrigger>

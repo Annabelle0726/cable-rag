@@ -2,6 +2,7 @@ import { RenameDialog } from '@/components/rename-dialog';
 import { Button } from '@/components/ui/button';
 import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
 import { useFetchNextKnowledgeListByPage } from '@/hooks/use-knowledge-request';
+import { Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DatasetTable } from '../datasets/dataset-table';
@@ -39,9 +40,10 @@ export function Datasets() {
     <section>
       <SectionHeading iconName="datasets" label={t('header.dataset')}>
         <Button
-          className="ceramic-cta h-8 rounded-[2px] px-3"
+          className="ceramic-cta h-8 rounded-[2px] px-3 text-xs font-medium gap-1.5"
           onClick={() => navigateToDatasetList({ isCreate: true })}
         >
+          <Plus className="size-3.5" />
           {t('knowledgeList.createKnowledgeBase')}
         </Button>
       </SectionHeading>

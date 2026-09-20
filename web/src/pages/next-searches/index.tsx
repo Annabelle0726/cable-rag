@@ -117,11 +117,11 @@ export default function SearchList() {
               filters={owners}
             >
               <Button
-                className="ceramic-cta h-10 rounded-full px-5"
+                className="ceramic-cta h-8 rounded-[2px] px-3 text-xs font-medium gap-1.5"
                 data-testid="create-search"
                 onClick={() => openCreateModalFun()}
               >
-                <Plus className="size-[1em]" />
+                <Plus className="size-3.5" />
                 {t('createSearch')}
               </Button>
             </ListFilterBar>

@@ -81,10 +81,10 @@ const UserSettingTeam = () => {
                 onChange={(e) => setSearchUser(e.target.value)}
               />
               <Button
-                className="ceramic-cta h-10 shrink-0 items-center gap-2 rounded-full border border-[var(--field-border)] bg-accent-color px-5 text-accent-contrast whitespace-nowrap hover:bg-accent-color-strong focus-visible:bg-accent-color-strong"
+                className="ceramic-cta h-8 shrink-0 rounded-[2px] px-3 text-xs font-medium gap-1.5 whitespace-nowrap"
                 onClick={showAddingTenantModal}
               >
-                <UserPlus className="size-4 shrink-0" />
+                <UserPlus className="size-3.5 shrink-0" />
                 {t('setting.invite')}
               </Button>
             </section>

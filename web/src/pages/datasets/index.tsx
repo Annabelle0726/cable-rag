@@ -119,7 +119,11 @@ export default function Datasets() {
   if (loading && !kbs?.length) {
     return (
       <article className="page-gutter py-4" data-testid="datasets-list">
-        <DatasetTable datasets={[]} loading showDatasetRenameModal={showDatasetRenameModal} />
+        <DatasetTable
+          datasets={[]}
+          loading
+          showDatasetRenameModal={showDatasetRenameModal}
+        />
       </article>
     );
   }
@@ -143,10 +147,10 @@ export default function Datasets() {
           </FilterPopover>
 
           <Button
-            className="ceramic-cta h-8 shrink-0 rounded-[2px] px-3"
+            className="ceramic-cta h-8 shrink-0 rounded-[2px] px-3 text-xs font-medium gap-1.5"
             onClick={showModal}
           >
-            <Plus className="size-[1em]" />
+            <Plus className="size-3.5" />
             {t('knowledgeList.createKnowledgeBase')}
           </Button>
         </div>

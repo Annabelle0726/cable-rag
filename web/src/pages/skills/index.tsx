@@ -634,10 +634,10 @@ const SkillsPage: React.FC = () => {
                   ]}
                 />
                 <Button
-                  className="ceramic-cta h-10 rounded-full px-5"
+                  className="ceramic-cta h-8 rounded-[2px] px-3 text-xs font-medium gap-1.5"
                   onClick={() => setCreateSpaceModalOpen(true)}
                 >
-                  <Plus className="size-[1em]" />
+                  <Plus className="size-3.5" />
                   {t('skills.createSpace') || 'Create Skill Space'}
                 </Button>
               </div>
@@ -848,11 +848,7 @@ const SkillsPage: React.FC = () => {
               // create tile is exactly a card's size.
               <CardContainer className="flex-1 overflow-auto xl:grid-cols-4 2xl:grid-cols-5">
                 {spaceSearchString ? (
-                  <EmptyAppCard
-                    showIcon
-                    isSearch
-                    type={EmptyCardType.Skills}
-                  />
+                  <EmptyAppCard showIcon isSearch type={EmptyCardType.Skills} />
                 ) : (
                   <EmptyAppCard
                     showIcon
