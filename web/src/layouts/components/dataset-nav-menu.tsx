@@ -50,13 +50,13 @@ type DatasetNavMenuProps = {
 };
 
 export function DatasetNavMenu({
-                                 to,
-                                 label,
-                                 icon: Icon,
-                                 isActive,
-                                 className,
-                                 testId,
-                               }: DatasetNavMenuProps) {
+  to,
+  label,
+  icon: Icon,
+  isActive,
+  className,
+  testId,
+}: DatasetNavMenuProps) {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<number>();
@@ -89,45 +89,44 @@ export function DatasetNavMenu({
   }, [pathname]);
 
   return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Link
-              to={to}
-              data-testid={testId}
-              aria-current={isActive ? 'page' : undefined}
-              aria-haspopup="true"
-              aria-expanded={open}
-              className={cn(
-                  className,
-                  'relative duration-150 data-[state=open]:bg-gov-header-hover data-[state=open]:text-gov-header-fg',
-              )}
-              onMouseEnter={handleOpen}
-              onMouseLeave={scheduleClose}
-              onFocus={handleOpen}
-              onClick={scheduleClose}
-          >
-            <Icon className="size-4 shrink-0 stroke-[1.75]" />
-            <span>{label}</span>
-          </Link>
-        </PopoverTrigger>
-
-        <PopoverContent
-            align="start"
-            sideOffset={4}
-            onMouseEnter={cancelClose}
-            onMouseLeave={scheduleClose}
-            onOpenAutoFocus={handlePreventAutoFocus}
-            /* 独立卡片：加上 rounded-lg 与 shadow-lg，去除多余的顶部硬连接块 */
-            className={cn(
-                'z-50 w-[min(92vw,26rem)] overflow-hidden outline-none',
-                'rounded-lg border border-panel-border bg-bg-component p-0 shadow-lg',
-                'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-            )}
-            data-testid="nav-dataset-menu"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Link
+          to={to}
+          data-testid={testId}
+          aria-current={isActive ? 'page' : undefined}
+          aria-haspopup="true"
+          aria-expanded={open}
+          className={cn(
+            className,
+            'relative duration-150 data-[state=open]:bg-gov-header-hover data-[state=open]:text-gov-header-fg',
+          )}
+          onMouseEnter={handleOpen}
+          onMouseLeave={scheduleClose}
+          onFocus={handleOpen}
+          onClick={scheduleClose}
         >
-          <DatasetNavMenuPanel onNavigate={scheduleClose} />
-        </PopoverContent>
-      </Popover>
+          <Icon className="size-4 shrink-0 stroke-[1.75]" />
+          <span>{label}</span>
+        </Link>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="start"
+        sideOffset={4}
+        onMouseEnter={cancelClose}
+        onMouseLeave={scheduleClose}
+        onOpenAutoFocus={handlePreventAutoFocus}
+        className={cn(
+          'z-50 w-[min(92vw,26rem)] overflow-hidden outline-none',
+          'rounded-lg border border-panel-border bg-bg-component p-0 shadow-lg',
+          'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        )}
+        data-testid="nav-dataset-menu"
+      >
+        <DatasetNavMenuPanel onNavigate={scheduleClose} />
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -136,92 +135,93 @@ function DatasetNavMenuPanel({ onNavigate }: { onNavigate: () => void }) {
   const { navigateToDatasetList } = useNavigatePage();
   const { list, loading } = useFetchKnowledgeList(false, '', MenuPageSize);
   const [activeCategory, setActiveCategory] = useState<DatasetCategory>(
-      DatasetCategory.Bom,
+    DatasetCategory.Bom,
   );
 
   const groups = useMemo(() => groupDatasetsByCategory(list), [list]);
   const visibleDatasets = datasetsInNavCategory(groups, activeCategory);
 
   return (
-      <div className="flex min-h-[13rem] divide-x divide-cable-hairline">
+    <div className="flex flex-col">
+      {/* 上半部分：左右双栏结构 */}
+      <div className="flex min-h-[11rem] divide-x divide-cable-hairline">
         {/* 第一级：左侧分类列 */}
         <ul className="w-44 shrink-0 space-y-0.5 bg-bg-title p-1.5" role="list">
           {DatasetCategoryNavOrder.map((category) => {
             const { labelKey, icon: CategoryIcon, toneClass } =
-                DatasetCategoryDefinitions[category];
+              DatasetCategoryDefinitions[category];
             const count = datasetsInNavCategory(groups, category).length;
             const isActiveCategory = category === activeCategory;
 
             return (
-                <li key={category}>
-                  <CategoryButton
-                      label={t(labelKey)}
-                      count={count}
-                      isActive={isActiveCategory}
-                      toneClass={toneClass}
-                      icon={<CategoryIcon className="category-ink size-4 shrink-0" aria-hidden />}
-                      onHover={setActiveCategory}
-                      category={category}
-                  />
-                </li>
+              <li key={category}>
+                <CategoryButton
+                  label={t(labelKey)}
+                  count={count}
+                  isActive={isActiveCategory}
+                  toneClass={toneClass}
+                  icon={<CategoryIcon className="category-ink size-4 shrink-0" aria-hidden />}
+                  onHover={setActiveCategory}
+                  category={category}
+                />
+              </li>
             );
           })}
         </ul>
 
         {/* 第二级：右侧知识库列表 */}
-        <div className="flex min-w-0 flex-1 flex-col bg-bg-component">
-          <div className="flex flex-1 flex-col overflow-y-auto p-1.5 min-h-[9rem]">
-            {loading ? (
-                <div className="flex h-full flex-1 items-center justify-center py-6">
-                  <Spin size="small" />
-                </div>
-            ) : visibleDatasets.length ? (
-                <ul className="space-y-0.5">
-                  {visibleDatasets.map((dataset) => (
-                      <DatasetLink
-                          key={dataset.id}
-                          dataset={dataset}
-                          onClick={onNavigate}
-                      />
-                  ))}
-                </ul>
-            ) : (
-                <div className="flex h-full flex-1 flex-col items-center justify-center py-6 text-text-secondary">
-                  <p className="text-xs text-text-secondary">{t('datasetCategory.empty')}</p>
-                </div>
-            )}
-          </div>
-
-          {/* 底部固定创建入口：更加紧凑精细 */}
-          <div className="border-t border-panel-border bg-bg-title px-1.5 py-1">
-            <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-full justify-start gap-1.5 px-2 text-xs text-text-secondary hover:bg-surface-hover hover:text-cable-brand"
-                onClick={() => {
-                  onNavigate();
-                  navigateToDatasetList({ isCreate: true });
-                }}
-                data-testid="nav-dataset-new"
-            >
-              <LucidePlus className="size-3.5" />
-              <span>{t('knowledgeList.createKnowledgeBase')}</span>
-            </Button>
-          </div>
+        <div className="flex min-w-0 flex-1 flex-col bg-bg-component p-1.5">
+          {loading ? (
+            <div className="flex h-full flex-1 items-center justify-center py-6">
+              <Spin size="small" />
+            </div>
+          ) : visibleDatasets.length ? (
+            <ul className="space-y-0.5">
+              {visibleDatasets.map((dataset) => (
+                <DatasetLink
+                  key={dataset.id}
+                  dataset={dataset}
+                  onClick={onNavigate}
+                />
+              ))}
+            </ul>
+          ) : (
+            <div className="flex h-full flex-1 flex-col items-center justify-center py-6 text-text-secondary">
+              <p className="text-xs text-text-secondary">{t('datasetCategory.empty')}</p>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* 下半部分：贯穿整个弹窗底部的固定创建栏 */}
+      <div className="border-t border-panel-border bg-bg-title px-1.5 py-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-full justify-start gap-1.5 px-2 text-xs text-text-secondary hover:bg-surface-hover hover:text-cable-brand"
+          onClick={() => {
+            onNavigate();
+            navigateToDatasetList({ isCreate: true });
+          }}
+          data-testid="nav-dataset-new"
+        >
+          <LucidePlus className="size-3.5" />
+          <span>{t('knowledgeList.createKnowledgeBase')}</span>
+        </Button>
+      </div>
+    </div>
   );
 }
 
 function CategoryButton({
-                          category,
-                          label,
-                          count,
-                          isActive,
-                          toneClass,
-                          icon,
-                          onHover,
-                        }: {
+  category,
+  label,
+  count,
+  isActive,
+  toneClass,
+  icon,
+  onHover,
+}: {
   category: DatasetCategory;
   label: string;
   count: number;
@@ -234,38 +234,38 @@ function CategoryButton({
   const handleFocus = useCallback(() => onHover(category), [category, onHover]);
 
   return (
-      <button
-          type="button"
-          onMouseEnter={handleHover}
-          onFocus={handleFocus}
-          aria-current={isActive ? 'true' : undefined}
-          data-testid={`nav-dataset-category-${category}`}
-          className={cn(
-              'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors duration-150',
-              toneClass,
-              isActive
-                  ? 'bg-surface-hover font-semibold text-text-primary'
-                  : 'text-text-secondary hover:bg-bg-title hover:text-text-primary',
-          )}
+    <button
+      type="button"
+      onMouseEnter={handleHover}
+      onFocus={handleFocus}
+      aria-current={isActive ? 'true' : undefined}
+      data-testid={`nav-dataset-category-${category}`}
+      className={cn(
+        'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors duration-150',
+        toneClass,
+        isActive
+          ? 'bg-surface-hover font-semibold text-text-primary'
+          : 'text-text-secondary hover:bg-bg-title hover:text-text-primary',
+      )}
+    >
+      {icon}
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <span
+        className={cn(
+          'shrink-0 text-[11px] tabular-nums',
+          isActive ? 'font-medium text-text-primary' : 'text-text-secondary',
+        )}
       >
-        {icon}
-        <span className="min-w-0 flex-1 truncate">{label}</span>
-        <span
-            className={cn(
-                'shrink-0 text-[11px] tabular-nums',
-                isActive ? 'font-medium text-text-primary' : 'text-text-secondary',
-            )}
-        >
         {count}
       </span>
-      </button>
+    </button>
   );
 }
 
 function DatasetLink({
-                       dataset,
-                       onClick,
-                     }: {
+  dataset,
+  onClick,
+}: {
   dataset: IDataset;
   onClick: () => void;
 }) {
@@ -273,20 +273,20 @@ function DatasetLink({
   const { category } = resolveDatasetCategory(dataset);
 
   return (
-      <li>
-        <Link
-            to={`${Routes.Dataset}/${dataset.id}`}
-            onClick={onClick}
-            data-testid="nav-dataset-item"
-            data-dataset-id={dataset.id}
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-cable-brand"
-        >
-          <DatasetCategoryIcon category={category} className="size-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate font-medium">{dataset.name}</span>
-          <span className="shrink-0 text-[11px] text-text-secondary/80">
+    <li>
+      <Link
+        to={`${Routes.Dataset}/${dataset.id}`}
+        onClick={onClick}
+        data-testid="nav-dataset-item"
+        data-dataset-id={dataset.id}
+        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-cable-brand"
+      >
+        <DatasetCategoryIcon category={category} className="size-4 shrink-0" />
+        <span className="min-w-0 flex-1 truncate font-medium">{dataset.name}</span>
+        <span className="shrink-0 text-[11px] text-text-secondary/80">
           {dataset.document_count} {t('knowledgeList.doc')}
         </span>
-        </Link>
-      </li>
+      </Link>
+    </li>
   );
 }
