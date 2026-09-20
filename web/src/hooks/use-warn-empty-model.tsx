@@ -23,6 +23,44 @@ import { useNavigatePage } from './logic-hooks/navigate-hooks';
 
 let isWarningVisible = false;
 
+/**
+ * The one warning about a tenant that has no default model, addressable by callers
+ * that need it *before* an action rather than while one is on screen.
+ *
+ * `Modal.warning` paints a full-window overlay and refuses to be dismissed except
+ * through its own button, which sends the operator to the model settings. Opening it
+ * on top of a dialog leaves that dialog's controls underneath the overlay: the
+ * operator presses Save, nothing happens, and the action looks frozen — no request
+ * is ever made. Callers that own a dialog ask first and only open it once the
+ * defaults are there.
+ */
+export const warnAboutEmptyModel = (
+  translate: (key: string) => string,
+  onOk: () => void,
+) => {
+  if (isWarningVisible) {
+    return;
+  }
+  isWarningVisible = true;
+
+  Modal.warning({
+    title: translate('common.warn'),
+    content: (
+      <div
+        dangerouslySetInnerHTML={{
+          __html: DOMPurify.sanitize(translate('setting.modelProvidersWarn')),
+        }}
+      ></div>
+    ),
+    closable: false,
+    showCancel: false,
+    onOk() {
+      isWarningVisible = false;
+      onOk();
+    },
+  });
+};
+
 export const useWarnEmptyModel = (
   showEmptyModelWarn: boolean,
   embdId?: string,
@@ -44,23 +82,7 @@ export const useWarnEmptyModel = (
       typeof llmId === 'string'
     ) {
       warnedRef.current = true;
-      isWarningVisible = true;
-      Modal.warning({
-        title: t('common.warn'),
-        content: (
-          <div
-            dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(t('setting.modelProvidersWarn')),
-            }}
-          ></div>
-        ),
-        closable: false,
-        showCancel: false,
-        onOk() {
-          isWarningVisible = false;
-          navigateToModelSetting();
-        },
-      });
+      warnAboutEmptyModel(t, navigateToModelSetting);
     }
   }, [showEmptyModelWarn, embdId, llmId, loading, navigateToModelSetting, t]);
 };
