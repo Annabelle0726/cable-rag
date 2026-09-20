@@ -259,7 +259,7 @@ class TestChatAssistantCreate:
             else:
                 assert res["data"]["similarity_threshold"] == DEFAULT_CHAT_SIMILARITY_THRESHOLD
                 assert res["data"]["vector_similarity_weight"] == 0.3
-                assert res["data"]["top_n"] == 6
+                assert res["data"]["top_n"] == 12
                 assert res["data"]["rerank_id"] == ""
                 assert res["data"]["prompt_config"]["parameters"] == [{"key": "knowledge", "optional": False}]
                 assert res["data"]["prompt_config"]["empty_response"] == DEFAULT_CHAT_EMPTY_RESPONSE

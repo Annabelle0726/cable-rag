@@ -179,6 +179,19 @@ func TestDetectStandardID(t *testing.T) {
 			want:    "Q/GDW 73289.2-2026",
 		},
 		{
+			// 煤炭行业标准: the file name declares no number, so the scan reaches the
+			// front matter, which cites GB/T 2900.10-2001. While MT was missing from
+			// the allowlist the document's own number was invisible and every chunk
+			// was stamped with the cited standard instead.
+			name:    "coal industry standard whose file name declares no number",
+			docName: "煤炭行业标准.pdf",
+			texts: []string{
+				"MT/T 818.11—2009\n煤矿用电缆 第11部分：额定电压10kV及以下固定敷设电力电缆一般规定",
+				"本部分参与起草单位\nGB/T 2900.10-2001 电工术语 电缆",
+			},
+			want: "MT/T 818.11-2009",
+		},
+		{
 			name:    "year-less enterprise standard number",
 			docName: "企标.pdf",
 			texts:   []string{"Q/GDW 73289.2 专用技术规范"},

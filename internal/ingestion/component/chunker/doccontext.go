@@ -70,7 +70,14 @@ const (
 // bodies). An allowlist rather than a permissive pattern keeps ordinary technical
 // prose — motor ratings such as "450/750V" or cable models — from being read as a
 // standard number.
-const standardPrefixAlternation = `Q/[A-Z]{2,6}|GB|DL|NB|JB|YD|JJG|JJF|HG|SH|SY|TB|CJ|JG|JGJ|CECS|IEC|ISO|IEEE|EN|BS|DIN|JIS|ASTM|ANSI|UL|API`
+//
+// MT (煤炭行业标准) is here because its absence was worse than a missing feature: a
+// coal standard's own number was invisible to the scan, so detection fell through
+// to the first *cited* standard in the front matter and stamped every chunk of
+// 《MT/T 818.11-2009》 with a "标准号" the document does not own — a field the
+// answering prompt is told to treat as authoritative. Keep this list aligned with
+// _STANDARD_PREFIXES in rag/nlp/doc_context.py.
+const standardPrefixAlternation = `Q/[A-Z]{2,6}|GB|DL|NB|MT|JB|YD|JJG|JJF|HG|SH|SY|TB|CJ|JG|JGJ|CECS|IEC|ISO|IEEE|EN|BS|DIN|JIS|ASTM|ANSI|UL|API`
 
 var (
 	// standardIDRE matches "<prefix><optional /T> <number>[.<number>...] - <year>".

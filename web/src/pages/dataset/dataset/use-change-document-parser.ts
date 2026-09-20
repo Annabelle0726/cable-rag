@@ -1,5 +1,7 @@
+import { Modal } from '@/components/ui/modal/modal';
 import { useSetModalState } from '@/hooks/common-hooks';
 import {
+  useRunDocument,
   useSetDocumentParser,
   useSetDocumentPipelineParser,
 } from '@/hooks/use-document-request';
@@ -7,11 +9,14 @@ import { IDocumentInfo } from '@/interfaces/database/document';
 import { IChangeParserRequestBody } from '@/interfaces/request/document';
 import { pickByBackend } from '@/utils/backend-variant';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const useChangeDocumentParser = () => {
+  const { t } = useTranslation();
   const { setDocumentParser, loading } = useSetDocumentParser();
   const { setDocumentPipelineParser, loading: pipelineParserLoading } =
     useSetDocumentPipelineParser();
+  const { runDocumentByIds } = useRunDocument();
   const [record, setRecord] = useState<IDocumentInfo>({} as IDocumentInfo);
 
   const {
@@ -42,15 +47,39 @@ export const useChangeDocumentParser = () => {
         })();
         if (ret === 0) {
           hideChangeParserModal();
+          // Changing the parser only changes how the *next* parse reads the file:
+          // the chunks already indexed were produced by the old one and keep being
+          // retrieved until the document is parsed again. Offer the rebuild here,
+          // because "switched to Plain Text but the answers still show the old
+          // garbled text" is otherwise the next bug report.
+          if ((record?.chunk_count ?? 0) > 0) {
+            Modal.confirm({
+              title: t('knowledgeDetails.reparseAfterParserChangeTitle'),
+              content: t('knowledgeDetails.reparseAfterParserChangeTip'),
+              okText: t('knowledgeDetails.reparseNow'),
+              cancelText: t('common.cancel'),
+              onOk: () =>
+                runDocumentByIds({
+                  documentIds: [record.id],
+                  run: 1,
+                  // Drop the old chunks before rebuilding, and keep the
+                  // document-level parser config instead of re-applying the KB's.
+                  option: { delete: true, apply_kb: false },
+                }),
+            });
+          }
         }
       }
     },
     [
       record?.id,
       record?.dataset_id,
+      record?.chunk_count,
       setDocumentParser,
       setDocumentPipelineParser,
       hideChangeParserModal,
+      runDocumentByIds,
+      t,
     ],
   );
 

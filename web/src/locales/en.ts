@@ -692,6 +692,13 @@ export default {
       layoutRecognize: 'PDF parser',
       layoutRecognizeTip:
         'Use a visual model for PDF layout analysis to effectively locate document titles, text blocks, images, and tables. If the naive option is chosen, only the plain text in the PDF will be retrieved. Please note that this option currently works ONLY for PDF documents.',
+      plainTextPreset: 'Standards / scans: switch to Plain Text (text fidelity first)',
+      plainTextPresetTip:
+        'On scans, or standards whose embedded text layer is poor, DeepDOC can merge adjacent lines and flatten a wide table row into one line (garbled text, dropped cells). Plain Text keeps the body line-accurate and the table values in order, at the cost of the table HTML structure and citation-to-page locating.',
+      reparseAfterParserChangeTitle: 'Parser updated — re-parse this document now?',
+      reparseAfterParserChangeTip:
+        'The indexed chunks were produced by the previous parser and keep being served until the document is parsed again. Re-parsing deletes the current chunks first, then rebuilds them with the new parser.',
+      reparseNow: 'Re-parse now',
       taskPageSize: 'Task page size',
       taskPageSizeMessage: 'Please input your task page size!',
       taskPageSizeTip:
