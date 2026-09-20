@@ -16,18 +16,17 @@ import {
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRenameSession } from '../hooks/use-rename-session';
-import { useSummarizeConversationTitle } from '../hooks/use-summarize-conversation-title';
 import { InlineRenameInput } from './inline-rename-input';
 
 type ConversationHeaderProps = {
-  chatId?: string;
   sessionId?: string;
   /** Conversation title: the raw first question until it is summarised or renamed. */
   title: string;
   /** Model the conversation answers with, switchable from the name dropdown. */
   llmId?: string;
   onModelChange?: (llmId: string) => void;
-  summarizable?: boolean;
+  /** Reported by the page, which owns the titling this header only displays. */
+  summarizing?: boolean;
   /** Re-opens the conversation list this header only renders without. */
   onExpandSessions?: () => void;
   /** Opens the chat settings drawer, which is reachable here only because the
@@ -50,12 +49,11 @@ type ConversationHeaderProps = {
  * section: the header keeps its height, so the messages below never move.
  */
 export function ConversationHeader({
-  chatId,
   sessionId,
   title,
   llmId,
   onModelChange,
-  summarizable = false,
+  summarizing = false,
   onExpandSessions,
   onOpenSettings,
 }: ConversationHeaderProps) {
@@ -64,13 +62,6 @@ export function ConversationHeader({
   const [editing, setEditing] = useState(false);
 
   const { renameSession, loading: renaming } = useRenameSession();
-  const { summarizing } = useSummarizeConversationTitle({
-    chatId,
-    sessionId,
-    currentTitle: title,
-    llmId,
-    enabled: summarizable,
-  });
 
   const handleModelOpenChange = useCallback((open: boolean) => {
     setModelOpen(open);

@@ -59,7 +59,6 @@ function renderHeader(onModelChange = jest.fn(), onOpenSettings = jest.fn()) {
             path="/chat/:id"
             element={
               <ConversationHeader
-                chatId="dialog-1"
                 sessionId="server-1"
                 title="QA - R2"
                 llmId="model-1"

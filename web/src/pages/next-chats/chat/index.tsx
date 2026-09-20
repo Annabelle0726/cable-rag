@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { useHandleClickConversationCard } from '../hooks/use-click-card';
 import { useChatUrlParams } from '../hooks/use-chat-url';
+import { useSummarizeConversationTitle } from '../hooks/use-summarize-conversation-title';
 import { ChatSettings } from './app-settings/chat-settings';
 import { MultipleChatBox } from './chat-box/next-multiple-chat-box';
 import { SingleChatBox } from './chat-box/single-chat-box';
@@ -98,6 +99,23 @@ export default function Chat() {
       t('chat.newConversation')
     );
   }, [conversationId, dialogList, t]);
+
+  /**
+   * Titling lives here, on the page, rather than in the header that displays it.
+   *
+   * The header is mounted only while the conversation list is collapsed, and the
+   * list is open by default — so while the titler was inside it, a question asked
+   * with the list open was never summarised at all and the conversation kept its
+   * raw first question as the title, which is exactly what the list is meant to
+   * show a summary of. The page is mounted for the whole visit.
+   */
+  const { summarizing } = useSummarizeConversationTitle({
+    chatId,
+    sessionId: conversationId,
+    currentTitle: currentConversationName,
+    llmId: currentDialog?.llm_id,
+    enabled: isPersistedConversationId(conversationId),
+  });
 
   /**
    * 聊天 > 助手 > 会话.
@@ -309,12 +327,11 @@ export default function Chat() {
                 })}
               >
                 <ConversationHeader
-                  chatId={chatId}
                   sessionId={conversationId}
                   title={currentConversationName}
                   llmId={currentDialog?.llm_id}
                   onModelChange={handleModelChange}
-                  summarizable={isPersistedConversationId(conversationId)}
+                  summarizing={summarizing}
                   onExpandSessions={handleExpandSessions}
                   onOpenSettings={showSettings}
                 ></ConversationHeader>
