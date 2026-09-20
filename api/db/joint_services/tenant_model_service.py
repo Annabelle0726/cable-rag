@@ -96,6 +96,26 @@ def get_first_provider_model_name(tenant_id: str, provider_name: str, model_type
     return None
 
 
+def get_first_tenant_model_name_by_type(tenant_id: str, model_type: str | enum.Enum) -> str | None:
+    """The tenant's first active model of a type, whichever provider holds it.
+
+    A background task that is not worth failing over — naming a conversation, for
+    one — can use this when the tenant never set a default: a tenant with a working
+    chat model has one, it just is not marked as the default, and refusing to run
+    turns a cosmetic task into a silent no-op.
+    """
+    model_type_bin = calculate_model_type(model_type)
+
+    for provider_obj in TenantModelProviderService.get_by_tenant_id(tenant_id):
+        for instance_obj in TenantModelInstanceService.get_all_by_provider_id(provider_obj.id):
+            if instance_obj.status != ActiveStatusEnum.ACTIVE.value:
+                continue
+            for model_obj in TenantModelService.get_models_by_instance_id(instance_obj.id):
+                if model_obj.model_type & model_type_bin and model_obj.status == ActiveStatusEnum.ACTIVE.value:
+                    return f"{model_obj.model_name}@{instance_obj.instance_name}@{provider_obj.provider_name}"
+    return None
+
+
 def _collect_env_config(env_keys: list[str], default_config: dict) -> dict | None:
     config = dict(default_config)
     found = False

@@ -34,6 +34,7 @@ from api.db.services.llm_service import resolve_llm_setting
 from api.db.joint_services.tenant_model_service import (
     get_api_key,
     get_composite_model_name_by_id,
+    get_first_tenant_model_name_by_type,
     get_model_config_by_id,
     get_tenant_default_model_by_type,
     resolve_model_config,
@@ -1276,11 +1277,17 @@ async def conversation_title():
     if not question:
         return get_json_result(data={"title": ""})
 
-    model_ref = (req.get("llm_id") or "").strip()
-    if model_ref:
-        chat_model_config = resolve_model_config(current_user.id, LLMType.CHAT, model_ref)
-    else:
-        chat_model_config = get_tenant_default_model_by_type(current_user.id, LLMType.CHAT)
+    chat_model_config = _resolve_title_model_config(current_user.id, (req.get("llm_id") or "").strip())
+    if chat_model_config is None:
+        # Naming a conversation is a cosmetic task, so a missing model must not look
+        # like a broken page — but it must be tellable apart from "the model had
+        # nothing to say", which is why this answers with the reason instead of the
+        # empty title an unresolvable model used to produce.
+        return get_data_error_result(
+            code=RetCode.ARGUMENT_ERROR,
+            message=("No chat model is available to title this conversation. " "Set a default chat model in Model settings, or pass `llm_id`."),
+        )
+
     chat_mdl = LLMBundle(current_user.id, chat_model_config)
 
     answer = await chat_mdl.async_chat(
@@ -1290,6 +1297,41 @@ async def conversation_title():
     )
 
     return get_json_result(data={"title": normalize_conversation_title(answer)})
+
+
+def _resolve_title_model_config(tenant_id: str, model_ref: str):
+    """The model a conversation title is summarised with, or None if there is none.
+
+    Tried in order: the model the request named (the assistant's own), the tenant's
+    default chat model, then any chat model the tenant has configured at all. The
+    last step is what keeps titling working on a tenant whose model is configured
+    and usable but never marked as the default — before it, that tenant silently got
+    its raw first question back as the title forever.
+    """
+    if model_ref:
+        try:
+            return resolve_model_config(tenant_id, LLMType.CHAT, model_ref)
+        except Exception:
+            logging.warning("Requested title model %s could not be resolved; falling back.", model_ref)
+
+    try:
+        return get_tenant_default_model_by_type(tenant_id, LLMType.CHAT)
+    except Exception:
+        logging.info("No default chat model for tenant %s; looking for any configured chat model.", tenant_id)
+
+    fallback = get_first_tenant_model_name_by_type(tenant_id, LLMType.CHAT)
+    if not fallback:
+        return None
+
+    try:
+        config = resolve_model_config(tenant_id, LLMType.CHAT, fallback)
+    except Exception:
+        logging.warning("Fallback chat model %s could not be resolved.", fallback)
+        return None
+
+    logging.warning("Titling conversations with %s because the tenant has no default chat model.", fallback)
+
+    return config
 
 
 @manager.route("/chat/completions", methods=["POST"])  # noqa: F821
