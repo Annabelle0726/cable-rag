@@ -16,7 +16,7 @@ import { Routes } from '@/routes';
 import { isPersistedConversationId } from '@/utils/chat';
 import { isEmpty } from 'lodash';
 import { LucideArrowBigLeft } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { useHandleClickConversationCard } from '../hooks/use-click-card';
@@ -128,6 +128,30 @@ export default function Chat() {
     return crumbs;
   }, [chatId, conversationId, currentDialog?.name, dialogList, t]);
 
+  /**
+   * The id whose messages are in hand.
+   *
+   * Paired with the URL's `conversationId` this makes the loading state a *derived*
+   * value rather than one an effect sets: on the very render that follows a click on
+   * another conversation the two differ, so the highlight and the loading screen
+   * both paint with the click instead of one frame later.
+   */
+  const [loadedConversationId, setLoadedConversationId] = useState('');
+
+  /**
+   * Ids this mount has already requested. A session's messages arrive into the
+   * stream store keyed by id, so re-requesting one the pane already holds is pure
+   * duplication — and this effect re-runs whenever the query string changes (the
+   * `isNew` flag, the placeholder-to-real id swap after the first send), which is
+   * most of the duplicate fetches. A failed request is dropped from the set so a
+   * later click can retry it.
+   */
+  const requestedConversationIds = useRef(new Set<string>());
+
+  const isLoadingMessages =
+    isPersistedConversationId(conversationId) &&
+    conversationId !== loadedConversationId;
+
   // The URL is the single source of truth for which conversation is open:
   // card clicks, "+" and the temp→real id swap after the first send all land
   // here. Clear first so the previous conversation's messages and references
@@ -140,28 +164,47 @@ export default function Chat() {
     // id is worth a request — the placeholder's messages come from the prologue
     // seeded in the stream store.
     if (!isPersistedConversationId(conversationId)) return;
+    if (conversationId === loadedConversationId) return;
+    if (requestedConversationIds.current.has(conversationId)) return;
 
+    requestedConversationIds.current.add(conversationId);
     let cancelled = false;
-    fetchSessionManually(conversationId).then((conversation) => {
-      if (cancelled) {
-        return;
-      }
-      if (!conversation) {
-        // The session is gone (deleted elsewhere, stale link, or a temp id that
-        // never reached the server). Drop the dead id so this page settles into a
-        // blank conversation instead of showing an empty shell; the request itself
-        // already suppressed the "102 Session not found" toast.
-        clearConversationParams();
-        return;
-      }
-      if (!isEmpty(conversation)) {
-        setCurrentConversation(conversation);
-      }
-    });
+    fetchSessionManually(conversationId)
+      .then((conversation) => {
+        if (cancelled) {
+          return;
+        }
+        if (!conversation) {
+          // The session is gone (deleted elsewhere, stale link, or a temp id that
+          // never reached the server). Forget the attempt so a later click can try
+          // again, then drop the dead id so this page settles into a blank
+          // conversation instead of showing an empty shell; the request itself
+          // already suppressed the "102 Session not found" toast.
+          requestedConversationIds.current.delete(conversationId);
+          setLoadedConversationId('');
+          clearConversationParams();
+          return;
+        }
+        if (!isEmpty(conversation)) {
+          setCurrentConversation(conversation);
+          setLoadedConversationId(conversationId);
+        }
+      })
+      .catch(() => {
+        // A transport failure is not a dead session: leave the id retryable and
+        // let the error notification the request layer already raised stand.
+        requestedConversationIds.current.delete(conversationId);
+      });
+
     return () => {
       cancelled = true;
     };
-  }, [conversationId, fetchSessionManually, clearConversationParams]);
+  }, [
+    conversationId,
+    loadedConversationId,
+    fetchSessionManually,
+    clearConversationParams,
+  ]);
 
   if (isDebugMode) {
     return (
@@ -215,6 +258,9 @@ export default function Chat() {
             visible={sessionsVisible}
             onVisibleChange={setSessionsVisible}
             onOpenSettings={showSettings}
+            loadingConversationId={
+              isLoadingMessages ? conversationId : undefined
+            }
           ></Sessions>
 
           <div className="glass-surface flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -243,7 +289,10 @@ export default function Chat() {
             )}
 
             <div className="min-h-0 flex-1">
-              <SingleChatBox conversation={currentConversation} />
+              <SingleChatBox
+                conversation={currentConversation}
+                loading={isLoadingMessages}
+              />
             </div>
           </div>
 

@@ -17,12 +17,19 @@ import { useSendMessage } from '../../hooks/use-send-chat-message';
 import { useMessageReferences } from '../../hooks/use-message-references';
 import { EmptyReference } from '../../utils';
 import { useShowInternet } from '../use-show-internet';
+import { MessageSkeleton } from './message-skeleton';
 
 interface IProps {
   conversation: IClientConversation;
+  /**
+   * The conversation named in the URL has not arrived yet. The transcript shows the
+   * loading screen instead of its messages, so the previous session's content can
+   * never be read as the newly picked one.
+   */
+  loading?: boolean;
 }
 
-export function SingleChatBox({ conversation }: IProps) {
+export function SingleChatBox({ conversation, loading = false }: IProps) {
   const {
     value,
     scrollRef,
@@ -90,28 +97,32 @@ export function SingleChatBox({ conversation }: IProps) {
         className="px-5 pt-3 pb-5 flex-1 overflow-auto min-h-0 scrollbar-auto"
       >
         <div className="w-full pr-5">
-          {messages?.map((message, i) => (
-            <MessageItem
-              loading={
-                message.role === MessageType.Assistant &&
-                sendLoading &&
-                messages.length - 1 === i
-              }
-              key={buildMessageUuidWithRole(message)}
-              item={message}
-              nickname={userInfo.nickname}
-              email={userInfo.email}
-              avatar={userInfo.avatar}
-              avatarDialog={currentDialog.icon}
-              reference={messageReferences.get(message) ?? EmptyReference}
-              clickDocumentButton={clickDocumentButton}
-              index={i}
-              isLast={i === messages.length - 1}
-              removeMessageById={removeMessageById}
-              regenerateMessage={regenerateMessage}
-              sendLoading={sendLoading}
-            />
-          ))}
+          {loading ? (
+            <MessageSkeleton className="pt-2" />
+          ) : (
+            messages?.map((message, i) => (
+              <MessageItem
+                loading={
+                  message.role === MessageType.Assistant &&
+                  sendLoading &&
+                  messages.length - 1 === i
+                }
+                key={buildMessageUuidWithRole(message)}
+                item={message}
+                nickname={userInfo.nickname}
+                email={userInfo.email}
+                avatar={userInfo.avatar}
+                avatarDialog={currentDialog.icon}
+                reference={messageReferences.get(message) ?? EmptyReference}
+                clickDocumentButton={clickDocumentButton}
+                index={i}
+                isLast={i === messages.length - 1}
+                removeMessageById={removeMessageById}
+                regenerateMessage={regenerateMessage}
+                sendLoading={sendLoading}
+              />
+            ))
+          )}
         </div>
         <div ref={scrollRef} />
       </div>

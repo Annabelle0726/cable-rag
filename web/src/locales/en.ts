@@ -1057,6 +1057,7 @@ export default {
         'Send one question to several models at once and compare their answers side by side.',
       applyModelConfigs: 'Apply model configs',
       conversations: 'Conversations',
+      loadingSession: 'Loading conversation…',
       chatApps: 'Chat apps',
       newConversation: 'New conversation',
       createSessionFailed:

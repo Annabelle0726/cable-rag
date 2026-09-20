@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import {
   LucideCopyX,
   LucideListChecks,
+  LucideLoader2,
   LucidePanelLeftClose,
   LucidePencil,
   LucidePin,
@@ -45,12 +46,19 @@ type SessionProps = Pick<
   onVisibleChange: (visible: boolean) => void;
   /** Opens the chat settings drawer, owned by the chat page. */
   onOpenSettings: () => void;
+  /**
+   * The session whose messages are being fetched. Its row swaps its rename action
+   * for a spinner and stops taking clicks, so the rail says "loading" instead of
+   * letting the same request be queued twice.
+   */
+  loadingConversationId?: string;
 };
 export function Sessions({
   handleConversationCardClick,
   visible,
   onVisibleChange,
   onOpenSettings,
+  loadingConversationId,
 }: SessionProps) {
   const { t } = useTranslation();
   const {
@@ -385,92 +393,114 @@ export function Sessions({
         ) : (
           <nav aria-label={t('chat.conversations')}>
             <ul className="space-y-2">
-              {conversationList.map((x) => (
-                <li
-                  key={x.id}
-                  // A pinned row wears a surface of its own, so it reads as pinned
-                  // before the pointer goes anywhere near it; the open one swaps
-                  // that surface for the brand bar on its leading edge, which the
-                  // selected highlight alone would not say.
-                  //
-                  // `bg-cable-surface-muted` rather than `bg-cable-surface/60`: the
-                  // cable tokens are plain `var()` colours, and Tailwind v3 emits no
-                  // rule at all for an opacity modifier on one of those, so the
-                  // row would have come out with no background. The muted token is
-                  // the surface a step up from the page — translucent white in the
-                  // light theme, #1b2129 against #161b22 in the dark one.
-                  className={cn(
-                    'group pr-3 flex items-center gap-1 rounded-lg',
-                    'aria-selected:bg-bg-card has-[>button:focus-visible]:bg-bg-card',
-                    x.is_pinned &&
-                      (conversationId === x.id
-                        ? 'border-l-2 border-l-cable-accent'
-                        : 'border border-cable-hairline bg-cable-surface-muted'),
-                  )}
-                  aria-selected={conversationId === x.id}
-                >
-                  {renamingConversationId === x.id ? (
-                    <InlineRenameInput
-                      value={x.name}
-                      onSave={(name) => handleRenameConversation(x.id, name)}
-                      onCancel={handleCancelRenaming}
-                      saving={renaming}
-                      showActions={false}
-                      className="flex-1 px-2 py-1"
-                      inputClassName="text-sm"
-                      testId="chat-detail-session-rename-input"
-                    />
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        className="focus-visible:outline-none px-3 py-2 text-left flex min-w-0 flex-1 items-center gap-1.5"
-                        onClick={() =>
-                          handleConversationCardClick(x.id, x.is_new)
-                        }
-                        onDoubleClick={() => handleStartRenaming(x.id)}
-                        data-testid="chat-detail-session-item"
-                        data-session-id={x.id}
-                      >
-                        {/* Inside the button, so the marker never becomes a
-                            smaller target than the row it labels. */}
-                        {x.is_pinned ? (
-                          <LucidePin
-                            aria-hidden
-                            data-testid="chat-detail-session-pin-marker"
-                            className="size-3.5 shrink-0 text-cable-accent"
-                          />
-                        ) : null}
-                        <span className="min-w-0 flex-1 truncate">
-                          {x.name}
-                        </span>
-                      </button>
+              {conversationList.map((x) => {
+                const isRowLoading = loadingConversationId === x.id;
 
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 shrink-0 rounded-lg p-0 text-text-secondary opacity-0 transition-colors group-hover:opacity-100 hover:bg-cable-brand-soft hover:text-cable-brand"
-                        onClick={() => handleStartRenaming(x.id)}
-                        aria-label={t('common.rename')}
-                        data-testid="chat-detail-session-rename"
-                        data-session-id={x.id}
-                      >
-                        <LucidePencil className="size-3.5" />
-                      </Button>
-                    </>
-                  )}
-
-                  <ConversationDropdown
-                    conversation={x}
-                    removeTemporaryConversation={removeTemporaryConversation}
+                return (
+                  <li
+                    key={x.id}
+                    // A pinned row wears a surface of its own, so it reads as pinned
+                    // before the pointer goes anywhere near it; the open one swaps
+                    // that surface for the brand bar on its leading edge, which the
+                    // selected highlight alone would not say.
+                    //
+                    // `bg-cable-surface-muted` rather than `bg-cable-surface/60`: the
+                    // cable tokens are plain `var()` colours, and Tailwind v3 emits no
+                    // rule at all for an opacity modifier on one of those, so the
+                    // row would have come out with no background. The muted token is
+                    // the surface a step up from the page — translucent white in the
+                    // light theme, #1b2129 against #161b22 in the dark one.
+                    className={cn(
+                      'group pr-3 flex items-center gap-1 rounded-lg',
+                      'aria-selected:bg-bg-card has-[>button:focus-visible]:bg-bg-card',
+                      x.is_pinned &&
+                        (conversationId === x.id
+                          ? 'border-l-2 border-l-cable-accent'
+                          : 'border border-cable-hairline bg-cable-surface-muted'),
+                    )}
+                    aria-selected={conversationId === x.id}
+                    aria-busy={isRowLoading || undefined}
+                    data-loading={isRowLoading ? 'true' : undefined}
                   >
-                    <MoreButton
-                      data-testid="chat-detail-session-actions"
-                      data-session-id={x.id}
-                    ></MoreButton>
-                  </ConversationDropdown>
-                </li>
-              ))}
+                    {renamingConversationId === x.id ? (
+                      <InlineRenameInput
+                        value={x.name}
+                        onSave={(name) => handleRenameConversation(x.id, name)}
+                        onCancel={handleCancelRenaming}
+                        saving={renaming}
+                        showActions={false}
+                        className="flex-1 px-2 py-1"
+                        inputClassName="text-sm"
+                        testId="chat-detail-session-rename-input"
+                      />
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="focus-visible:outline-none px-3 py-2 text-left flex min-w-0 flex-1 items-center gap-1.5"
+                          onClick={() =>
+                            handleConversationCardClick(x.id, x.is_new)
+                          }
+                          // The row being fetched already owns the request: a second
+                          // click can only queue the same id again.
+                          disabled={isRowLoading}
+                          onDoubleClick={() => handleStartRenaming(x.id)}
+                          data-testid="chat-detail-session-item"
+                          data-session-id={x.id}
+                        >
+                          {/* Inside the button, so the marker never becomes a
+                            smaller target than the row it labels. */}
+                          {x.is_pinned ? (
+                            <LucidePin
+                              aria-hidden
+                              data-testid="chat-detail-session-pin-marker"
+                              className="size-3.5 shrink-0 text-cable-accent"
+                            />
+                          ) : null}
+                          <span className="min-w-0 flex-1 truncate">
+                            {x.name}
+                          </span>
+                        </button>
+
+                        {/* The row's own loading mark: the fetch is what the spinner
+                          reports, so it takes the slot the rename action leaves
+                          empty and hands it back once the messages land. */}
+                        {isRowLoading ? (
+                          <span
+                            className="flex size-7 shrink-0 items-center justify-center"
+                            data-testid="chat-detail-session-loading"
+                            data-session-id={x.id}
+                          >
+                            <LucideLoader2 className="size-3.5 animate-spin text-cable-brand" />
+                          </span>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 shrink-0 rounded-lg p-0 text-text-secondary opacity-0 transition-colors group-hover:opacity-100 hover:bg-cable-brand-soft hover:text-cable-brand"
+                            onClick={() => handleStartRenaming(x.id)}
+                            aria-label={t('common.rename')}
+                            data-testid="chat-detail-session-rename"
+                            data-session-id={x.id}
+                          >
+                            <LucidePencil className="size-3.5" />
+                          </Button>
+                        )}
+                      </>
+                    )}
+
+                    <ConversationDropdown
+                      conversation={x}
+                      removeTemporaryConversation={removeTemporaryConversation}
+                    >
+                      <MoreButton
+                        data-testid="chat-detail-session-actions"
+                        data-session-id={x.id}
+                      ></MoreButton>
+                    </ConversationDropdown>
+                  </li>
+                );
+              })}
             </ul>
           </nav>
         )}

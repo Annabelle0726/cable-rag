@@ -938,6 +938,7 @@ export default {
       multipleModelsTip: '把同一个问题同时发给多个模型，并排对比它们的回答。',
       applyModelConfigs: '应用模型配置',
       conversations: '会话',
+      loadingSession: '正在加载会话…',
       chatApps: '聊天',
       createChat: '创建聊天',
       newConversation: '新会话',
