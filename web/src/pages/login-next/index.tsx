@@ -1,3 +1,19 @@
+/*
+ *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 import SvgIcon from '@/components/svg-icon';
 import { useAuth } from '@/hooks/auth-hooks';
 import {
@@ -67,17 +83,10 @@ function LoginFormContent({
   return (
     <div className="flex w-full flex-col items-center justify-center">
       <div className="mb-4 text-center">
-        {/* The largest type on the card, in the theme's primary text colour: that
-            is white on the dark ceramic and ink on the light one, so the title
-            never disappears the way a literal `text-white` would on a pale card. */}
         <h2 className="text-2xl font-semibold text-text-primary">
           {title === 'login' ? t('loginTitle') : t('signUpTitle')}
         </h2>
       </div>
-      {/* The focal point of the page: a square white panel closed by a 1px
-          hairline, with the accent edge on focus-within. It is the widest element
-          on the page, and its fields are a step taller than the app default so
-          the panel reads as the thing to act on. */}
       <div className="ceramic-pill w-full max-w-[520px] px-8 py-7 transition-colors duration-200 ease-in-out focus-within:border-cable-brand">
         {!disablePasswordLogin && (
           <Form {...form}>
@@ -190,19 +199,8 @@ function LoginFormContent({
                 type="submit"
                 loading={loading}
                 className={cn(
-                  // The shared button variant tints its own hover and focus
-                  // states towards ink, which on a blue action reads as grey.
-                  // Naming the same utilities here replaces them — the merge
-                  // keeps the last of a conflicting pair — so every state stays
-                  // on the CTA's own ramp: accent, one step deeper, deepest
-                  // while held.
                   'my-1 h-10 w-full',
-                  // The relief is written as an arbitrary property rather than a
-                  // `shadow-*` utility: a bare `shadow-[var(--token)]` is read as
-                  // a shadow *colour* and would have left the button flat.
                   'bg-[var(--login-cta-bg)] text-[var(--login-cta-fg)] [box-shadow:var(--login-cta-shadow)]',
-                  // The glaze is a translucent layer over the fill, so it stays
-                  // put while the fill itself steps down a shade.
                   '[background-image:var(--login-cta-sheen)] [text-shadow:var(--login-cta-text-shadow)]',
                   'hover:bg-[var(--login-cta-bg-hover)] hover:[box-shadow:var(--login-cta-shadow-hover)]',
                   'focus-visible:bg-[var(--login-cta-bg-hover)] focus-visible:[box-shadow:var(--login-cta-shadow-hover)]',
@@ -297,9 +295,6 @@ const Login = () => {
   });
   const [isLoginPage, setIsLoginPage] = useState(true);
 
-  // Only the requests the submit button owns: the SSO channel list has its own
-  // place on the card and no bearing on the password form, and letting it count
-  // here greyed the button out (disabled at 50%) on every page load instead.
   const loading = signLoading || registerLoading || loginWithChannelLoading;
   const { config } = useSystemConfig();
   const registerEnabled =
@@ -312,10 +307,6 @@ const Login = () => {
     }
   }, [isLogin, navigate]);
 
-  // The login route renders without the app shell (`layout: false`), so this
-  // page owns the viewport: one screen, no scrollbars. The document is locked
-  // while it is mounted, because the register face is taller than the login
-  // face and must never turn the page itself into a scroll container.
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -409,29 +400,16 @@ const Login = () => {
   return (
     <>
       <div className="bg-cable-page relative flex h-screen w-screen flex-col overflow-hidden">
-        {/* The sign-in route has no app header, so the language switch lives on
-            the page instead of in the top bar. */}
+        {/* 右上角语言与主题切换控件区域 */}
         <div className="absolute right-5 top-5 z-20">
           <LoginLanguageToggle />
         </div>
 
-        {/* One centred band with the 政企 footer pinned under it: the form keeps
-            the middle of the screen, and the copyright line closes the page
-            instead of floating over it. No spotlight bloom and no animated
-            circuit pattern — the canvas is plain #F0F2F5. */}
         <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center px-6 py-6">
-          {/* Two columns from `lg` up, 5 / 7: the brand column takes two fifths
-              and the form three, so the card has room to sit as the focal point.
-              Below `lg` the brand column is hidden and the form keeps the compact
-              logo row instead, so the single-screen promise survives on a narrow
-              window. */}
           <div className="grid w-full max-w-[1200px] grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12">
             <LoginHero />
 
             <div className="flex w-full flex-col items-center lg:col-span-7">
-              {/* Logo and product name read as one line, both on the same centre
-                  line. Only for narrow screens: the brand column above already
-                  names the product from `lg` up. */}
               <header className="mb-4 flex flex-row items-center justify-center gap-3 lg:hidden">
                 <span className="flex size-10 shrink-0 items-center justify-center border border-panel-border bg-bg-component">
                   <SvgIcon name="brand-logo" width={24} height={24} />
@@ -441,7 +419,6 @@ const Login = () => {
                 </p>
               </header>
 
-              {/* Login Form */}
               <FlipCard3D isLoginPage={isLoginPage}>
                 <LoginFormContent
                   isLoginPage={isLoginPage}

@@ -14,49 +14,42 @@
  *  limitations under the License.
  */
 
-import { cn } from '@/lib/utils';
+import ThemeButton from '@/layouts/components/theme-button';
 import { changeLanguageAsync, supportedLanguages } from '@/locales/config';
+import { Languages } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 /**
- * 简体中文 / English switch for the sign-in page. This route renders without the
- * app header, so the switcher lives on the page itself.
- *
- * It goes through `changeLanguageAsync` rather than `i18n.changeLanguage`: that
- * is the call which fetches the bundle for the target language, so the login and
- * register copy is actually loaded instead of falling back to the preloaded
- * English bundle (or, for a language nobody preloaded, to raw keys).
+ * 登录/注册页面的语言与主题切换组件。
+ * 采用与 Header 一致的 SVG 图标样式，并集成 ThemeButton。
  */
 export function LoginLanguageToggle() {
   const { i18n } = useTranslation();
   const currentLanguage = i18n.resolvedLanguage ?? i18n.language;
 
-  const handleChangeLanguage = (code: string) => {
-    changeLanguageAsync(code);
+  // 切换下一个目标语言（支持 zh / en 切换）
+  const handleToggleLanguage = () => {
+    const nextLang = currentLanguage.startsWith('zh') ? 'en' : 'zh';
+    changeLanguageAsync(nextLang);
   };
 
-  return (
-    <div className="ceramic-pill flex items-center gap-1 rounded-full p-1">
-      {supportedLanguages.map(({ code, displayName }) => {
-        const isActive = currentLanguage === code;
+  const nextLangObj = supportedLanguages.find((item) => item.code !== currentLanguage);
 
-        return (
-          <button
-            key={code}
-            type="button"
-            onClick={() => handleChangeLanguage(code)}
-            aria-pressed={isActive}
-            className={cn(
-              'rounded-full px-3 py-1 text-xs transition-colors duration-200 ease-in-out',
-              isActive
-                ? 'bg-accent-color font-medium text-accent-contrast'
-                : 'text-text-secondary hover:text-text-primary',
-            )}
-          >
-            {displayName}
-          </button>
-        );
-      })}
+  return (
+    <div className="flex shrink-0 items-center justify-end gap-1">
+      {/* 语言切换 SVG 按钮 */}
+      <button
+        type="button"
+        onClick={handleToggleLanguage}
+        aria-label={nextLangObj?.displayName ?? 'Switch Language'}
+        title={nextLangObj?.displayName ?? 'Switch Language'}
+        className="inline-flex size-8 shrink-0 items-center justify-center rounded p-0 text-text-secondary transition-colors hover:bg-muted hover:text-text-primary focus-visible:outline-none"
+      >
+        <Languages className="size-[1.05rem]" />
+      </button>
+
+      {/* 主题模式切换按钮 */}
+      <ThemeButton />
     </div>
   );
 }
