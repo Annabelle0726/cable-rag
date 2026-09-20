@@ -38,6 +38,7 @@ PROMPT_RULE_HEADINGS = (
     "3. 合理工程推理：",
     "4. 标准号归属判定：",
     "5. 证据不足时严格拒答：",
+    "6. 检索片段与原文的区分：",
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -63,7 +64,10 @@ def test_retrieval_defaults():
     # The full-text leg takes the remainder of the vector weight.
     assert round(1 - cable_defaults.VECTOR_SIMILARITY_WEIGHT, 2) == 0.70
     assert cable_defaults.RERANK_CANDIDATES_COUNT == 64
-    assert cable_defaults.TOP_N == 6
+    # 6 truncated real answers on a standards corpus (the retrieved passage that
+    # held the answer sat at rank 7 and rank 10), so the default has to clear
+    # single-document corpora rather than the smallest useful number.
+    assert cable_defaults.TOP_N == 12
 
 
 def test_prompt_defaults():
@@ -98,11 +102,36 @@ def test_prompt_rule_5_rejects_answers_without_evidence():
     assert "禁止给出“接近但不完全一致”的数值。" in prompt
 
 
+def test_prompt_rule_6_scopes_a_gap_to_the_retrieved_passages():
+    """Rule 6 stops the model from blaming the source document for a retrieval gap.
+
+    Rule 5 already forbids inventing an answer; rule 6 covers what the model says
+    instead. A live answer to 《MT/T 818.11-2009》 reported the standard's own 表3 as
+    "原文残缺" when the passage simply had not been retrieved — the reader is told
+    the source is defective and has no next step.
+    """
+    prompt = cable_defaults.SYSTEM_PROMPT
+
+    assert "检索片段与原文的区分" in prompt
+    assert "当前检索到的片段暂未包含" in prompt
+    assert "不要据此判断标准原文缺失、残缺或不完整" in prompt
+    # The degradation has to be actionable, not just honest.
+    assert "建议补充关键词或指定条款号/表号" in prompt
+
+
 def test_go_mirror_carries_the_same_prompt_byte_for_byte():
     """The Go backend hands new assistants the same prompt as the Python one."""
     go_source = (REPO_ROOT / "internal/service/cable_defaults.go").read_text(encoding="utf-8")
 
     assert _go_string_constant(go_source, "CableDefaultSystemPrompt") == cable_defaults.SYSTEM_PROMPT
+
+
+def test_go_mirror_carries_the_same_retrieval_defaults():
+    """A row must land on the same configuration whichever backend created it."""
+    go_source = (REPO_ROOT / "internal/service/cable_defaults.go").read_text(encoding="utf-8")
+
+    assert re.search(r"CableDefaultTopN\s*=\s*(\d+)", go_source).group(1) == str(cable_defaults.TOP_N)
+    assert re.search(r"CableDefaultRerankCandidatesCount\s*=\s*(\d+)", go_source).group(1) == str(cable_defaults.RERANK_CANDIDATES_COUNT)
 
 
 def test_prompt_config_returns_an_independent_copy():

@@ -33,7 +33,15 @@ const (
 	CableDefaultVectorSimilarityWeight = 0.30
 	// CableDefaultTopN is the number of passages kept for the answer handed to
 	// the LLM.
-	CableDefaultTopN = 6
+	//
+	// 6 was measured to truncate real answers on a standards corpus: a
+	// coal-industry standard of 47 chunks had its own 表3 (第4芯截面选用表) at
+	// retrieval rank 7 and its 外护层 naming clause at rank 10, so both were
+	// dropped before the model ever saw them — the answer then reported the
+	// content as missing from the document. 12 keeps a single-document
+	// standards corpus covered without the context cost that comes with
+	// routinely handing the model two dozen passages.
+	CableDefaultTopN = 12
 	// CableDefaultRerankCandidatesCount is the number of passages handed to the
 	// reranker.
 	CableDefaultRerankCandidatesCount = 64
@@ -57,6 +65,8 @@ const (
 		"   - 如果用户要对比两个实体，而证据里只有一个，只回答有的那个，并明确说“另一个未在知识库中找到”。\n" +
 		"   - 禁止给出“接近但不完全一致”的数值。\n" +
 		"   - 禁止给出证据中没有的数字、温度、参数。如果用户问的数值不在证据里，直接说“知识库中未找到该数值”。\n" +
+		"6. 检索片段与原文的区分：如果检索到的片段里没有包含回答所需的信息，请明确说明“当前检索到的片段暂未包含 X，建议补充关键词或指定条款号/表号”，" +
+		"不要据此判断标准原文缺失、残缺或不完整——原文可能含有该内容，只是本轮未被检索到。\n" +
 		"\n" +
 		"以下是知识库：\n" +
 		"{knowledge}\n" +
