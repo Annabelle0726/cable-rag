@@ -129,28 +129,59 @@ export default function Chat() {
   }, [chatId, conversationId, currentDialog?.name, dialogList, t]);
 
   /**
-   * The id whose messages are in hand.
+   * How each conversation's load ended: `ready` once its messages are in hand,
+   * `failed` when the attempt produced none. Absent means "never attempted", which
+   * is what the loading state reads as — so the render that follows a click shows
+   * the loading screen without an effect having to set a flag first.
    *
-   * Paired with the URL's `conversationId` this makes the loading state a *derived*
-   * value rather than one an effect sets: on the very render that follows a click on
-   * another conversation the two differ, so the highlight and the loading screen
-   * both paint with the click instead of one frame later.
+   * Both terminal states are recorded, not just success: a spinner that only stops
+   * on success is a spinner that never stops when the request is rejected or the
+   * session is gone, and the row it belongs to is disabled while it waits.
    */
-  const [loadedConversationId, setLoadedConversationId] = useState('');
+  const [sessionLoadState, setSessionLoadState] = useState<
+    Record<string, 'ready' | 'failed'>
+  >({});
 
   /**
-   * Ids this mount has already requested. A session's messages arrive into the
+   * Ids this mount has already attempted. A session's messages arrive into the
    * stream store keyed by id, so re-requesting one the pane already holds is pure
    * duplication — and this effect re-runs whenever the query string changes (the
    * `isNew` flag, the placeholder-to-real id swap after the first send), which is
-   * most of the duplicate fetches. A failed request is dropped from the set so a
-   * later click can retry it.
+   * most of the duplicate fetches. A failed attempt releases the id so a later
+   * click can try again.
    */
-  const requestedConversationIds = useRef(new Set<string>());
+  const attemptedConversationIds = useRef(new Set<string>());
+
+  /**
+   * Bumped when a row whose last attempt failed is picked again. Re-selecting the
+   * same session leaves the URL unchanged, so nothing would re-run the load below;
+   * the token is what turns that click into a retry.
+   */
+  const [retryToken, setRetryToken] = useState(0);
+
+  const loadState = sessionLoadState[conversationId];
 
   const isLoadingMessages =
     isPersistedConversationId(conversationId) &&
-    conversationId !== loadedConversationId;
+    loadState !== 'ready' &&
+    loadState !== 'failed';
+
+  const handleSessionClick = useCallback(
+    (id: string, isNew: boolean) => {
+      if (sessionLoadState[id] === 'failed') {
+        attemptedConversationIds.current.delete(id);
+        setSessionLoadState((previous) => {
+          const next = { ...previous };
+          delete next[id];
+          return next;
+        });
+        setRetryToken((token) => token + 1);
+      }
+
+      handleConversationCardClick(id, isNew);
+    },
+    [handleConversationCardClick, sessionLoadState],
+  );
 
   // The URL is the single source of truth for which conversation is open:
   // card clicks, "+" and the temp→real id swap after the first send all land
@@ -164,46 +195,48 @@ export default function Chat() {
     // id is worth a request — the placeholder's messages come from the prologue
     // seeded in the stream store.
     if (!isPersistedConversationId(conversationId)) return;
-    if (conversationId === loadedConversationId) return;
-    if (requestedConversationIds.current.has(conversationId)) return;
+    if (attemptedConversationIds.current.has(conversationId)) return;
 
-    requestedConversationIds.current.add(conversationId);
-    let cancelled = false;
+    attemptedConversationIds.current.add(conversationId);
+    const settle = (state: 'ready' | 'failed') => {
+      setSessionLoadState((previous) =>
+        previous[conversationId] === state
+          ? previous
+          : { ...previous, [conversationId]: state },
+      );
+    };
+
     fetchSessionManually(conversationId)
       .then((conversation) => {
-        if (cancelled) {
-          return;
-        }
         if (!conversation) {
           // The session is gone (deleted elsewhere, stale link, or a temp id that
-          // never reached the server). Forget the attempt so a later click can try
-          // again, then drop the dead id so this page settles into a blank
-          // conversation instead of showing an empty shell; the request itself
-          // already suppressed the "102 Session not found" toast.
-          requestedConversationIds.current.delete(conversationId);
-          setLoadedConversationId('');
+          // never reached the server). Record the failure so the row stops waiting
+          // and drops the dead id so this page settles into a blank conversation
+          // instead of showing an empty shell; the request itself already
+          // suppressed the "102 Session not found" toast.
+          attemptedConversationIds.current.delete(conversationId);
+          settle('failed');
           clearConversationParams();
           return;
         }
-        if (!isEmpty(conversation)) {
-          setCurrentConversation(conversation);
-          setLoadedConversationId(conversationId);
-        }
+
+        // Written even if the operator has since moved on: the result belongs to
+        // this id, the transcript ignores a conversation that is not the open one,
+        // and holding it here is what makes returning to the session instant.
+        setCurrentConversation(conversation);
+        settle('ready');
       })
       .catch(() => {
-        // A transport failure is not a dead session: leave the id retryable and
-        // let the error notification the request layer already raised stand.
-        requestedConversationIds.current.delete(conversationId);
+        // A transport failure is not a dead session: release the id so the row can
+        // be clicked again, and stop its spinner.
+        attemptedConversationIds.current.delete(conversationId);
+        settle('failed');
       });
-
-    return () => {
-      cancelled = true;
-    };
   }, [
     conversationId,
-    loadedConversationId,
     fetchSessionManually,
     clearConversationParams,
+    retryToken,
   ]);
 
   if (isDebugMode) {
@@ -254,7 +287,7 @@ export default function Chat() {
             strip, which read as a picture frame floating in the page. */}
         <article className="flex flex-1 min-h-0">
           <Sessions
-            handleConversationCardClick={handleConversationCardClick}
+            handleConversationCardClick={handleSessionClick}
             visible={sessionsVisible}
             onVisibleChange={setSessionsVisible}
             onOpenSettings={showSettings}
