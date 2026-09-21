@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
  *
  * Both are raster crops of the supplied artwork (`芯导logo.jpg`, `芯导logo2.jpg`,
  * which sit beside them untouched): the sources are 2421x1417 sheets with the ink
- * inset in a wide white margin, so `brand-mark.png` and `brand-lockup.png` are the
+ * inset in a wide white margin, so `logo.png` and `brand-lockup.png` are the
  * ink alone. Neither has an alpha channel — the artwork is drawn on white — so a
  * caller that puts it on a coloured surface has to give it a light tile, which is
  * what the header mark does.
