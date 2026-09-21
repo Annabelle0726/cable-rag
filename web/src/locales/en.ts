@@ -1042,6 +1042,9 @@ export default {
       questionTip:
         'If there are given questions, the embedding of the chunk will be based on them.',
       chunkResult: 'Chunk result',
+      sliceIndex: '#Passage {{index}}',
+      sliceScore: 'Match',
+      sliceLocate: 'Locate',
       chunkResultTip:
         'View the chunked segments used for embedding and retrieval.',
       representation: 'Representation',

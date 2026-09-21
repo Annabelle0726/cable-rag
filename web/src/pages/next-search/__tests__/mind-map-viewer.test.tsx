@@ -73,12 +73,6 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockGraph.getZoom.mockReturnValue(1);
   mockGraph.render.mockImplementation(() => Promise.resolve());
-  // jsdom has no ResizeObserver, which the container measurement uses.
-  (globalThis as any).ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
 });
 
 describe('mind map viewer', () => {

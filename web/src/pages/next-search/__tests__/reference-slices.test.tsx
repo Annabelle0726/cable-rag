@@ -79,7 +79,8 @@ describe('reference slice list', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText('文档 2'));
+    // The card's locate control, not the file tag: the tag is a label.
+    fireEvent.click(screen.getAllByTestId('reference-slice-locate')[1]);
 
     expect(onOpenDocument).toHaveBeenCalledWith(
       'doc-2',

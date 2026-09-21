@@ -16,6 +16,7 @@
 
 import { EmptyType } from '@/components/empty/constant';
 import Empty from '@/components/empty/empty';
+import ExpandableContent from '@/components/expandable-content';
 import ModelServiceUnavailable from '@/components/model-service-unavailable';
 import { SkeletonCard } from '@/components/skeleton-card';
 import { TopSelect } from '@/components/top-select';
@@ -42,7 +43,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { ISearchAppDetailProps } from '../next-searches/hooks';
 import PdfDrawer from './document-preview-modal';
-import ExpandableContent from './expandable-content';
 import { ISearchReturnProps } from './hooks';
 import './index.less';
 import MarkdownContent from './markdown-content';

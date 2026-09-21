@@ -30,3 +30,15 @@ if (typeof globalThis.fetch === 'undefined') {
   (globalThis as Record<string, unknown>).fetch = () =>
     Promise.reject(new Error('fetch is not available in tests'));
 }
+
+// jsdom exposes no ResizeObserver either, while every component that measures
+// its own overflow uses one (the collapsible answer and reference bodies, the
+// mind map's canvas container). A no-op observer is enough: jsdom lays nothing
+// out, so there is no size to report.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  (globalThis as Record<string, unknown>).ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

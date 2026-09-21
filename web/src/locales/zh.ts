@@ -923,6 +923,9 @@ export default {
       question: '问题',
       questionTip: '如果有给定的问题，则块的 Embedding 将基于它们。',
       chunkResult: '切片结果',
+      sliceIndex: '#切片 {{index}}',
+      sliceScore: '匹配度',
+      sliceLocate: '定位',
       chunkResultTip: '查看用于 Embedding 和召回的切片段落。',
       representation: '表征',
       representationKinds: {

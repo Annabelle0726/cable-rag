@@ -23,12 +23,21 @@ interface ExpandableContentProps {
   children: ReactNode;
   maxHeight?: number;
   className?: string;
+  /**
+   * The surface the fade is painted from, as a `from-*` utility.
+   *
+   * The mask has to end in the colour of whatever the content sits on, or it
+   * reads as a grey smear across it — the answer pane and a reference card do
+   * not share a background, so the caller names its own.
+   */
+  fadeFromClassName?: string;
 }
 
 export default function ExpandableContent({
   children,
   maxHeight = 208, // 52 * 4 = 208px (max-h-52)
   className = '',
+  fadeFromClassName = 'from-bg-base',
 }: ExpandableContentProps) {
   const { t } = useTranslation();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -97,7 +106,9 @@ export default function ExpandableContent({
       </div>
 
       {!isExpanded && isOverflowing && (
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-bg-base to-transparent pointer-events-none" />
+        <div
+          className={`absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t to-transparent pointer-events-none ${fadeFromClassName}`}
+        />
       )}
 
       {isOverflowing && !isExpanded && (
