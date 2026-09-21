@@ -27,6 +27,7 @@ import authorizationUtil, {
 } from '@/utils/authorization-util';
 import notification from '@/utils/notification';
 import { RequestMethod, extend } from 'umi-request';
+import { reportApiError } from './api-error';
 import { convertTheKeysOfTheObjectToSnake, isFormData } from './common-util';
 import { setCachedLlmList } from './llm-cache';
 import { addTenantParams } from './llm-util';
@@ -170,9 +171,7 @@ request.interceptors.response.use(async (response: Response, options) => {
     }
   }
 
-  if (data?.code === 100) {
-    message.error(data?.message);
-  } else if (data?.code === 401) {
+  if (data?.code === 401) {
     if (!isRedirecting) {
       isRedirecting = true;
       notification.error({
@@ -185,12 +184,8 @@ request.interceptors.response.use(async (response: Response, options) => {
     }
     authorizationUtil.removeAll();
     redirectToLogin();
-  } else if (data?.code !== 0) {
-    notification.error({
-      message: `${i18n.t('message.hint')} : ${data?.code}`,
-      description: data?.message,
-      duration: 3,
-    });
+  } else {
+    reportApiError(data, { skip: (options as any)?.skipGlobalErrorNotification });
   }
   return response;
 });

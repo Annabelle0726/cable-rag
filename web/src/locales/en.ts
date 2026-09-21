@@ -3,6 +3,7 @@ export default {
     common: {
       confirm: 'Confirm',
       back: 'Back',
+      retry: 'Retry',
       noResults: 'No results found',
       selectPlaceholder: 'Select value',
       selectAll: 'Select all',
@@ -2575,6 +2576,10 @@ export default {
       networkAnomaly: 'network anomaly',
       hint: 'hint',
       error: 'Error: {{error}}',
+      embeddingQuotaExhausted:
+        'The vector service is out of quota (429). Try again later or use another API key.',
+      embeddingRateLimited:
+        'The vector service is getting too many requests (429). Try again shortly.',
     },
     fileManager: {
       uploadFolderTitle: 'Upload folder',
@@ -3750,6 +3755,7 @@ export default {
       welcomeBack: 'Welcome back',
       searchSettings: 'Search settings',
       advancedSettings: 'Advanced settings (algorithm parameters)',
+      embeddingUnavailable: 'Search is unavailable while the vector service is restricted',
       referenceSlices: 'Reference passages',
       expandSlices: 'Show {{count}} more',
       collapseSlices: 'Show fewer',

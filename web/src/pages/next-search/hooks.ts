@@ -34,6 +34,7 @@ import kbService from '@/services/knowledge-service';
 import chatService from '@/services/next-chat-service';
 import searchService from '@/services/search-service';
 import api from '@/utils/api';
+import { modelServiceErrorOf } from '@/utils/model-service-error';
 import { useMutation } from '@tanstack/react-query';
 import { has, isEmpty, isEqual, trim } from 'lodash';
 import {
@@ -95,6 +96,14 @@ export const useSearchFetchMindMap = () => {
     mutationFn: async (params: IAskRequestBody) => {
       try {
         const ret = await fetchMindMapFunc(params);
+        // The map is generated from retrieved passages, so the vector service
+        // refusing the query is why there is no map — not an empty answer. The
+        // drawer says which one it is.
+        const errorType = modelServiceErrorOf(ret?.data);
+        if (errorType) {
+          return { error_type: errorType };
+        }
+
         return ret?.data?.data ?? {};
       } catch (error: any) {
         if (has(error, 'message')) {
@@ -119,7 +128,7 @@ export const useShowMindMapDrawer = (
 
   const {
     fetchMindMap,
-    data: mindMap,
+    data: mindMapData,
     loading: mindMapLoading,
   } = useSearchFetchMindMap();
 
@@ -139,8 +148,12 @@ export const useShowMindMapDrawer = (
     showModal();
   }, [fetchMindMap, showModal, question, kbIds, searchId]);
 
+  // A refused map is not an empty one, and the drawer renders them differently.
+  const mindMapErrorType = modelServiceErrorOf(mindMapData);
+
   return {
-    mindMap,
+    mindMap: mindMapErrorType ? undefined : mindMapData,
+    mindMapErrorType,
     mindMapVisible: visible,
     mindMapLoading,
     showMindMapModal: handleShowModal,
@@ -180,6 +193,12 @@ export const useTestChunkRetrieval = (
           ...res,
           documents: res.doc_aggs,
         };
+      }
+      const errorType = modelServiceErrorOf(data);
+      if (errorType) {
+        // A refusal is not "no passage matched": the page holds the place the
+        // results would have taken and names the capability that is down.
+        return { chunks: [], documents: [], total: 0, error_type: errorType };
       }
       return (
         data?.data ?? {
@@ -562,12 +581,13 @@ export const useSearching = ({
     showMindMapModal,
     mindMapLoading,
     mindMap,
+    mindMapErrorType,
   } = useShowMindMapDrawer(
     searchData.search_config.kb_ids,
     searchStr,
     searchData.id,
   );
-  const { chunks, total } = useSelectTestingResult();
+  const { chunks, total, error_type } = useSelectTestingResult();
 
   const handleSearch = useCallback(
     (value: string) => {
@@ -617,8 +637,10 @@ export const useSearching = ({
     showMindMapModal,
     mindMapLoading,
     mindMap,
+    mindMapErrorType,
     chunks,
     total,
+    retrievalErrorType: modelServiceErrorOf({ error_type }),
     handleSearch,
     pageSize,
     handleTopChange,

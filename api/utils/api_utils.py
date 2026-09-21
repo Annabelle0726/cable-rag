@@ -45,6 +45,7 @@ from api.utils.json_encode import CustomJSONEncoder
 from common.mcp_tool_call_conn import MCPToolCallSession, close_multiple_mcp_toolcall_sessions
 from api.db.services.tenant_llm_service import LLMFactoriesService
 from common.connection_utils import timeout
+from common import model_errors
 from common.constants import RetCode
 from common import settings
 from common.misc_utils import thread_pool_exec
@@ -150,6 +151,18 @@ def server_error_response(e):
 
     if "not_found" in str(e):
         return get_error_data_result(message="No chunk found! Check the chunk status please!")
+
+    # A model provider refusing the request is something the reader can act on —
+    # wait, or change the key — so it answers with that instead of the exception
+    # text. The upstream body (which can run to kilobytes of JSON) travels in
+    # `raw_message` for the log and is never the field a client renders.
+    model_failure = model_errors.model_failure_response(e)
+    if model_failure is not None:
+        logging.warning("Model provider refused the request: error_type=%s raw_message=%s", model_failure["error_type"], model_failure["raw_message"])
+        # `error_type` and `raw_message` sit beside `code` and `message` rather
+        # than under `data`: a client branches on them before it looks at any
+        # payload, and there is no payload to speak of in a refusal.
+        return _safe_jsonify(model_failure)
 
     return get_json_result(code=RetCode.EXCEPTION_ERROR, message=repr(e))
 

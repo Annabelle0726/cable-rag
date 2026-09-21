@@ -29,6 +29,7 @@ from openai import OpenAI
 from zai import ZhipuAiClient
 
 from common import settings
+from common import model_errors
 from common.aimlapi_utils import attribution_headers
 from common.exceptions import ModelException
 from common.llm_request_context import openai_user_kwargs
@@ -47,6 +48,11 @@ logger = logging.getLogger(__name__)
 DEFAULT_MAX_TOKENS = 8192
 
 
+def _summarize(text: str, limit: int = 200) -> str:
+    """One line of the provider's own text, for the exception message."""
+    return " ".join(str(text).split())[:limit]
+
+
 class EmbeddingError(ModelException):
     """Raised when an embedding provider fails to return usable embeddings.
 
@@ -54,7 +60,75 @@ class EmbeddingError(ModelException):
     callers see consistent behaviour regardless of which SDK raised underneath.
     Subclasses ``ModelException`` so the API error handler (and its retry
     semantics) treats embedding failures like any other model failure.
+
+    ``error_type`` is what the API layer translates into something a client can
+    show (see ``common/model_errors.py``), and ``raw_message`` keeps the
+    provider's own text for the log.
     """
+
+    error_type = "EMBEDDING_ERROR"
+
+    def __init__(self, msg, retryable=False, raw_message: str | None = None):
+        super().__init__(msg, retryable=retryable)
+        self.raw_message = raw_message if raw_message is not None else msg
+
+
+class EmbeddingRateLimited(EmbeddingError):
+    """The provider refused because the caller is asking too often right now.
+
+    Retryable: the same request is expected to succeed once the window rolls
+    over.
+    """
+
+    error_type = model_errors.EMBEDDING_RATE_LIMITED
+
+    def __init__(self, provider: str, raw_message: str):
+        super().__init__(
+            f"{provider} embedding rate limit exceeded: {_summarize(raw_message)}",
+            retryable=True,
+            raw_message=raw_message,
+        )
+
+
+class EmbeddingQuotaExhausted(EmbeddingError):
+    """The provider refused because the account's quota is used up.
+
+    Not retryable on its own: the request will keep failing until the quota
+    resets or the API key changes, so callers must not sit in a retry loop.
+    """
+
+    error_type = model_errors.EMBEDDING_QUOTA_EXHAUSTED
+
+    def __init__(self, provider: str, raw_message: str):
+        super().__init__(
+            f"{provider} embedding quota exhausted: {_summarize(raw_message)}",
+            retryable=False,
+            raw_message=raw_message,
+        )
+
+
+#: Fragments of a provider refusal live in ``common/model_errors.py``: the same
+#: classifier decides what the API layer shows a client, so there is one list to
+#: keep rather than one per layer.
+_EMBEDDING_FAILURES: dict[str, type[EmbeddingError]] = {
+    model_errors.EMBEDDING_QUOTA_EXHAUSTED: EmbeddingQuotaExhausted,
+    model_errors.EMBEDDING_RATE_LIMITED: EmbeddingRateLimited,
+}
+
+
+def embedding_failure(provider: str, detail: str) -> EmbeddingError:
+    """Maps a provider failure onto the exception the API layer understands.
+
+    Providers report a spent quota and a per-minute rate limit with the same
+    status code, so the body decides which of the two this is — and that
+    distinction is the whole difference between "try again in a minute" and
+    "this account is out of quota until it resets".
+    """
+    failure = _EMBEDDING_FAILURES.get(model_errors.classify(detail))
+    if failure is not None:
+        return failure(provider, detail)
+
+    return EmbeddingError(f"Embedding request failed for {provider}. Error: {detail}", raw_message=detail)
 
 
 def _sorted_by_index(items):
@@ -67,9 +141,14 @@ def _sorted_by_index(items):
 def _raise_model_exception_if_failed(resp):
     status_code = resp.status_code
     if status_code >= 400:
-        if status_code < 500 and status_code not in [408, 429]:
-            raise ModelException(f"status: {resp.status_code}, response: {resp.text}", retryable=False)
-        raise ModelException(f"status: {resp.status_code}, response: {resp.text}", retryable=True)
+        detail = f"status: {resp.status_code}, response: {resp.text}"
+        if status_code in (408, 429):
+            # The two statuses a provider uses to say "not now"; which one it
+            # means is in the body, not in the code.
+            raise embedding_failure("HTTP embedding", detail)
+        if status_code < 500:
+            raise ModelException(detail, retryable=False)
+        raise ModelException(detail, retryable=True)
 
 
 def _dashscope_base_url_for_log(base_url: str) -> str:
@@ -197,7 +276,7 @@ class Base(ABC):
                 raise
             except Exception as e:
                 logger.exception("%s embedding request failed", type(self).__name__)
-                raise EmbeddingError(f"Embedding request failed for {type(self).__name__}. Error: {e}") from e
+                raise embedding_failure(type(self).__name__, str(e)) from e
             vectors.extend(embeddings)
             token_count += tokens
         return np.array(vectors), token_count
@@ -863,7 +942,7 @@ class GeminiEmbed(Base):
             return np.array(self._parse_embedding_response(result)[0]), token_count
         except Exception as _e:
             logger.exception("GeminiEmbed: query embedding request failed")
-            raise EmbeddingError(f"Embedding request failed for GeminiEmbed. Error: {_e}") from _e
+            raise embedding_failure("GeminiEmbed", str(_e)) from _e
 
 
 class NvidiaEmbed(Base):

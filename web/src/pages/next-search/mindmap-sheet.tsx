@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+import ModelServiceUnavailable from '@/components/model-service-unavailable';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,6 +30,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { IModalProps } from '@/interfaces/common';
+import { ModelServiceErrorType } from '@/utils/model-service-error';
 import { Maximize2, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -37,9 +39,17 @@ import MindMapViewer from './mind-map-viewer';
 
 interface IProps extends IModalProps<any> {
   data: any;
+  /** Set when the vector service refused the query the map is built from. */
+  errorType?: ModelServiceErrorType | null;
 }
 
-const MindMapSheet = ({ data, hideModal, loading, visible }: IProps) => {
+const MindMapSheet = ({
+  data,
+  errorType,
+  hideModal,
+  loading,
+  visible,
+}: IProps) => {
   const { t } = useTranslation();
   const percent = usePendingMindMap();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -111,8 +121,17 @@ const MindMapSheet = ({ data, hideModal, loading, visible }: IProps) => {
                 <Progress value={percent} className="h-1 flex-1 min-w-10" />
               </div>
             )}
-            {!loading && isEmptyMindMap && emptyState}
-            {!loading && !isEmptyMindMap && (
+            {!loading && errorType && (
+              // The map is built from retrieved passages, so a refused query is
+              // why there is nothing to draw — not a question with no structure.
+              <ModelServiceUnavailable
+                errorType={errorType}
+                title={t('search.embeddingUnavailable')}
+                className="h-full"
+              ></ModelServiceUnavailable>
+            )}
+            {!loading && !errorType && isEmptyMindMap && emptyState}
+            {!loading && !errorType && !isEmptyMindMap && (
               <div className="h-full w-full">
                 <MindMapViewer data={data}></MindMapViewer>
               </div>
@@ -132,7 +151,13 @@ const MindMapSheet = ({ data, hideModal, loading, visible }: IProps) => {
             </DialogTitle>
           </DialogHeader>
           <div className="min-h-0 flex-1 p-4">
-            {isEmptyMindMap ? (
+            {errorType ? (
+              <ModelServiceUnavailable
+                errorType={errorType}
+                title={t('search.embeddingUnavailable')}
+                className="h-full"
+              ></ModelServiceUnavailable>
+            ) : isEmptyMindMap ? (
               emptyState
             ) : (
               // Mounted only while open: a second G6 canvas behind a closed

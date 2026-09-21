@@ -15,6 +15,8 @@
 #
 
 from api.utils import api_utils
+from common import model_errors
+from common.constants import RetCode
 
 
 def test_get_data_openai_stream_chunk_matches_openai_shape(monkeypatch):
@@ -192,3 +194,30 @@ def test_build_error_result_keeps_valid_http_codes_and_body():
     assert resp.status_code == 404
     body = asyncio.run(resp.get_json())
     assert body == {"code": RetCode.NOT_FOUND, "message": "boom"}
+
+
+def test_server_error_response_translates_a_provider_refusal():
+    """The browser gets a sentence, and the upstream body only as a diagnostic."""
+    from rag.llm.embedding_model import embedding_failure
+
+    error = embedding_failure(
+        "GeminiEmbed",
+        "429 RESOURCE_EXHAUSTED. {'error': {'details': [{'quotaId': "
+        "'EmbedContentRequestsPerDayPerProjectPerModel-FreeTier'}]}}",
+    )
+
+    body = api_utils.server_error_response(error)
+
+    assert body["code"] == 429
+    assert body["error_type"] == "EMBEDDING_QUOTA_EXHAUSTED"
+    assert body["message"] == model_errors.MESSAGES["EMBEDDING_QUOTA_EXHAUSTED"]
+    assert "RESOURCE_EXHAUSTED" not in body["message"]
+    assert "quotaId" in body["raw_message"]
+
+
+def test_server_error_response_keeps_the_previous_shape_for_other_errors():
+    body = api_utils.server_error_response(ValueError("boom"))
+
+    assert body["code"] == RetCode.EXCEPTION_ERROR
+    assert body["message"] == repr(ValueError("boom"))
+    assert "error_type" not in body

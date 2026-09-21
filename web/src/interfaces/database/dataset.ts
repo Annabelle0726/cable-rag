@@ -210,6 +210,12 @@ export interface ITestingResult {
   documents: ITestingDocument[];
   total: number;
   labels?: Record<string, number>;
+  /**
+   * Set when the backend refused the retrieval rather than finding nothing —
+   * the vector service being out of quota, say. A page says which capability is
+   * down instead of reporting an empty result set.
+   */
+  error_type?: string;
 }
 
 export interface INextTestingResult {

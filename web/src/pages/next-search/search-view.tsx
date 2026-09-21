@@ -16,6 +16,7 @@
 
 import { EmptyType } from '@/components/empty/constant';
 import Empty from '@/components/empty/empty';
+import ModelServiceUnavailable from '@/components/model-service-unavailable';
 import { SkeletonCard } from '@/components/skeleton-card';
 import { TopSelect } from '@/components/top-select';
 import { Button } from '@/components/ui/button';
@@ -75,8 +76,10 @@ export default function SearchingView({
   showMindMapModal,
   mindMapLoading,
   mindMap,
+  mindMapErrorType,
   chunks,
   total,
+  retrievalErrorType,
   handleSearch,
   pageSize,
   handleTopChange,
@@ -117,6 +120,12 @@ export default function SearchingView({
     },
     [handleSearch],
   );
+
+  // A refusal is often a matter of waiting a minute, so the panel offers the one
+  // action that helps: ask again with the question already in the box.
+  const handleRetrySearch = useCallback(() => {
+    handleSearch(searchStr);
+  }, [handleSearch, searchStr]);
 
   return (
     <section className={cn('relative flex h-full w-full flex-col')}>
@@ -228,73 +237,89 @@ export default function SearchingView({
                 )}
               </>
             )}
-            {/* retrieval documents. The two controls size to their own content:
-                a fixed 176px rail truncated the file-list label and clipped the
-                count beside it, which is what made the row read as broken. */}
-            {!isSearchStrEmpty && !sendingLoading && (
-              <section className="flex flex-wrap items-center gap-3">
-                <RetrievalDocuments
-                  selectedDocumentIds={selectedDocumentIds}
-                  setSelectedDocumentIds={setSelectedDocumentIds}
-                  onTesting={(vals: string[]) =>
-                    handleTestChunk(vals, 1, pageSize)
-                  }
-                  setLoading={(loading: boolean) => {
-                    setRetrievalLoading(loading);
-                  }}
-                ></RetrievalDocuments>
-                <TopSelect
-                  max={searchData.search_config.rerank_candidates_count ?? 100}
-                  value={pageSize}
-                  onChange={handleTopChange}
-                ></TopSelect>
-                <span className="ml-auto text-sm text-text-secondary pr-2">
-                  {t('common.total')}: {total}
-                </span>
-              </section>
-            )}
-            <ReferenceSlices
-              chunks={chunks ?? []}
-              onOpenDocument={handleOpenDocument}
-            ></ReferenceSlices>
-            {relatedQuestions?.length > 0 &&
-              searchData.search_config.related_search && (
-                <>
-                  <div className="w-full border-b border-border-default/80 mt-6"></div>
+            {/* A refused retrieval holds the place the results would have taken.
+                The file list, the page-size selector and the "no data" state all
+                describe a search that ran, and none of them is true here. */}
+            {retrievalErrorType ? (
+              <ModelServiceUnavailable
+                errorType={retrievalErrorType}
+                title={t('search.embeddingUnavailable')}
+                onRetry={handleRetrySearch}
+              ></ModelServiceUnavailable>
+            ) : (
+              <>
+                {/* retrieval documents. The two controls size to their own
+                    content: a fixed 176px rail truncated the file-list label and
+                    clipped the count beside it, which is what made the row read
+                    as broken. */}
+                {!isSearchStrEmpty && !sendingLoading && (
+                  <section className="flex flex-wrap items-center gap-3">
+                    <RetrievalDocuments
+                      selectedDocumentIds={selectedDocumentIds}
+                      setSelectedDocumentIds={setSelectedDocumentIds}
+                      onTesting={(vals: string[]) =>
+                        handleTestChunk(vals, 1, pageSize)
+                      }
+                      setLoading={(loading: boolean) => {
+                        setRetrievalLoading(loading);
+                      }}
+                    ></RetrievalDocuments>
+                    <TopSelect
+                      max={
+                        searchData.search_config.rerank_candidates_count ?? 100
+                      }
+                      value={pageSize}
+                      onChange={handleTopChange}
+                    ></TopSelect>
+                    <span className="ml-auto text-sm text-text-secondary pr-2">
+                      {t('common.total')}: {total}
+                    </span>
+                  </section>
+                )}
+                <ReferenceSlices
+                  chunks={chunks ?? []}
+                  onOpenDocument={handleOpenDocument}
+                ></ReferenceSlices>
+                {relatedQuestions?.length > 0 &&
+                  searchData.search_config.related_search && (
+                    <>
+                      <div className="w-full border-b border-border-default/80 mt-6"></div>
 
-                  <div className="mt-6 w-full overflow-hidden opacity-100 max-h-96">
-                    <p className="text-text-primary mb-2 text-xl">
-                      {t('search.relatedSearch')}
-                    </p>
-                    <div className="mt-2 flex flex-wrap justify-start gap-2">
-                      {relatedQuestions?.map((x, idx) => (
-                        <Button
-                          key={idx}
-                          variant="transparent"
-                          className="bg-bg-card text-text-secondary"
-                          onClick={handleClickRelatedQuestion(
-                            x,
-                            searchData.search_config.summary,
-                          )}
-                        >
-                          {x}
-                        </Button>
-                      ))}
+                      <div className="mt-6 w-full overflow-hidden opacity-100 max-h-96">
+                        <p className="text-text-primary mb-2 text-xl">
+                          {t('search.relatedSearch')}
+                        </p>
+                        <div className="mt-2 flex flex-wrap justify-start gap-2">
+                          {relatedQuestions?.map((x, idx) => (
+                            <Button
+                              key={idx}
+                              variant="transparent"
+                              className="bg-bg-card text-text-secondary"
+                              onClick={handleClickRelatedQuestion(
+                                x,
+                                searchData.search_config.summary,
+                              )}
+                            >
+                              {x}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                {!isSearchStrEmpty &&
+                  !retrievalLoading &&
+                  !answer.answer &&
+                  !sendingLoading &&
+                  total <= 0 &&
+                  chunks?.length <= 0 &&
+                  relatedQuestions?.length <= 0 && (
+                    <div className="h-2/5 flex items-center justify-center">
+                      <Empty type={EmptyType.SearchData} iconWidth={80} />
                     </div>
-                  </div>
-                </>
-              )}
-            {!isSearchStrEmpty &&
-              !retrievalLoading &&
-              !answer.answer &&
-              !sendingLoading &&
-              total <= 0 &&
-              chunks?.length <= 0 &&
-              relatedQuestions?.length <= 0 && (
-                <div className="h-2/5 flex items-center justify-center">
-                  <Empty type={EmptyType.SearchData} iconWidth={80} />
-                </div>
-              )}
+                  )}
+              </>
+            )}
           </div>
 
           {!mindMapVisible &&
@@ -323,6 +348,7 @@ export default function SearchingView({
             visible={mindMapVisible}
             hideModal={hideMindMapModal}
             data={mindMap}
+            errorType={mindMapErrorType}
             loading={mindMapLoading}
           ></MindMapSheet>
         )}

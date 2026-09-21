@@ -3,6 +3,7 @@ export default {
     common: {
       confirm: '确定',
       back: '返回',
+      retry: '重试',
       noResults: '未查到结果',
       selectPlaceholder: '请选择',
       selectAll: '全选',
@@ -2178,6 +2179,9 @@ export default {
       networkAnomaly: '网络异常',
       hint: '提示',
       error: '错误：{{error}}',
+      embeddingQuotaExhausted:
+        '向量检索服务配额已用尽（429），请稍后重试或更换 API Key。',
+      embeddingRateLimited: '向量检索服务请求过于频繁（429），请稍后重试。',
     },
     fileManager: {
       uploadFolderTitle: '上传文件夹',
@@ -3265,6 +3269,7 @@ export default {
       welcomeBack: '欢迎回来',
       searchSettings: '搜索设置',
       advancedSettings: '高级设置（算法参数）',
+      embeddingUnavailable: '由于向量化服务受限，搜索暂不可用',
       referenceSlices: '引用切片',
       expandSlices: '展开其余 {{count}} 条',
       collapseSlices: '收起',

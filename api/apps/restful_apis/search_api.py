@@ -31,6 +31,7 @@ from api.db.services.search_service import SearchService
 from api.db.services.user_service import TenantService, UserTenantService
 from common.misc_utils import get_uuid
 from common.constants import RetCode, StatusEnum
+from common import model_errors
 from api.utils.api_utils import get_data_error_result, get_json_result, get_request_json, server_error_response, validate_request
 from api.utils.pagination_utils import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, validate_rest_api_ids, validate_rest_api_page, validate_rest_api_page_size
 
@@ -39,6 +40,24 @@ def _full_text_weight(vector_similarity_weight):
     if isinstance(vector_similarity_weight, Real):
         return 1 - vector_similarity_weight
     return None
+
+
+def _error_frame(error: BaseException) -> dict:
+    """The frame the answer stream ends on when the request fails mid-answer.
+
+    A model provider refusing the request answers with the same wording the rest
+    of the API uses, so the answer bubble reads as a sentence rather than as the
+    provider's JSON body. Anything else keeps its own text, which is what
+    someone debugging the stream needs to see.
+    """
+    model_failure = model_errors.model_failure_response(error)
+    if model_failure is None:
+        return {"code": 500, "message": str(error), "data": {"answer": "**ERROR**: " + str(error), "reference": []}}
+
+    return {
+        **model_failure,
+        "data": {"answer": model_failure["message"], "reference": [], "error_type": model_failure["error_type"]},
+    }
 
 
 @manager.route("/searches", methods=["POST"])  # noqa: F821
@@ -244,14 +263,7 @@ async def completion(search_id):
             async for ans in async_ask(req["question"], kb_ids, uid, search_config=search_config, search_id=search_id):
                 yield "data:" + json.dumps({"code": 0, "message": "", "data": ans}, ensure_ascii=False) + "\n\n"
         except Exception as ex:
-            yield (
-                "data:"
-                + json.dumps(
-                    {"code": 500, "message": str(ex), "data": {"answer": "**ERROR**: " + str(ex), "reference": []}},
-                    ensure_ascii=False,
-                )
-                + "\n\n"
-            )
+            yield "data:" + json.dumps(_error_frame(ex), ensure_ascii=False) + "\n\n"
         yield "data:" + json.dumps({"code": 0, "message": "", "data": True}, ensure_ascii=False) + "\n\n"
 
     resp = Response(stream(), mimetype="text/event-stream")
