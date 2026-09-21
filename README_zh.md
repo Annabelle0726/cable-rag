@@ -1,7 +1,7 @@
 <div align="center">
-<img src="./web/public/logo.svg" width="88" alt="Cable RAG logo">
-<h1>Cable RAG</h1>
-<p><b>线缆工业 AI 检索增强生成引擎</b></p>
+<img src="./web/src/assets/icon/brand-lockup.png" width="320" alt="芯导软件 | Wenruo RAG logo">
+<h1>芯导软件 | Wenruo RAG</h1>
+<p><b>面向线缆工业的智能检索增强生成（RAG）系统</b></p>
 <p>面向线缆标准、产品规格、BOM 与质检记录的智能检索与问答系统。</p>
 </div>
 
@@ -14,7 +14,7 @@
 <details open>
 <summary><b>📕 目录</b></summary>
 
-- 💡 [Cable RAG 是什么？](#-cable-rag-是什么)
+- 💡 [芯导软件是什么？](#-芯导软件是什么)
 - 🎮 [快速开始](#-快速开始)
 - 📌 [近期更新](#-近期更新)
 - 🌟 [主要功能](#-主要功能)
@@ -28,9 +28,9 @@
 
 </details>
 
-## 💡 Cable RAG 是什么？
+## 💡 芯导软件 是什么？
 
-Cable RAG 是面向线缆工业的检索增强生成（RAG）引擎：一套自主托管的智能检索与问答系统，把线缆领域的资料沉淀为**可溯源、有引用**的知识库。
+芯导软件 是面向线缆工业的检索增强生成（RAG）引擎：一套自主托管的智能检索与问答系统，把线缆领域的资料沉淀为**可溯源、有引用**的知识库。
 
 它摄入线缆企业日常真正依赖的文档——国家标准与国际标准、产品规格书与数据表、BOM 物料清单、检测报告、质检记录、工艺文件、扫描图纸与网页——并基于这些内容回答问题，给出可追溯的引用，而不是无法验证的泛泛而谈。
 
@@ -38,7 +38,7 @@ Cable RAG 是面向线缆工业的检索增强生成（RAG）引擎：一套自�
 
 ## 🎮 快速开始
 
-Cable RAG 采用自主托管方式，请按目标选择路径：
+芯导软件 采用自主托管方式，请按目标选择路径：
 
 - **Docker 部署或试用** —— 见 [自主托管](#-自主托管)。
 - **本地源码开发（本仓库标准流程）** —— 见 [以源代码启动服务](#-以源代码启动服务)。
@@ -87,7 +87,7 @@ Cable RAG 采用自主托管方式，请按目标选择路径：
 
 ## 🔎 系统架构
 
-Cable RAG 以一个轻量栈的形式运行在统一的 nginx 入口之后：
+芯导软件 以一个轻量栈的形式运行在统一的 nginx 入口之后：
 
 - **Web UI** —— 构建进镜像的前端产物，由 nginx 在 `80` 端口提供服务。
 - **API 服务**（`api/ragflow_server.py`）—— 应用 API 监听 `9380`，管理 API 监听 `9381`。
@@ -139,8 +139,8 @@ Cable RAG 以一个轻量栈的形式运行在统一的 nginx 入口之后：
 2. 克隆本仓库：
 
    ```bash
-   git clone <YOUR_REPOSITORY_URL> cable-rag
-   cd cable-rag
+   git clone <YOUR_REPOSITORY_URL> wenruo-rag
+   cd wenruo-rag
    ```
 
 3. 构建并启动应用容器：
@@ -149,15 +149,15 @@ Cable RAG 以一个轻量栈的形式运行在统一的 nginx 入口之后：
    cd docker
 
    # 构建镜像（更快的前端预构建方式见「源码编译 Docker 镜像」）：
-   docker compose build cablerag-cpu
+   docker compose build wenruo-rag-cpu
 
    # 启动应用容器：
-   docker compose up -d cablerag-cpu
+   docker compose up -d wenruo-rag-cpu
    ```
 
-   > 应用容器名为 `cablerag-cpu`，使用的镜像由 [.env](./docker/.env) 中的 `RAGFLOW_IMAGE` 指定，默认为
-   > `my-cablerag:latest`。它依赖的容器（`cable-rag-mysql-1`、`cable-rag-es01-1`、`cable-rag-minio-1`、
-   > `cable-rag-redis-1`）必须先处于运行状态；冷启动整栈请改用：
+   > 应用容器名为 `wenruo-rag-cpu`，使用的镜像由 [.env](./docker/.env) 中的 `RAGFLOW_IMAGE` 指定，默认为
+   > `my-wenruorag:latest`。它依赖的容器（`wenruo-rag-mysql-1`、`wenruo-rag-es01-1`、`wenruo-rag-minio-1`、
+   > `wenruo-rag-redis-1`）必须先处于运行状态；冷启动整栈请改用：
    >
    > ```bash
    > docker compose up -d
@@ -166,17 +166,22 @@ Cable RAG 以一个轻量栈的形式运行在统一的 nginx 入口之后：
 4. 服务器启动成功后确认服务器状态：
 
    ```bash
-   docker logs -f cablerag-cpu
+   docker logs -f wenruo-rag-cpu
    ```
 
    _出现以下输出说明服务器启动成功：_
 
    ```bash
-                   Cable RAG Engine                    
+ _  _  _ _____ _  _ ____  _  _  ___     ____    _    ____    
+| || || | ____| \| |  _ \| | | |/ _ \   |  _ \  / \  / ___|  
+| || || |  _| |  ` | |_) | | | | | | |  | |_) |/ _ \| |  _   
+| || || | |___| .  |  _ <| |_| | |_| |  |  _ </ ___ \ |_| |  
+ \__/\__/|_____|_|\_|_| \_\\___/ \___/   |_| \_/_/   \_\____|
+                         Wenruo RAG Engine                   
 
-   Cable RAG version: v0.27.1-<git-describe>
+   Wenruo RAG version: v0.27.1-<git-describe>
    project base: /ragflow
-   Cable RAG server is ready after 131.1s initialization.
+   Wenruo RAG server is ready after 131.1s initialization.
    Running on http://0.0.0.0:9380 (CTRL + C to quit)
    ```
 
@@ -194,7 +199,7 @@ Cable RAG 以一个轻量栈的形式运行在统一的 nginx 入口之后：
 
 6. 在 [service_conf.yaml.template](./docker/service_conf.yaml.template) 文件的 `user_default_llm` 栏配置 LLM factory，并在 `API_KEY` 栏填写与你所选大模型相对应的 API key。
 
-   > Cable RAG 发布的是 slim 版本，不包含 embedding 模型，因此在创建知识库之前还需配置 embedding 模型服务。
+   > 芯导软件 发布的是 slim 版本，不包含 embedding 模型，因此在创建知识库之前还需配置 embedding 模型服务。
    > 相关配置说明见 [docs/](./docs)。
    >
 
@@ -220,12 +225,12 @@ Cable RAG 以一个轻量栈的形式运行在统一的 nginx 入口之后：
 >
 > ```bash
 > cd docker
-> docker compose up -d cablerag-cpu
+> docker compose up -d wenruo-rag-cpu
 > ```
 
 ### 把文档引擎从 Elasticsearch 切换成为 Infinity
 
-Cable RAG 默认使用 Elasticsearch 存储文本和向量数据。如果要切换为 Infinity，可以按照下面步骤进行：
+芯导软件 默认使用 Elasticsearch 存储文本和向量数据。如果要切换为 Infinity，可以按照下面步骤进行：
 
 1. 停止所有容器运行:
 
@@ -248,7 +253,7 @@ Cable RAG 默认使用 Elasticsearch 存储文本和向量数据。如果要切�
 ## 🔧 源码编译 Docker 镜像
 
 应用镜像由本仓库根目录的 [Dockerfile](./Dockerfile) 构建，并以 [docker/.env](./docker/.env) 中的 `RAGFLOW_IMAGE`
-（默认 `my-cablerag:latest`）打标签。
+（默认 `my-wenruorag:latest`）打标签。
 
 **最快的构建方式 —— 前端预构建。** 先在宿主机上生成 `web/dist`，再让镜像直接使用它，避免在容器内跑 Vite 构建：
 
@@ -260,7 +265,7 @@ cd ..
 
 # 2. 使用预构建前端构建镜像：
 cd docker
-docker compose build --build-arg WEB_DIST_MODE=prebuilt cablerag-cpu
+docker compose build --build-arg WEB_DIST_MODE=prebuilt wenruo-rag-cpu
 ```
 
 > 在 Docker 虚拟机内存较小的机器上建议走这条路：本仓库在容器内执行 Vite 构建时非常吃内存。
@@ -270,7 +275,7 @@ docker compose build --build-arg WEB_DIST_MODE=prebuilt cablerag-cpu
 
 ```bash
 cd docker
-docker compose build cablerag-cpu
+docker compose build wenruo-rag-cpu
 ```
 
 > 两种方式都需要一个内含模型与 native 依赖库的依赖镜像；它构建自本仓库，任何时候都可以在无外网的情况下重新生成：
@@ -318,8 +323,8 @@ docker compose build cablerag-cpu
 
 ### 启动服务
 
-1. 确认 Docker 依赖容器已启动：执行 `docker ps` 应能看到 `cable-rag-mysql-1`、`cable-rag-es01-1`、
-   `cable-rag-redis-1` 和 `cable-rag-minio-1`。如果尚未启动，请先执行以下命令（下次可直接跳过本步骤）：
+1. 确认 Docker 依赖容器已启动：执行 `docker ps` 应能看到 `wenruo-rag-mysql-1`、`wenruo-rag-es01-1`、
+   `wenruo-rag-redis-1` 和 `wenruo-rag-minio-1`。如果尚未启动，请先执行以下命令（下次可直接跳过本步骤）：
 
    ```powershell
    docker compose -f docker/docker-compose-base.yml up -d
@@ -358,7 +363,7 @@ docker compose build cablerag-cpu
    | `http://localhost:9222` | `http://127.0.0.1:9380` | `/api`、`/v1` —— 由 `api/ragflow_server.py` 提供的应用 API |
    | `http://localhost:9222` | `http://127.0.0.1:9381` | `/api/v1/admin` —— 同一进程提供的管理 API |
 
-5. 浏览器访问 <http://localhost:9222> 即可使用 Cable RAG：
+5. 浏览器访问 <http://localhost:9222> 即可使用 芯导软件：
 
    首次请求前请等待控制台出现 [自主托管](#-自主托管) 中所示的启动横幅（或 `logs/ragflow_server.log` 中的等价日志）：
    Web API 只有在数据库与文档引擎就绪后才会监听 9380 端口。

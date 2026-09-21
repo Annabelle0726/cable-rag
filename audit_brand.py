@@ -21,7 +21,7 @@ PASSWORD_INPUT = "input[data-testid='auth-password'], [data-testid='auth-passwor
 BRAND_JS = """
 () => {
   const imgs = Array.from(document.querySelectorAll('img')).filter((el) =>
-    /brand-(mark|lockup)/.test(el.getAttribute('src') || ''),
+    /brand-(mark|lockup|poster)/.test(el.getAttribute('src') || ''),
   );
   const box = (el) => {
     const r = el.getBoundingClientRect();
@@ -32,7 +32,7 @@ BRAND_JS = """
     favicon: document.querySelector('link[rel="icon"]')?.getAttribute('href'),
     brandText: Array.from(document.querySelectorAll('span, p, h1'))
       .map((el) => (el.textContent || '').trim())
-      .filter((x) => x === '文若RAG' || x === 'Cable RAG')
+      .filter((x) => x === '芯导软件' || x === 'Wenruo RAG')
       .slice(0, 4),
     logos: imgs.map((el) => ({
       src: (el.getAttribute('src') || '').split('/').pop(),

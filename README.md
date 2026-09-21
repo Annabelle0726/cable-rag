@@ -1,7 +1,7 @@
 <div align="center">
-<img src="./web/public/logo.svg" width="88" alt="Cable RAG logo">
-<h1>Cable RAG</h1>
-<p><b>Cable Industry AI Retrieval-Augmented Generation Engine</b></p>
+<img src="./web/src/assets/icon/brand-lockup.png" width="320" alt="芯导软件 | Wenruo RAG logo">
+<h1>芯导软件 | Wenruo RAG</h1>
+<p><b>面向线缆工业的智能检索增强生成（RAG）系统</b></p>
 <p>AI retrieval and question answering over cable standards, specifications, BOMs and QC records.</p>
 </div>
 
@@ -14,7 +14,7 @@
 <details open>
 <summary><b>📕 Table of Contents</b></summary>
 
-- 💡 [What is Cable RAG?](#-what-is-cable-rag)
+- 💡 [What is Wenruo RAG?](#-what-is-wenruo-rag)
 - 🎮 [Get Started](#-get-started)
 - 🔥 [Latest Updates](#-latest-updates)
 - 🌟 [Key Features](#-key-features)
@@ -28,9 +28,9 @@
 
 </details>
 
-## 💡 What is Cable RAG?
+## 💡 What is Wenruo RAG?
 
-Cable RAG is an AI retrieval-augmented generation (RAG) engine purpose-built for the cable industry: a self-hosted retrieval and question-answering system that turns cable-domain material into a citation-grounded knowledge base.
+Wenruo RAG is an AI retrieval-augmented generation (RAG) engine purpose-built for the cable industry: a self-hosted retrieval and question-answering system that turns cable-domain material into a citation-grounded knowledge base.
 
 It ingests what a cable business actually runs on — national and international standards, product specifications and datasheets, BOMs, test reports, QC records, process documentation, scanned drawings and web pages — and answers questions over them with traceable references instead of unverifiable prose.
 
@@ -38,7 +38,7 @@ The platform keeps the hardened pipeline of its upstream engine (deep document u
 
 ## 🎮 Get Started
 
-Cable RAG is self-hosted. Pick the path that matches your goal:
+Wenruo RAG is self-hosted. Pick the path that matches your goal:
 
 - **Docker deployment or evaluation** — see [Self-Hosting](#-self-hosting).
 - **Development from source (the standard flow for this repository)** — see [Launch Service from Source for Development](#-launch-service-from-source-for-development).
@@ -87,7 +87,7 @@ Cable RAG is self-hosted. Pick the path that matches your goal:
 
 ## 🔎 System Architecture
 
-Cable RAG runs as a small stack behind a single nginx entry point:
+Wenruo RAG runs as a small stack behind a single nginx entry point:
 
 - **Web UI** — the frontend bundle built into the image and served by nginx on port `80`.
 - **API server** (`api/ragflow_server.py`) — the HTTP API on port `9380` and the admin API on port `9381`.
@@ -139,8 +139,8 @@ See [docs/](./docs) for the administrator, developer and reference guides.
 2. Clone this repository:
 
    ```bash
-   git clone <YOUR_REPOSITORY_URL> cable-rag
-   cd cable-rag
+   git clone <YOUR_REPOSITORY_URL> wenruo-rag
+   cd wenruo-rag
    ```
 3. Build and start the application container:
 
@@ -148,15 +148,15 @@ See [docs/](./docs) for the administrator, developer and reference guides.
    cd docker
 
    # Build the image (see "Build a Docker Image" for a faster, frontend-prebuilt build):
-   docker compose build cablerag-cpu
+   docker compose build wenruo-rag-cpu
 
    # Start the application container:
-   docker compose up -d cablerag-cpu
+   docker compose up -d wenruo-rag-cpu
    ```
 
-   > The application container is named `cablerag-cpu` and runs the image selected by `RAGFLOW_IMAGE` in
-   > [.env](./docker/.env) — `my-cablerag:latest` by default. Its dependency containers
-   > (`cable-rag-mysql-1`, `cable-rag-es01-1`, `cable-rag-minio-1`, `cable-rag-redis-1`) must already be running.
+   > The application container is named `wenruo-rag-cpu` and runs the image selected by `RAGFLOW_IMAGE` in
+   > [.env](./docker/.env) — `my-wenruorag:latest` by default. Its dependency containers
+   > (`wenruo-rag-mysql-1`, `wenruo-rag-es01-1`, `wenruo-rag-minio-1`, `wenruo-rag-redis-1`) must already be running.
    > On a cold machine, start the whole stack instead:
    >
    > ```bash
@@ -165,17 +165,22 @@ See [docs/](./docs) for the administrator, developer and reference guides.
 4. Check the server status:
 
    ```bash
-   docker logs -f cablerag-cpu
+   docker logs -f wenruo-rag-cpu
    ```
 
    _The following output confirms a successful launch of the system:_
 
    ```bash
-                   Cable RAG Engine                    
+ _  _  _ _____ _  _ ____  _  _  ___     ____    _    ____    
+| || || | ____| \| |  _ \| | | |/ _ \   |  _ \  / \  / ___|  
+| || || |  _| |  ` | |_) | | | | | | |  | |_) |/ _ \| |  _   
+| || || | |___| .  |  _ <| |_| | |_| |  |  _ </ ___ \ |_| |  
+ \__/\__/|_____|_|\_|_| \_\\___/ \___/   |_| \_/_/   \_\____|
+                         Wenruo RAG Engine                   
 
-   Cable RAG version: v0.27.1-<git-describe>
+   Wenruo RAG version: v0.27.1-<git-describe>
    project base: /ragflow
-   Cable RAG server is ready after 131.1s initialization.
+   Wenruo RAG server is ready after 131.1s initialization.
    Running on http://0.0.0.0:9380 (CTRL + C to quit)
    ```
 
@@ -193,7 +198,7 @@ See [docs/](./docs) for the administrator, developer and reference guides.
 6. In [service_conf.yaml.template](./docker/service_conf.yaml.template), select the desired LLM factory in
    `user_default_llm` and update the `API_KEY` field with the corresponding API key.
 
-   > Cable RAG ships as the slim edition and includes no embedding models, so also configure an embedding model
+   > Wenruo RAG ships as the slim edition and includes no embedding models, so also configure an embedding model
    > provider before creating datasets. See [docs/](./docs) for configuration guides.
    >
 
@@ -218,12 +223,12 @@ Updates to the above configurations require a restart of the application contain
 
 > ```bash
 > cd docker
-> docker compose up -d cablerag-cpu
+> docker compose up -d wenruo-rag-cpu
 > ```
 
 ### Switch doc engine from Elasticsearch to Infinity
 
-Cable RAG uses Elasticsearch by default for storing full text and vectors. To switch to Infinity, follow these steps:
+Wenruo RAG uses Elasticsearch by default for storing full text and vectors. To switch to Infinity, follow these steps:
 
 1. Stop all running containers:
 
@@ -247,7 +252,7 @@ Cable RAG uses Elasticsearch by default for storing full text and vectors. To sw
 ## 🔧 Build a Docker Image
 
 The application image is built from the [Dockerfile](./Dockerfile) in this repository and tagged with
-`RAGFLOW_IMAGE` from [docker/.env](./docker/.env) (`my-cablerag:latest`).
+`RAGFLOW_IMAGE` from [docker/.env](./docker/.env) (`my-wenruorag:latest`).
 
 **Fastest build — prebuilt frontend.** Build `web/dist` on the host, then let the image ship it instead of running a
 Vite build inside the container:
@@ -260,7 +265,7 @@ cd ..
 
 # 2. Build the image with the prebuilt frontend:
 cd docker
-docker compose build --build-arg WEB_DIST_MODE=prebuilt cablerag-cpu
+docker compose build --build-arg WEB_DIST_MODE=prebuilt wenruo-rag-cpu
 ```
 
 > Prefer this route on machines with a small Docker VM: the in-container Vite build of this monorepo is memory
@@ -271,7 +276,7 @@ docker compose build --build-arg WEB_DIST_MODE=prebuilt cablerag-cpu
 
 ```bash
 cd docker
-docker compose build cablerag-cpu
+docker compose build wenruo-rag-cpu
 ```
 
 > Both routes need the dependency image that bundles the models and native libraries. It is built from this
@@ -320,8 +325,8 @@ local startup procedure, and keep the Docker dependencies running in the backgro
 
 ### Start the services
 
-1. Make sure the Docker dependency containers are running: `docker ps` should list `cable-rag-mysql-1`,
-   `cable-rag-es01-1`, `cable-rag-redis-1` and `cable-rag-minio-1`. If they are not running, start them
+1. Make sure the Docker dependency containers are running: `docker ps` should list `wenruo-rag-mysql-1`,
+   `wenruo-rag-es01-1`, `wenruo-rag-redis-1` and `wenruo-rag-minio-1`. If they are not running, start them
    now and skip this step next time:
 
    ```powershell
@@ -361,7 +366,7 @@ local startup procedure, and keep the Docker dependencies running in the backgro
    | `http://localhost:9222` | `http://127.0.0.1:9380` | `/api`, `/v1` — application API served by `api/ragflow_server.py` |
    | `http://localhost:9222` | `http://127.0.0.1:9381` | `/api/v1/admin` — admin API served by the same process |
 
-5. Open <http://localhost:9222> to use Cable RAG:
+5. Open <http://localhost:9222> to use Wenruo RAG:
 
    Wait for the console banner shown in [Self-Hosting](#-self-hosting) (or the equivalent lines in
    `logs/ragflow_server.log`) before the first request: the Web API binds port 9380 only after the database and

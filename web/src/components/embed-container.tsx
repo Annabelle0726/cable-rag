@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+import { BrandLogo } from '@/components/brand-logo';
 import { useFetchAppConf } from '@/hooks/logic-hooks';
 import { RefreshCcw } from 'lucide-react';
 import { PropsWithChildren } from 'react';
@@ -50,7 +51,7 @@ export function EmbedContainer({
             <div className="md:text-xl text-foreground">{title}</div>
           </div>
           <div className="flex items-center gap-2 md:ml-auto md:mr-3">
-            <img src="/logo.svg" alt="" className="h-6 md:h-8" />
+            <BrandLogo className="h-6 w-auto md:h-8" />
             <span className="hidden md:inline-block text-lg font-bold text-foreground">
               {appConf.appName}
             </span>

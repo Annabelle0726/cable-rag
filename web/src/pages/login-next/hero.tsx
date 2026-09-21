@@ -56,11 +56,11 @@ export function LoginHero() {
   return (
     <section className="relative hidden min-w-0 flex-col gap-6 lg:col-span-5 lg:flex">
       <div className="flex flex-col gap-3">
-        {/* The full lockup already carries the product name, so it stands alone
-            here rather than being paired with the same name as text. The artwork
-            is drawn on white with no alpha, hence the plinth. */}
+        {/* The poster artwork already carries the product name, so it stands
+            alone here rather than being paired with the same name as text. The
+            artwork is drawn on white, hence the plinth. */}
         <span className="flex h-12 w-fit items-center justify-center border border-panel-border bg-white px-3">
-          <BrandLogo variant="lockup" className="h-7 w-auto" />
+          <BrandLogo variant="poster" className="h-9 w-auto" />
         </span>
 
         {/* 系统全称：国网绿指示条 + 实色标题 */}

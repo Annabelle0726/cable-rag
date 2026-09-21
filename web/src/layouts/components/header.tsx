@@ -13,7 +13,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router';
 import { BellButton } from './bell-button';
-import { BrandMark } from './brand-mark';
+import { BrandLockup } from './brand-lockup';
 import { DesktopNavbar, MobileNavbar } from './global-navbar';
 import { MobileMenuFooter } from './mobile-menu-footer';
 import ThemeButton from './theme-button';
@@ -38,7 +38,7 @@ export function Header({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { pathname } = useLocation();
   const changeLanguage = useChangeLanguage();
 
@@ -96,10 +96,7 @@ export function Header({
               className="brand-entry flex shrink-0 items-center gap-2 px-2 py-1"
               data-testid="brand-entry"
             >
-              <BrandMark label={t('header.brandShort')} />
-              <span className="hidden text-[15px] font-semibold tracking-tight text-gov-header-fg md:inline">
-                {t('header.brandShort')}
-              </span>
+              <BrandLockup />
             </Link>
           </div>
         </div>
