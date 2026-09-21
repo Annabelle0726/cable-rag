@@ -1032,6 +1032,11 @@ export default {
       ellipse: 'Ellipse',
       graph: 'Knowledge graph',
       mind: 'Mind map',
+      mindFullscreen: 'Open full screen',
+      mindZoomIn: 'Zoom in',
+      mindZoomOut: 'Zoom out',
+      mindFitView: 'Fit to screen',
+      mindResetZoom: 'Back to 100% at the original position',
       question: 'Question',
       questionTip:
         'If there are given questions, the embedding of the chunk will be based on them.',

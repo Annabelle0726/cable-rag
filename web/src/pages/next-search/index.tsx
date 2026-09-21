@@ -92,7 +92,7 @@ export default function SearchPage() {
             </div>
           )}
           {isSearching && (
-            <div className="animate-fade-in-up h-full">
+            <div className="animate-fade-in h-full">
               <SearchingPage
                 setIsSearching={setIsSearching}
                 searchText={searchText}
