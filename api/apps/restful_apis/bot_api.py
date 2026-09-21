@@ -23,6 +23,7 @@ from quart import Response, request
 
 from agent.canvas import Canvas
 from api.apps import AUTH_BETA, login_required
+from api.db import cable_defaults
 from api.db.services.api_service import API4ConversationService
 from api.db.services.canvas_service import UserCanvasService
 from api.db.services.canvas_service import completion as agent_completion
@@ -35,7 +36,7 @@ from api.db.services.user_service import TenantService
 from common.metadata_utils import apply_meta_data_filter
 from api.db.services.search_service import SearchService
 from api.db.services.user_service import UserTenantService
-from api.db.joint_services.tenant_model_service import get_tenant_default_model_by_type, resolve_model_config
+from api.db.joint_services.tenant_model_service import get_default_rerank_model_config, get_tenant_default_model_by_type, resolve_model_config
 from api.db.services.llm_service import resolve_llm_setting
 from common.misc_utils import thread_pool_exec
 from api.utils.api_utils import get_error_data_result, get_json_result, add_tenant_id_to_kwargs, get_result, get_request_json, server_error_response, validate_request
@@ -362,11 +363,11 @@ async def retrieval_test_embedded(tenant_id=None):
     if not kb_ids:
         return get_json_result(data=False, message="Please specify dataset firstly.", code=RetCode.DATA_ERROR)
     doc_ids = req.get("doc_ids", [])
-    similarity_threshold = float(req.get("similarity_threshold", 0.0))
-    vector_similarity_weight = float(req.get("vector_similarity_weight", 0.3))
+    similarity_threshold = float(req.get("similarity_threshold", cable_defaults.SIMILARITY_THRESHOLD))
+    vector_similarity_weight = float(req.get("vector_similarity_weight", cable_defaults.VECTOR_SIMILARITY_WEIGHT))
     use_kg = req.get("use_kg", False)
     top = int(req.get("top_k", 1024))
-    rerank_candidates_count = int(req.get("rerank_candidates_count", 64))
+    rerank_candidates_count = int(req.get("rerank_candidates_count", cable_defaults.RERANK_CANDIDATES_COUNT))
     if top <= 0:
         return get_error_data_result("`top_k` must be greater than 0")
     langs = req.get("cross_languages", [])
@@ -398,15 +399,15 @@ async def retrieval_test_embedded(tenant_id=None):
                 chat_mdl = LLMBundle(tenant_id, chat_model_config)
             # Apply search_config settings if not explicitly provided in request
             if not req.get("similarity_threshold"):
-                similarity_threshold = float(search_config.get("similarity_threshold", similarity_threshold))
+                similarity_threshold = float(search_config.get("similarity_threshold", cable_defaults.SIMILARITY_THRESHOLD))
             if not req.get("vector_similarity_weight"):
-                vector_similarity_weight = float(search_config.get("vector_similarity_weight", vector_similarity_weight))
+                vector_similarity_weight = float(search_config.get("vector_similarity_weight", cable_defaults.VECTOR_SIMILARITY_WEIGHT))
             if not req.get("top_k"):
                 top = int(search_config.get("top_k", top))
             if not req.get("rerank_id"):
                 rerank_id = search_config.get("rerank_id", "")
             if not req.get("rerank_candidates_count"):
-                rerank_candidates_count = int(search_config.get("rerank_candidates_count", 100))
+                rerank_candidates_count = int(search_config.get("rerank_candidates_count", cable_defaults.RERANK_CANDIDATES_COUNT))
         else:
             meta_data_filter = req.get("meta_data_filter") or {}
             if meta_data_filter.get("method") in ["auto", "semi_auto"]:
@@ -444,6 +445,13 @@ async def retrieval_test_embedded(tenant_id=None):
         if rerank_id:
             rerank_model_config = await thread_pool_exec(resolve_model_config, tenant_id, LLMType.RERANK, rerank_id)
             rerank_mdl = LLMBundle(kb.tenant_id, rerank_model_config)
+        elif req.get("search_id", ""):
+            # A search app reranks by default: with no model of its own it runs
+            # the tenant's reranker. A share link that names no search app keeps
+            # the caller's own choice alone.
+            default_rerank_model_config = await thread_pool_exec(get_default_rerank_model_config, tenant_id)
+            if default_rerank_model_config:
+                rerank_mdl = LLMBundle(kb.tenant_id, default_rerank_model_config)
 
         if req.get("keyword", False):
             default_chat_model = await thread_pool_exec(get_tenant_default_model_by_type, kb.tenant_id, LLMType.CHAT)

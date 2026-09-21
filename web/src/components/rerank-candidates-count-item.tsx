@@ -19,8 +19,12 @@ import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { SliderInputFormField } from './slider-input-form-field';
 
+// The candidate pool only has to clear what the result page asks for
+// (`page * page_size`, capped by this same value in the page-size selector), so
+// the floor sits at a handful rather than at the old 64 — a search page shows a
+// few references and reranking further candidates only adds latency.
 export const rerankCandidatesCountSchema = {
-  rerank_candidates_count: z.number().int().min(64).max(256),
+  rerank_candidates_count: z.number().int().min(10).max(256),
 };
 
 interface RerankCandidatesCountFormFieldProps {
@@ -29,7 +33,7 @@ interface RerankCandidatesCountFormFieldProps {
 }
 
 export function RerankCandidatesCountFormField({
-  defaultValue = 64,
+  defaultValue = 30,
   name = 'rerank_candidates_count',
 }: RerankCandidatesCountFormFieldProps) {
   const { t } = useTranslation();
@@ -39,7 +43,7 @@ export function RerankCandidatesCountFormField({
       name={name}
       label={t('chat.rerankCandidatesCount')}
       tooltip={t('chat.rerankCandidatesCountTip')}
-      min={64}
+      min={10}
       max={256}
       defaultValue={defaultValue}
       layout={FormLayout.Vertical}

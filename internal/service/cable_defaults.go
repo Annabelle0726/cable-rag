@@ -17,20 +17,27 @@
 
 package service
 
-// Cable-domain defaults for a newly created dataset or chat assistant.
+// Cable-domain defaults for a newly created dataset, chat assistant, or search app.
 //
-// This fork is a cable-industry vertical, so a dataset or assistant created
-// without explicit retrieval or prompt settings starts from the cable values
-// below instead of the generic RAGFlow ones. Mirrors Python
+// This fork is a cable-industry vertical, so a dataset, chat assistant, or
+// search app created without explicit retrieval or prompt settings starts from
+// the cable values below instead of the generic RAGFlow ones. Mirrors Python
 // api/db/cable_defaults.py, which the Python model and API defaults read, so a
 // row lands on the same configuration whichever backend created it.
 const (
 	// CableDefaultSimilarityThreshold is the minimum similarity a passage must
 	// reach to be retrieved.
-	CableDefaultSimilarityThreshold = 0.25
+	//
+	// Measured on the cable corpus: with the hybrid weights below, a query that
+	// matches three documents scores 0.61-0.68 for the passages that carry the
+	// answer and 0.53-0.55 for the ones that merely mention the same words, with
+	// an empty band in between. 0.55 sits under that gap, so a loosely worded
+	// query still returns its answer while the tail that used to pad the
+	// reference list is dropped.
+	CableDefaultSimilarityThreshold = 0.55
 	// CableDefaultVectorSimilarityWeight is the weight of the vector leg of the
-	// hybrid score; the full-text (keyword) leg takes the remainder, i.e. 0.70.
-	CableDefaultVectorSimilarityWeight = 0.30
+	// hybrid score; the full-text (keyword) leg takes the remainder, i.e. 0.50.
+	CableDefaultVectorSimilarityWeight = 0.50
 	// CableDefaultTopN is the number of passages kept for the answer handed to
 	// the LLM.
 	//
@@ -43,8 +50,9 @@ const (
 	// routinely handing the model two dozen passages.
 	CableDefaultTopN = 12
 	// CableDefaultRerankCandidatesCount is the number of passages handed to the
-	// reranker.
-	CableDefaultRerankCandidatesCount = 64
+	// reranker. A search page shows a handful of references, so reranking more
+	// than a few dozen candidates buys nothing but latency.
+	CableDefaultRerankCandidatesCount = 30
 
 	// CableDefaultSystemPrompt is the system prompt of a new chat assistant.
 	// {knowledge} is where the retrieved passages are injected; the declared

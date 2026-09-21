@@ -23,9 +23,11 @@ import authorizationUtil, {
 } from '@/utils/authorization-util';
 import notification from '@/utils/notification';
 import axios from 'axios';
+import { reportApiError } from './api-error';
 import { convertTheKeysOfTheObjectToSnake, isFormData } from './common-util';
 import { setCachedLlmList } from './llm-cache';
 import { addTenantParams } from './llm-util';
+import { modelServiceErrorOf } from './model-service-error';
 
 const FAILED_TO_FETCH = 'Failed to fetch';
 
@@ -143,9 +145,7 @@ request.interceptors.response.use(
 
     const skipErrorNotification = (response.config as any)
       ?.skipGlobalErrorNotification;
-    if (data?.code === 100 && !skipErrorNotification) {
-      message.error(data?.message);
-    } else if (data?.code === 401) {
+    if (data?.code === 401) {
       if (!isRedirecting) {
         isRedirecting = true;
         notification.error({
@@ -156,12 +156,8 @@ request.interceptors.response.use(
         authorizationUtil.removeAll();
         redirectToLogin();
       }
-    } else if (data?.code !== 0 && !skipErrorNotification) {
-      notification.error({
-        message: `${i18n.t('message.hint')} : ${data?.code}`,
-        description: data?.message,
-        duration: 3,
-      });
+    } else {
+      reportApiError(data, { skip: skipErrorNotification });
     }
     return response;
   },
@@ -186,7 +182,14 @@ request.interceptors.response.use(
     }
 
     if (!(error?.config as any)?.skipGlobalErrorNotification) {
-      errorHandler(error);
+      // A refusal that arrives with a failing status still carries a sentence
+      // worth showing, and the same rule applies: never the upstream body.
+      const rejected = error?.response?.data;
+      if (modelServiceErrorOf(rejected)) {
+        reportApiError(rejected);
+      } else {
+        errorHandler(error);
+      }
     }
     return Promise.reject(error);
   },

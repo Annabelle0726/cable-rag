@@ -34,6 +34,7 @@ import kbService from '@/services/knowledge-service';
 import chatService from '@/services/next-chat-service';
 import searchService from '@/services/search-service';
 import api from '@/utils/api';
+import { modelServiceErrorOf } from '@/utils/model-service-error';
 import { useMutation } from '@tanstack/react-query';
 import { has, isEmpty, isEqual, trim } from 'lodash';
 import {
@@ -48,6 +49,7 @@ import {
 import { useSearchParams } from 'react-router';
 import { ISearchAppDetailProps } from '../next-searches/hooks';
 import { useClickDrawer } from './document-preview-modal/hooks';
+import { useSearchHistoryStore } from './search-history-store';
 
 export interface ISearchingProps {
   searchText?: string;
@@ -94,6 +96,14 @@ export const useSearchFetchMindMap = () => {
     mutationFn: async (params: IAskRequestBody) => {
       try {
         const ret = await fetchMindMapFunc(params);
+        // The map is generated from retrieved passages, so the vector service
+        // refusing the query is why there is no map — not an empty answer. The
+        // drawer says which one it is.
+        const errorType = modelServiceErrorOf(ret?.data);
+        if (errorType) {
+          return { error_type: errorType };
+        }
+
         return ret?.data?.data ?? {};
       } catch (error: any) {
         if (has(error, 'message')) {
@@ -118,7 +128,7 @@ export const useShowMindMapDrawer = (
 
   const {
     fetchMindMap,
-    data: mindMap,
+    data: mindMapData,
     loading: mindMapLoading,
   } = useSearchFetchMindMap();
 
@@ -138,8 +148,12 @@ export const useShowMindMapDrawer = (
     showModal();
   }, [fetchMindMap, showModal, question, kbIds, searchId]);
 
+  // A refused map is not an empty one, and the drawer renders them differently.
+  const mindMapErrorType = modelServiceErrorOf(mindMapData);
+
   return {
-    mindMap,
+    mindMap: mindMapErrorType ? undefined : mindMapData,
+    mindMapErrorType,
     mindMapVisible: visible,
     mindMapLoading,
     showMindMapModal: handleShowModal,
@@ -179,6 +193,12 @@ export const useTestChunkRetrieval = (
           ...res,
           documents: res.doc_aggs,
         };
+      }
+      const errorType = modelServiceErrorOf(data);
+      if (errorType) {
+        // A refusal is not "no passage matched": the page holds the place the
+        // results would have taken and names the capability that is down.
+        return { chunks: [], documents: [], total: 0, error_type: errorType };
       }
       return (
         data?.data ?? {
@@ -338,17 +358,21 @@ export const useSendQuestion = (
   const { testChunkAll } = useTestChunkAllRetrieval(tenantId);
   const [sendingLoading, setSendingLoading] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState({} as IAnswer);
+  const rememberQuestion = useSearchHistoryStore((state) => state.remember);
   const { fetchRelatedQuestions, data: relatedQuestions } =
     useFetchRelatedQuestions(tenantId, searchId);
   const [searchStr, setSearchStr] = useState<string>('');
   const [isFirstRender, setIsFirstRender] = useState(true);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
-  const [pageSize, setPageSize] = useState(10);
+  // The result page opens with the same handful of passages it renders: asking
+  // the backend for more than the reader is shown only padded the response.
+  const [pageSize, setPageSize] = useState(5);
 
   const sendQuestion = useCallback(
     (question: string, enableAI: boolean = true) => {
       const q = trim(question);
       if (isEmpty(q)) return;
+      rememberQuestion(q);
       setIsFirstRender(false);
       setCurrentAnswer({} as IAnswer);
       setSelectedDocumentIds([]);
@@ -389,6 +413,7 @@ export const useSendQuestion = (
       searchId,
       sharedId,
       related_search,
+      rememberQuestion,
     ],
   );
 
@@ -445,9 +470,15 @@ export const useSendQuestion = (
   );
 
   useEffect(() => {
-    if (!isEmpty(answer)) {
-      setCurrentAnswer(answer);
-    }
+    if (isEmpty(answer)) return;
+    // The stream's terminal frame carries the reference and an empty answer, so
+    // replacing the state with it would wipe the summary the page just
+    // streamed: the citations would survive and the text would not.
+    setCurrentAnswer((previous) => ({
+      ...previous,
+      ...answer,
+      answer: answer.answer || previous.answer || '',
+    }));
   }, [answer]);
 
   useEffect(() => {
@@ -517,12 +548,25 @@ export const useSearching = ({
   const { visible, hideModal, documentId, selectedChunk, clickDocumentButton } =
     useClickDrawer();
 
+  // The question typed on the search home arrives here as `searchText`, and this
+  // effect ran twice for it — React re-invokes a mount effect in development,
+  // and `sendQuestion`'s own identity changes while the parent has yet to clear
+  // the text. Two streams share one answer state, so the one that finished
+  // second blanked the summary the first had produced. One question, one stream.
+  const sentSearchTextRef = useRef('');
   useEffect(() => {
-    if (searchText) {
-      setSearchStr(searchText);
-      sendQuestion(searchText, searchData.search_config.summary);
-      setSearchText?.('');
+    if (!searchText) {
+      sentSearchTextRef.current = '';
+      return;
     }
+    if (sentSearchTextRef.current === searchText) {
+      return;
+    }
+
+    sentSearchTextRef.current = searchText;
+    setSearchStr(searchText);
+    sendQuestion(searchText, searchData.search_config.summary);
+    setSearchText?.('');
   }, [
     searchText,
     sendQuestion,
@@ -537,12 +581,13 @@ export const useSearching = ({
     showMindMapModal,
     mindMapLoading,
     mindMap,
+    mindMapErrorType,
   } = useShowMindMapDrawer(
     searchData.search_config.kb_ids,
     searchStr,
     searchData.id,
   );
-  const { chunks, total } = useSelectTestingResult();
+  const { chunks, total, error_type } = useSelectTestingResult();
 
   const handleSearch = useCallback(
     (value: string) => {
@@ -592,8 +637,10 @@ export const useSearching = ({
     showMindMapModal,
     mindMapLoading,
     mindMap,
+    mindMapErrorType,
     chunks,
     total,
+    retrievalErrorType: modelServiceErrorOf({ error_type }),
     handleSearch,
     pageSize,
     handleTopChange,

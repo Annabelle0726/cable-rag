@@ -17,6 +17,7 @@
 // src/pages/next-search/search-setting.tsx
 
 import AvatarNameDescription from '@/components/avatar-name-description';
+import { Collapse } from '@/components/collapse';
 import { KnowledgeBaseFormField } from '@/components/knowledge-base-item';
 import { LlmSettingFieldItems } from '@/components/llm-setting-items/next';
 import { MetadataFilter } from '@/components/metadata-filter';
@@ -36,6 +37,7 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { Spin } from '@/components/ui/spin';
 import { Switch } from '@/components/ui/switch';
 import { useFetchKnowledgeMetadataKeys } from '@/hooks/use-knowledge-request';
+import { useFetchDefaultModelDictionary } from '@/hooks/use-llm-request';
 import {
   useRevalidateStaleDatasetIds,
   useStaleDatasetFormSchema,
@@ -98,15 +100,18 @@ function SearchSetting({ open = false, setOpen, data }: SearchSettingProps) {
       description: data?.description || descriptionDefaultValue,
       search_config: {
         kb_ids: search_config?.kb_ids || [],
+        // The fallbacks below are the platform defaults a new search app is
+        // created with (api/db/cable_defaults.py). They only apply to a config
+        // that never stored the parameter; a stored value is the operator's own.
         vector_similarity_weight:
-          search_config?.vector_similarity_weight ?? 0.3,
+          search_config?.vector_similarity_weight ?? 0.5,
         web_search: search_config?.web_search || false,
         doc_ids: [],
-        similarity_threshold: search_config?.similarity_threshold ?? 0.2,
+        similarity_threshold: search_config?.similarity_threshold ?? 0.55,
         use_kg: false,
         rerank_id: search_config?.rerank_id || '',
         use_rerank: search_config?.rerank_id ? true : false,
-        rerank_candidates_count: search_config?.rerank_candidates_count ?? 100,
+        rerank_candidates_count: search_config?.rerank_candidates_count ?? 30,
         summary: search_config?.summary || false,
         chat_id: search_config?.chat_id || '',
         llm_setting: {
@@ -153,6 +158,40 @@ function SearchSetting({ open = false, setOpen, data }: SearchSettingProps) {
       trigger: formMethods.trigger,
       modelsFetched,
     },
+  );
+
+  // Rerank is on by default for a search app, and the model it runs on is the
+  // tenant's own default reranker — a switch with no model behind it is not a
+  // default, it is an invalid form. The model list arrives after the form has
+  // been reset, so the pair is filled in here once it does, and only while
+  // neither field has been touched: an operator's own choice is never
+  // overwritten, and a tenant with no reranker keeps the switch off rather than
+  // being shown a required-model error it cannot satisfy.
+  const { rerank_id: defaultRerankId } = useFetchDefaultModelDictionary();
+  useEffect(() => {
+    if (!defaultRerankId) return;
+    if (formMethods.getValues('search_config.rerank_id')) return;
+    if (
+      formMethods.getFieldState('search_config.rerank_id').isDirty ||
+      formMethods.getFieldState('search_config.use_rerank').isDirty
+    ) {
+      return;
+    }
+
+    formMethods.setValue('search_config.rerank_id', defaultRerankId);
+    formMethods.setValue('search_config.use_rerank', true);
+  }, [defaultRerankId, formMethods]);
+
+  // The algorithm fields sit behind a disclosure, so an error on one of them
+  // would block the save with nothing on screen to explain it — a persisted
+  // rerank model that has since been deleted is the case that reaches here.
+  // Any error under the fields the section owns opens it.
+  const { errors } = formMethods.formState;
+  const advancedFieldError = Boolean(
+    errors.search_config?.similarity_threshold ||
+    errors.search_config?.vector_similarity_weight ||
+    errors.search_config?.rerank_candidates_count ||
+    errors.search_config?.rerank_id,
   );
 
   const selectedKbIds = useWatch({
@@ -391,40 +430,54 @@ function SearchSetting({ open = false, setOpen, data }: SearchSettingProps) {
                 )}
               />
             )}
-            <SimilaritySliderFormField
-              isTooltipShown
-              similarityName="search_config.similarity_threshold"
-              similarityWeightName="search_config.vector_similarity_weight"
-              numberInputClassName="rounded-sm"
-            ></SimilaritySliderFormField>
-            <RerankCandidatesCountFormField
-              name="search_config.rerank_candidates_count"
-              defaultValue={100}
-            ></RerankCandidatesCountFormField>
-            {/* Rerank Model */}
-            <FormField
-              control={formMethods.control}
-              name="search_config.use_rerank"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel>{t('search.rerankModel')}</FormLabel>
-                </FormItem>
-              )}
-            />
-            {rerankModelEnabled && (
-              <>
-                <RerankFormFields
-                  prefix={'search_config.'}
-                  required
-                ></RerankFormFields>
-              </>
-            )}
+            {/* The scoring parameters. An operator picks a knowledge base and
+                asks a question; how the passages behind that answer are scored
+                is not a decision they make, and the platform already ships a
+                tuned default for every one of them. They stay behind this one
+                disclosure, and they keep applying while it is closed. */}
+            <div
+              className="border-t border-cable-hairline pt-4"
+              data-testid="search-settings-advanced"
+            >
+              <Collapse
+                title={t('search.advancedSettings')}
+                open={advancedFieldError || undefined}
+              >
+                <div className="space-y-6">
+                  <SimilaritySliderFormField
+                    isTooltipShown
+                    similarityName="search_config.similarity_threshold"
+                    similarityWeightName="search_config.vector_similarity_weight"
+                    numberInputClassName="rounded-sm"
+                  ></SimilaritySliderFormField>
+                  <RerankCandidatesCountFormField name="search_config.rerank_candidates_count"></RerankCandidatesCountFormField>
+                  {/* Rerank Model */}
+                  <FormField
+                    control={formMethods.control}
+                    name="search_config.use_rerank"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel>{t('search.rerankModel')}</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  {rerankModelEnabled && (
+                    <>
+                      <RerankFormFields
+                        prefix={'search_config.'}
+                        required
+                      ></RerankFormFields>
+                    </>
+                  )}
+                </div>
+              </Collapse>
+            </div>
             {/* AI Summary */}
             <FormField
               control={formMethods.control}

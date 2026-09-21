@@ -14,7 +14,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-"""The cable vertical's defaults for a new dataset or chat assistant.
+"""The cable vertical's defaults for a new dataset, chat assistant, or search app.
 
 The values are asserted here because they are a product decision, and because
 the DB models, the REST API and (in Go) the chat/dataset services all read them:
@@ -27,7 +27,7 @@ import re
 from pathlib import Path
 
 from api.db import cable_defaults
-from api.db.db_models import Dialog, Knowledgebase
+from api.db.db_models import Dialog, Knowledgebase, Search
 
 CABLE_PROMPT_OPENING = "你是一位经验丰富且亲切的线缆技术专家顾问。"
 
@@ -59,11 +59,13 @@ def _go_string_constant(source: str, name: str) -> str:
 
 
 def test_retrieval_defaults():
-    assert cable_defaults.SIMILARITY_THRESHOLD == 0.25
-    assert cable_defaults.VECTOR_SIMILARITY_WEIGHT == 0.30
+    # A business operator never opens the settings drawer, so these are the only
+    # parameters the platform is judged by on a first search.
+    assert cable_defaults.SIMILARITY_THRESHOLD == 0.55
+    assert cable_defaults.VECTOR_SIMILARITY_WEIGHT == 0.50
     # The full-text leg takes the remainder of the vector weight.
-    assert round(1 - cable_defaults.VECTOR_SIMILARITY_WEIGHT, 2) == 0.70
-    assert cable_defaults.RERANK_CANDIDATES_COUNT == 64
+    assert round(1 - cable_defaults.VECTOR_SIMILARITY_WEIGHT, 2) == 0.50
+    assert cable_defaults.RERANK_CANDIDATES_COUNT == 30
     # 6 truncated real answers on a standards corpus (the retrieved passage that
     # held the answer sat at rank 7 and rank 10), so the default has to clear
     # single-document corpora rather than the smallest useful number.
@@ -141,6 +143,53 @@ def test_prompt_config_returns_an_independent_copy():
 
     assert cable_defaults.prompt_config()["parameters"] == cable_defaults.PROMPT_PARAMETERS
     assert cable_defaults.prompt_config()["system"] == cable_defaults.SYSTEM_PROMPT
+
+
+def test_search_config_returns_an_independent_copy():
+    search_config = cable_defaults.search_config()
+    search_config["llm_setting"]["temperature"] = 0.9
+    search_config["kb_ids"].append("kb-1")
+
+    assert cable_defaults.search_config()["llm_setting"]["temperature"] == 0.1
+    assert cable_defaults.search_config()["kb_ids"] == []
+
+
+def test_search_config_carries_the_retrieval_defaults():
+    """A search app is created by name alone, so its config is born here."""
+    search_config = cable_defaults.search_config()
+
+    assert search_config["similarity_threshold"] == cable_defaults.SIMILARITY_THRESHOLD
+    assert search_config["vector_similarity_weight"] == cable_defaults.VECTOR_SIMILARITY_WEIGHT
+    assert search_config["rerank_candidates_count"] == cable_defaults.RERANK_CANDIDATES_COUNT
+    # A model id belongs to a tenant; the retrieval path resolves the tenant's
+    # own reranker for an app that names none, so the stored default stays empty
+    # instead of pinning one deployment's model into every row.
+    assert search_config["rerank_id"] == ""
+
+
+def test_search_config_with_defaults_keeps_what_the_app_wrote():
+    stored = {"similarity_threshold": 0.2, "kb_ids": ["kb-1"], "summary": True}
+
+    effective = cable_defaults.search_config_with_defaults(stored)
+
+    assert effective["similarity_threshold"] == 0.2
+    assert effective["kb_ids"] == ["kb-1"]
+    assert effective["summary"] is True
+    # A parameter the app never wrote comes from the platform defaults.
+    assert effective["rerank_candidates_count"] == cable_defaults.RERANK_CANDIDATES_COUNT
+    assert effective["vector_similarity_weight"] == cable_defaults.VECTOR_SIMILARITY_WEIGHT
+
+
+def test_search_config_with_defaults_reads_an_absent_config():
+    """A row written before the config column existed still retrieves on them."""
+    effective = cable_defaults.search_config_with_defaults(None)
+
+    assert effective["similarity_threshold"] == cable_defaults.SIMILARITY_THRESHOLD
+    assert effective["rerank_candidates_count"] == cable_defaults.RERANK_CANDIDATES_COUNT
+
+
+def test_search_model_default_uses_the_cable_config():
+    assert Search.search_config.default == cable_defaults.search_config
 
 
 def test_chat_model_defaults_use_the_cable_values():

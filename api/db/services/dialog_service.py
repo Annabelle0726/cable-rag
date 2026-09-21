@@ -30,6 +30,7 @@ from langfuse import Langfuse, propagate_attributes
 from peewee import fn
 from api.db.services.file_service import FileService
 from common.constants import LLMType, ParserType, StatusEnum
+from api.db import cable_defaults
 from api.db.db_models import DB, Dialog
 from api.db.services.common_service import CommonService
 from api.db.services.doc_metadata_service import DocMetadataService
@@ -42,7 +43,7 @@ from api.utils.reference_metadata_utils import (
     enrich_chunks_with_document_metadata,
     resolve_reference_metadata_preferences,
 )
-from api.db.joint_services.tenant_model_service import get_tenant_default_model_by_type, resolve_model_config, resolve_model_type, get_model_config_by_id
+from api.db.joint_services.tenant_model_service import get_default_rerank_model_config, get_tenant_default_model_by_type, resolve_model_config, resolve_model_type, get_model_config_by_id
 from common.time_utils import current_timestamp, datetime_format
 from common.text_utils import normalize_arabic_digits
 from rag.advanced_rag.knowlege_compile.mind_map_extractor import MindMapExtractor
@@ -1824,12 +1825,23 @@ async def _stream_with_think_delta(stream_iter, min_tokens: int = 16):
         state.answer_buffer = ""
 
 
+def _search_rerank_model(tenant_id, search_config):
+    """The reranker a search app runs with, or ``None`` when it runs without one.
+
+    Rerank is on by default for the search surfaces: an app that names no model
+    of its own inherits the tenant's reranker. A tenant that has not designated
+    one keeps the hybrid score alone, which is what an unconfigured deployment
+    must do instead of failing the search.
+    """
+    rerank_id = search_config.get("rerank_id", "")
+    model_config = resolve_model_config(tenant_id, LLMType.RERANK, rerank_id) if rerank_id else get_default_rerank_model_config(tenant_id)
+    return LLMBundle(tenant_id, model_config) if model_config else None
+
+
 async def async_ask(question, kb_ids, tenant_id, chat_llm_name=None, search_config={}, search_id=None):
     doc_ids = search_config.get("doc_ids", [])
-    rerank_mdl = None
     kb_ids = search_config.get("kb_ids", kb_ids)
     chat_llm_name = search_config.get("chat_id", chat_llm_name)
-    rerank_id = search_config.get("rerank_id", "")
     meta_data_filter = search_config.get("meta_data_filter")
     include_reference_metadata, metadata_fields = _resolve_reference_metadata(search_config)
 
@@ -1851,9 +1863,7 @@ async def async_ask(question, kb_ids, tenant_id, chat_llm_name=None, search_conf
     embd_mdl = LLMBundle(embd_owner_tenant_id, embd_model_config)
     chat_model_config = resolve_model_config(tenant_id, LLMType.CHAT, chat_llm_name)
     chat_mdl = LLMBundle(tenant_id, chat_model_config)
-    if rerank_id:
-        rerank_model_config = resolve_model_config(tenant_id, LLMType.RERANK, rerank_id)
-        rerank_mdl = LLMBundle(tenant_id, rerank_model_config)
+    rerank_mdl = _search_rerank_model(tenant_id, search_config)
     max_tokens = chat_mdl.max_length
     tenant_ids = list(set([kb.tenant_id for kb in kbs]))
 
@@ -1868,7 +1878,7 @@ async def async_ask(question, kb_ids, tenant_id, chat_llm_name=None, search_conf
             metas_loader=lambda: DocMetadataService.get_flatted_meta_by_kbs(kb_ids),
         )
 
-    vector_similarity_weight = search_config.get("vector_similarity_weight", 0.3)
+    vector_similarity_weight = search_config.get("vector_similarity_weight", cable_defaults.VECTOR_SIMILARITY_WEIGHT)
     try:
         full_text_weight = 1 - vector_similarity_weight
     except TypeError:
@@ -1888,8 +1898,8 @@ async def async_ask(question, kb_ids, tenant_id, chat_llm_name=None, search_conf
         tenant_ids=tenant_ids,
         kb_ids=kb_ids,
         page=1,
-        page_size=12,
-        similarity_threshold=search_config.get("similarity_threshold", 0.1),
+        page_size=cable_defaults.TOP_N,
+        similarity_threshold=search_config.get("similarity_threshold", cable_defaults.SIMILARITY_THRESHOLD),
         vector_similarity_weight=vector_similarity_weight,
         knn_top_k=search_config.get("top_k", 1024),
         doc_ids=doc_ids,
@@ -1897,7 +1907,7 @@ async def async_ask(question, kb_ids, tenant_id, chat_llm_name=None, search_conf
         rerank_mdl=rerank_mdl,
         rank_feature=label_question(question, kbs),
         trace_id=search_id,
-        rerank_candidates_count=search_config.get("rerank_candidates_count", 100),
+        rerank_candidates_count=search_config.get("rerank_candidates_count", cable_defaults.RERANK_CANDIDATES_COUNT),
     )
     if include_reference_metadata:
         logging.debug(
@@ -1955,8 +1965,6 @@ async def async_ask(question, kb_ids, tenant_id, chat_llm_name=None, search_conf
 async def gen_mindmap(question, kb_ids, tenant_id, search_config={}):
     meta_data_filter = search_config.get("meta_data_filter", {})
     doc_ids = search_config.get("doc_ids", [])
-    rerank_id = search_config.get("rerank_id", "")
-    rerank_mdl = None
     kbs = KnowledgebaseService.get_by_ids(kb_ids)
     if not kbs:
         return {"error": "No KB selected"}
@@ -1970,9 +1978,7 @@ async def gen_mindmap(question, kb_ids, tenant_id, search_config={}):
     else:
         chat_model_config = get_tenant_default_model_by_type(tenant_id, LLMType.CHAT)
     chat_mdl = LLMBundle(tenant_id, chat_model_config)
-    if rerank_id:
-        rerank_model_config = resolve_model_config(tenant_id, LLMType.RERANK, rerank_id)
-        rerank_mdl = LLMBundle(tenant_id, rerank_model_config)
+    rerank_mdl = _search_rerank_model(tenant_id, search_config)
 
     if meta_data_filter:
         doc_ids = await apply_meta_data_filter(

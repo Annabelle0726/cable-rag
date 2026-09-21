@@ -3,6 +3,7 @@ export default {
     common: {
       confirm: 'Confirm',
       back: 'Back',
+      retry: 'Retry',
       noResults: 'No results found',
       selectPlaceholder: 'Select value',
       selectAll: 'Select all',
@@ -692,10 +693,12 @@ export default {
       layoutRecognize: 'PDF parser',
       layoutRecognizeTip:
         'Use a visual model for PDF layout analysis to effectively locate document titles, text blocks, images, and tables. If the naive option is chosen, only the plain text in the PDF will be retrieved. Please note that this option currently works ONLY for PDF documents.',
-      plainTextPreset: 'Standards / scans: switch to Plain Text (text fidelity first)',
+      plainTextPreset:
+        'Standards / scans: switch to Plain Text (text fidelity first)',
       plainTextPresetTip:
         'On scans, or standards whose embedded text layer is poor, DeepDOC can merge adjacent lines and flatten a wide table row into one line (garbled text, dropped cells). Plain Text keeps the body line-accurate and the table values in order, at the cost of the table HTML structure and citation-to-page locating.',
-      reparseAfterParserChangeTitle: 'Parser updated — re-parse this document now?',
+      reparseAfterParserChangeTitle:
+        'Parser updated — re-parse this document now?',
       reparseAfterParserChangeTip:
         'The indexed chunks were produced by the previous parser and keep being served until the document is parsed again. Re-parsing deletes the current chunks first, then rebuilds them with the new parser.',
       reparseNow: 'Re-parse now',
@@ -1030,6 +1033,11 @@ export default {
       ellipse: 'Ellipse',
       graph: 'Knowledge graph',
       mind: 'Mind map',
+      mindFullscreen: 'Open full screen',
+      mindZoomIn: 'Zoom in',
+      mindZoomOut: 'Zoom out',
+      mindFitView: 'Fit to screen',
+      mindResetZoom: 'Back to 100% at the original position',
       question: 'Question',
       questionTip:
         'If there are given questions, the embedding of the chunk will be based on them.',
@@ -2568,6 +2576,10 @@ export default {
       networkAnomaly: 'network anomaly',
       hint: 'hint',
       error: 'Error: {{error}}',
+      embeddingQuotaExhausted:
+        'The vector service is out of quota (429). Try again later or use another API key.',
+      embeddingRateLimited:
+        'The vector service is getting too many requests (429). Try again shortly.',
     },
     fileManager: {
       uploadFolderTitle: 'Upload folder',
@@ -3742,6 +3754,11 @@ export default {
       copySuccess: 'Copy Success',
       welcomeBack: 'Welcome back',
       searchSettings: 'Search settings',
+      advancedSettings: 'Advanced settings (algorithm parameters)',
+      embeddingUnavailable: 'Search is unavailable while the vector service is restricted',
+      referenceSlices: 'Reference passages',
+      expandSlices: 'Show {{count}} more',
+      collapseSlices: 'Show fewer',
       name: 'Name',
       avatar: 'Avatar',
       description: 'Description',
@@ -3758,6 +3775,8 @@ export default {
       cancelText: 'Cancel',
       chooseDataset: 'Please select a dataset first',
       selectLocalePlaceholder: 'Select a locale',
+      history: 'Recent searches',
+      clearHistory: 'Clear search history',
     },
     language: {
       english: 'English',

@@ -298,9 +298,19 @@ export const useSendMessageWithSse = () => {
     useSetDoneRecord();
   const timer = useRef<any>();
   const sseRef = useRef<AbortController>();
+  const runRef = useRef(0);
 
+  // One answer and one done flag serve every stream this hook opens, so a newer
+  // send supersedes an older one: the older stream is aborted and its reader
+  // stops publishing. Without that, an orphaned stream keeps appending into the
+  // new answer — the two texts interleave — and the terminal path it takes on
+  // the way out reports "done" for the search that is still running.
   const initializeSseRef = useCallback(() => {
+    sseRef.current?.abort();
+    runRef.current += 1;
     sseRef.current = new AbortController();
+
+    return runRef.current;
   }, []);
 
   const resetAnswer = useCallback(() => {
@@ -330,7 +340,9 @@ export const useSendMessageWithSse = () => {
       body: any,
       controller?: AbortController,
     ): Promise<{ response: Response; data: ResponseType } | undefined> => {
-      initializeSseRef();
+      const runId = initializeSseRef();
+      const isCurrentRun = () => runRef.current === runId;
+
       try {
         setDoneValue(body, false);
         const response = await fetch(url, {
@@ -365,6 +377,10 @@ export const useSendMessageWithSse = () => {
                 const d = val?.data;
                 if (typeof d !== 'boolean') {
                   setAnswer((prev) => {
+                    if (!isCurrentRun()) {
+                      return prev;
+                    }
+
                     const prevAnswer = prev.answer || '';
                     // Skip final-chunk answer only when prior stream chunks exist (avoids duplicate).
                     // Empty-response and other single-shot answers arrive with final=true only.
@@ -405,13 +421,18 @@ export const useSendMessageWithSse = () => {
             }
           }
         }
-        setDoneValue(body, true);
-        resetAnswer();
+        if (isCurrentRun()) {
+          setDoneValue(body, true);
+          resetAnswer();
+        }
+
         return { data: await res, response };
       } catch {
-        setDoneValue(body, true);
+        if (isCurrentRun()) {
+          setDoneValue(body, true);
 
-        resetAnswer();
+          resetAnswer();
+        }
         // Swallow fetch errors silently
       }
     },

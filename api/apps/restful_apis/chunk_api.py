@@ -26,8 +26,10 @@ from quart import request
 
 from api.apps import login_required
 from api.apps.services import structure_graph_common as sgc
+from api.db import cable_defaults
 from api.db.db_models import Document, Task
 from api.db.joint_services.tenant_model_service import (
+    get_default_rerank_model_config,
     get_tenant_default_model_by_type,
     resolve_model_config,
 )
@@ -381,8 +383,11 @@ async def retrieval_test(tenant_id, dataset_id=None):
         search_detail = SearchService.get_detail(search_id)
         if not search_detail or search_detail.get("tenant_id") != tenant_id:
             return get_error_data_result("Invalid search_id")
-        search_config = dict(search_detail.get("search_config") or {})
-        search_config.setdefault("rerank_candidates_count", 100)
+        # The platform defaults sit *under* the stored configuration: a search
+        # app that never wrote a parameter runs on the cable value rather than on
+        # whatever fallback this endpoint would otherwise invent, and a parameter
+        # the app did write is left untouched.
+        search_config = cable_defaults.search_config_with_defaults(search_detail.get("search_config"))
         if "kb_ids" in search_config:
             search_config["dataset_ids"] = search_config["kb_ids"]
         if "doc_ids" in search_config:
@@ -516,6 +521,13 @@ async def retrieval_test(tenant_id, dataset_id=None):
         if req.get("rerank_id"):
             rerank_model_config = resolve_model_config(kb.tenant_id, LLMType.RERANK, req["rerank_id"])
             rerank_mdl = LLMBundle(kb.tenant_id, rerank_model_config)
+        elif search_id:
+            # A search app reranks by default: with no model of its own it runs
+            # the tenant's reranker. The bare retrieval API keeps its contract of
+            # reranking only when the caller names a model.
+            default_rerank_model_config = get_default_rerank_model_config(kb.tenant_id)
+            if default_rerank_model_config:
+                rerank_mdl = LLMBundle(kb.tenant_id, default_rerank_model_config)
 
         if langs:
             question = await cross_languages(kb.tenant_id, None, question, langs)

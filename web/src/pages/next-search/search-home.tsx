@@ -25,6 +25,7 @@ import { Dispatch, SetStateAction, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import './index.less';
 import { SearchBrandMark } from './search-brand-mark';
+import SearchHistory from './search-history';
 
 export default function SearchHome({
   isSearching,
@@ -59,6 +60,21 @@ export default function SearchHome({
     }
     setIsSearching(!isSearching);
   }, [canSearch, isSearching, searchText, setIsSearching, t]);
+
+  // A history tag names a question that was already asked, so it fills the box
+  // and goes straight to its results instead of stopping at the input.
+  const handleSelectHistory = useCallback(
+    (question: string) => {
+      if (canSearch === false) {
+        message.warning(t('search.chooseDataset'));
+        return;
+      }
+
+      setSearchText(question);
+      setIsSearching(true);
+    },
+    [canSearch, setIsSearching, setSearchText, t],
+  );
 
   return (
     <section className="relative w-full flex transition-all justify-center items-center mt-[15vh]">
@@ -119,6 +135,8 @@ export default function SearchHome({
                 <Search size={18} />
               </button>
             </div>
+
+            <SearchHistory onSelect={handleSelectHistory}></SearchHistory>
           </div>
         </div>
       </div>
