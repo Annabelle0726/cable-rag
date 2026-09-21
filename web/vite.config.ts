@@ -198,6 +198,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      host: '0.0.0.0',
       port: Number(env.PORT) || 9222,
       strictPort: false,
       hmr: {
