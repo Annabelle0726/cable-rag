@@ -14,17 +14,16 @@
  *  limitations under the License.
  */
 
-import SvgIcon from '@/components/svg-icon';
+import { BrandLogo } from '@/components/brand-logo';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
 /**
- * The search surfaces' brand mark: the same logo file and the same name the app
- * bar and the assistant avatar use, so the search hero cannot drift into showing
- * the upstream wordmark (or a hard-coded teal-to-indigo gradient) again. The
- * embed button that used to sit beside it is gone — this deployment does not
- * publish search apps for embedding, so it was a paper plane pointing at a
- * feature nobody uses.
+ * The search surfaces' brand mark: the same logo the app bar and the assistant
+ * avatar use, so the search hero cannot drift into showing the upstream wordmark
+ * (or a hard-coded teal-to-indigo gradient) again. The embed button that used to
+ * sit beside it is gone — this deployment does not publish search apps for
+ * embedding, so it was a paper plane pointing at a feature nobody uses.
  */
 export function SearchBrandMark({
   onClick,
@@ -41,7 +40,9 @@ export function SearchBrandMark({
           'flex items-center gap-3 text-4xl font-bold text-cable-gradient',
         )}
       >
-        <SvgIcon name="brand-logo" width={40} height={40} />
+        <span className="flex h-10 shrink-0 items-center justify-center border border-panel-border bg-white px-2">
+          <BrandLogo className="h-5 w-auto" />
+        </span>
         <span>{t('header.brandShort')}</span>
       </h1>
     </div>

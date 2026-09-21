@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-import { BrandMark } from '@/layouts/components/brand-mark';
+import { BrandLogo } from '@/components/brand-logo';
 import { LucideBrain, LucideFileText, LucideZap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -56,18 +56,19 @@ export function LoginHero() {
   return (
     <section className="relative hidden min-w-0 flex-col gap-6 lg:col-span-5 lg:flex">
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center border border-panel-border bg-bg-component">
-            <BrandMark label={tHeader('brandShort')} />
-          </span>
-          <span className="text-xl font-semibold tracking-tight text-cable-brand">
-            {tHeader('brandShort')}
-          </span>
-        </div>
+        {/* The full lockup already carries the product name, so it stands alone
+            here rather than being paired with the same name as text. The artwork
+            is drawn on white with no alpha, hence the plinth. */}
+        <span className="flex h-12 w-fit items-center justify-center border border-panel-border bg-white px-3">
+          <BrandLogo variant="lockup" className="h-7 w-auto" />
+        </span>
 
         {/* 系统全称：国网绿指示条 + 实色标题 */}
         <h1 className="mt-1 flex items-start gap-2 text-2xl leading-snug font-bold text-text-primary">
-          <span aria-hidden className="mt-1.5 h-5 w-1 shrink-0 bg-cable-brand" />
+          <span
+            aria-hidden
+            className="mt-1.5 h-5 w-1 shrink-0 bg-cable-brand"
+          />
           {tHeader('heroTitle')}
         </h1>
 

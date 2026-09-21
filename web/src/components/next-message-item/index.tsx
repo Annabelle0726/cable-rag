@@ -15,6 +15,7 @@
  *  limitations under the License.
  */
 
+import { BrandLogo } from '@/components/brand-logo';
 import { MessageType } from '@/constants/chat';
 import {
   IMessage,
@@ -47,7 +48,6 @@ import { DocumentDownloadButton } from '../document-download-button';
 import { LoadingDots } from '../loading-dots';
 import MarkdownContent from '../next-markdown-content';
 import { RAGFlowAvatar } from '../ragflow-avatar';
-import SvgIcon from '../svg-icon';
 import { useTheme } from '../theme-provider';
 import { Button } from '../ui/button';
 import { AssistantGroupButton, UserGroupButton } from './group-button';
@@ -227,12 +227,8 @@ function MessageItem({
               />
             ) : (
               // The assistant's own icon when the agent has none: the product's
-              // brand logo, the same asset the header mark renders.
-              <SvgIcon
-                name={'brand-logo'}
-                width={'100%'}
-                className={cn('size-10')}
-              ></SvgIcon>
+              // brand mark, the same asset the header slot renders.
+              <BrandLogo className={cn('size-10')} />
             ))}
           <section className="flex-col gap-2 flex-1">
             <div className="flex justify-between items-center">

@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+import { BrandLogo } from '@/components/brand-logo';
 import SvgIcon from '@/components/svg-icon';
 import { useAuth } from '@/hooks/auth-hooks';
 import {
@@ -411,8 +412,8 @@ const Login = () => {
 
             <div className="flex w-full flex-col items-center lg:col-span-7">
               <header className="mb-4 flex flex-row items-center justify-center gap-3 lg:hidden">
-                <span className="flex size-10 shrink-0 items-center justify-center border border-panel-border bg-bg-component">
-                  <SvgIcon name="brand-logo" width={24} height={24} />
+                <span className="flex h-10 shrink-0 items-center justify-center border border-panel-border bg-white px-2">
+                  <BrandLogo className="h-5 w-auto" />
                 </span>
                 <p className="text-xl font-semibold tracking-tight text-text-primary">
                   {tHeader('brandShort')}

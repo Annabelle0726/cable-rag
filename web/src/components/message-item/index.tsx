@@ -15,6 +15,7 @@
  *  limitations under the License.
  */
 
+import { BrandLogo } from '@/components/brand-logo';
 import { MessageType } from '@/constants/chat';
 import { IRegenerateMessage, IRemoveMessageById } from '@/hooks/logic-hooks';
 import {
@@ -34,7 +35,6 @@ import { ReferenceDocumentList } from '../next-message-item/reference-document-l
 import { ReferenceImageList } from '../next-message-item/reference-image-list';
 import { UploadedMessageFiles } from '../next-message-item/uploaded-message-files';
 import { RAGFlowAvatar } from '../ragflow-avatar';
-import SvgIcon from '../svg-icon';
 import { useTheme } from '../theme-provider';
 import { AssistantGroupButton, UserGroupButton } from './group-button';
 import styles from './index.module.less';
@@ -134,12 +134,8 @@ const MessageItem = ({
               />
             ) : (
               // The assistant's own icon when the chat has none: the product's
-              // brand logo, the same asset the header mark renders.
-              <SvgIcon
-                name={'brand-logo'}
-                width={'100%'}
-                className={cn('size-10')}
-              ></SvgIcon>
+              // brand mark, the same asset the header slot renders.
+              <BrandLogo className={cn('size-10')} />
             ))}
 
           <section className="flex min-w-0 gap-2 flex-1 flex-col">
