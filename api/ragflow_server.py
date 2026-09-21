@@ -14,7 +14,7 @@
 #  limitations under the License.
 #
 
-print("Start Cable RAG server...")
+print("Start Wenruo RAG server...")
 
 import time
 
@@ -93,17 +93,17 @@ def signal_handler(sig, frame):
 def run_server():
     faulthandler.enable()
     init_root_logger("ragflow_server")
-    # Cable RAG ASCII Banner
+    # Wenruo RAG ASCII Banner
     logging.info(r"""
-   ______   ____   ____   |    ______   ____   ______ 
-  / ____/  / __ \ / __ \  |   / __ \   / __ \ / ____/ 
- / /      / /_/ // /_/ /  |  / /_/ /  / /_/ // / __   
-/ /___   / __  // /_/ /   | / _, _/  / __  // /_/ /   
-\____/  /_/ /_//_____/    |/_/ |_|  /_/ /_//____/    
-                         Cable RAG Engine
+ _  _  _ _____ _  _ ____  _  _  ___     ____    _    ____ 
+| || || | ____| \| |  _ \| | | |/ _ \   |  _ \  / \  / ___|
+| || || |  _| |  ` | |_) | | | | | | |  | |_) |/ _ \| |  _ 
+| || || | |___| .  |  _ <| |_| | |_| |  |  _ </ ___ \ |_| |
+ \__/\__/|_____|_|\_|_| \_\\___/ \___/   |_| \_/_/   \_\____|
+                         Wenruo RAG Engine
     """)
-    # Updated startup branding log to Cable RAG
-    logging.info(f"Cable RAG version: {get_ragflow_version()}")
+    # Updated startup branding log to Wenruo RAG
+    logging.info(f"Wenruo RAG version: {get_ragflow_version()}")
     logging.info(f"project base: {get_project_base_directory()}")
     show_configs()
     settings.init_settings()
@@ -122,8 +122,8 @@ def run_server():
     import argparse
 
     parser = argparse.ArgumentParser()
-    # Update CLI parameter description to Cable RAG version
-    parser.add_argument("--version", default=False, help="Cable RAG version", action="store_true")
+    # Update CLI parameter description to Wenruo RAG version
+    parser.add_argument("--version", default=False, help="Wenruo RAG version", action="store_true")
     parser.add_argument("--debug", default=False, help="debug mode", action="store_true")
     parser.add_argument("--init-superuser", default=False, help="init superuser", action="store_true")
     args = parser.parse_args()
@@ -171,8 +171,8 @@ def run_server():
         threading.Timer(1.0, delayed_start_update_progress).start()
         start_chat_channels()
 
-    # Updated ready prompt to Cable RAG server
-    logging.info(f"Cable RAG server is ready after {time.time() - start_ts}s initialization.")
+    # Updated ready prompt to Wenruo RAG server
+    logging.info(f"Wenruo RAG server is ready after {time.time() - start_ts}s initialization.")
     app.run(host=settings.HOST_IP, port=settings.HOST_PORT, use_reloader=RuntimeConfig.DEBUG, debug=False)
 
 

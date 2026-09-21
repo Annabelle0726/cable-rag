@@ -2008,13 +2008,13 @@ async def main():
     except (ValueError, IndexError):
         pass  # Non-standard consumer name, skip delay
     logging.info(r"""
-       ______      __  __     ____  ___   ______   _____                               
-      / ____/___  / /_/ /    / __ \/   | / ____/  / ___/___  ______   _____  _____     
-     / /   / __ \/ __/ /    / /_/ / /| |/ / __    \__ \/ _ \/ ___/ | / / _ \/ ___/     
-    / /___/ /_/ / /_/ /___ / _, _/ ___ / /_/ /   ___/ /  __/ /   | |/ /  __/ /         
-    \____/\__,_/\__/_____//_/ |_/_/  |_\____/   /____/\___/_/    |___/\___/_/          
-        """)
-    logging.info(f"RAGFlow ingestion version: {get_ragflow_version()}")
+     _  _  _ _____ _  _ ____  _  _  ___     ____    _    ____ 
+    | || || | ____| \| |  _ \| | | |/ _ \   |  _ \  / \  / ___|
+    | || || |  _| |  ` | |_) | | | | | | |  | |_) |/ _ \| |  _ 
+    | || || | |___| .  |  _ <| |_| | |_| |  |  _ </ ___ \ |_| |
+     \__/\__/|_____|_|\_|_| \_\\___/ \___/   |_| \_/_/   \_\____|
+    """)
+    logging.info(f"Wenruo RAG ingestion version: {get_ragflow_version()}")
     show_configs()
     settings.init_settings()
     settings.check_and_install_torch()
