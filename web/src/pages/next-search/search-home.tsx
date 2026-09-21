@@ -111,7 +111,7 @@ export default function SearchHome({
               <button
                 type="button"
                 className={cn(
-                  'absolute right-3 flex size-9 items-center justify-center rounded-full bg-text-primary text-bg-base shadow transition-opacity hover:opacity-90',
+                  'absolute right-3 flex size-9 items-center justify-center rounded-full border border-transparent bg-transparent text-text-primary transition-colors hover:border-text-primary hover:bg-bg-input',
                   isMultiLine ? 'bottom-3' : 'top-1/2 -translate-y-1/2',
                 )}
                 onClick={handleStartSearch}

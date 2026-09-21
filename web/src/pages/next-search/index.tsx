@@ -80,7 +80,7 @@ export default function SearchPage() {
       <div className="glass-surface flex min-w-0 flex-1">
         <div className="flex-1 min-w-0 overflow-hidden">
           {!isSearching && (
-            <div className="animate-fade-in-down h-full overflow-x-hidden overflow-y-auto">
+            <div className="animate-fade-in h-full overflow-x-hidden overflow-y-auto">
               <SearchHome
                 setIsSearching={setIsSearching}
                 isSearching={isSearching}
@@ -92,7 +92,7 @@ export default function SearchPage() {
             </div>
           )}
           {isSearching && (
-            <div className="animate-fade-in-up h-full">
+            <div className="animate-fade-in h-full">
               <SearchingPage
                 setIsSearching={setIsSearching}
                 searchText={searchText}
