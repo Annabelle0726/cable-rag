@@ -166,7 +166,7 @@ export default {
       skills: 'Skills',
       flow: 'Agent',
       search: 'Search',
-      brandShort: '文若RAG',
+      brandShort: 'Wenruo RAG',
       heroTitle: 'Cable industry intelligent search agent platform',
       heroSubtitle:
         'Industrial standards, BOM and QC compliance verification system',
@@ -3855,7 +3855,6 @@ export default {
     },
     admin: {
       loginTitle: 'Admin console',
-      title: '文若RAG',
       confirm: 'Confirm',
       close: 'Close',
       yes: 'Yes',

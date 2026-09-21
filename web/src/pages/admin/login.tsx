@@ -9,6 +9,7 @@ import { useMutation } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
+import { BrandLogo } from '@/components/brand-logo';
 import Spotlight from '@/components/spotlight';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -133,8 +134,10 @@ function AdminLogin() {
 
         <div className="absolute top-3 left-0 w-full">
           <div className="absolute mt-12 ml-12 flex items-center">
-            <img className="size-8 mr-5" src="/logo.svg" alt="logo" />
-            <span className="text-xl font-bold">RAGFlow</span>
+            <BrandLogo className="h-8 w-auto mr-5" />
+            <span className="text-xl font-bold">
+              {t('header.brandShort', { keyPrefix: 'header' })}
+            </span>
           </div>
 
           <h1 className="mt-[6.5rem] text-4xl font-medium text-center mb-12">

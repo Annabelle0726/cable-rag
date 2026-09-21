@@ -1,28 +1,37 @@
 import brandLockup from '@/assets/icon/brand-lockup.png';
 import brandMark from '@/assets/icon/brand-mark.png';
+import brandPoster from '@/assets/icon/brand-poster.jpg';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
 /**
- * The product mark, in the two shapes the console needs.
+ * The company artwork, in the three shapes the console needs.
  *
- * Both are raster crops of the supplied artwork (`芯导logo.jpg`, `芯导logo2.jpg`,
- * which sit beside them untouched): the sources are 2421x1417 sheets with the ink
- * inset in a wide white margin, so `logo.png` and `brand-lockup.png` are the
- * ink alone. Neither has an alpha channel — the artwork is drawn on white — so a
- * caller that puts it on a coloured surface has to give it a light tile, which is
- * what the header mark does.
+ * `brand-mark.png` and `brand-lockup.png` are the assets rendered from the
+ * supplied artwork (`芯导logo.jpg`, which sits beside them untouched) and
+ * `brand-poster.jpg` is its tall companion (`芯导logo2.jpg`). All three are
+ * company marks, so the product name (`文若RAG` / `Wenruo RAG`) stays real text
+ * next to them rather than being baked in.
  *
  * `object-contain` is part of the contract: the slots these land in are square
- * (avatars, icon tiles) and the artwork is wide, so fitting — never filling — is
- * what keeps it undistorted.
+ * (avatars, icon tiles) or short rails, so fitting — never filling — is what
+ * keeps the artwork undistorted. The artwork is drawn on white, so a caller that
+ * puts it on a coloured surface has to give it a light tile, which is what the
+ * app bar does.
  */
-export type BrandLogoVariant = 'mark' | 'lockup';
+export type BrandLogoVariant = 'mark' | 'lockup' | 'poster';
+
+const brandSources: Record<BrandLogoVariant, string> = {
+  mark: brandMark,
+  lockup: brandLockup,
+  poster: brandPoster,
+};
 
 type BrandLogoProps = {
   /**
-   * `mark` is the graphic alone, for small slots; `lockup` is the full
-   * mark-and-wordmark, for the sign-in column where there is room to read it.
+   * `mark` is the graphic alone, for small slots; `lockup` is the wide company
+   * mark-and-wordmark, for the app bar; `poster` is the tall artwork, for the
+   * sign-in column where there is room to read it.
    */
   variant?: BrandLogoVariant;
   className?: string;
@@ -38,7 +47,7 @@ export function BrandLogo({
 
   return (
     <img
-      src={variant === 'lockup' ? brandLockup : brandMark}
+      src={brandSources[variant]}
       alt={alt ?? t('header.brandShort')}
       className={cn('object-contain', className)}
     />
