@@ -14,7 +14,6 @@
  *  limitations under the License.
  */
 
-import Spotlight from '@/components/spotlight';
 import message from '@/components/ui/message';
 import { useAutoResizeTextarea } from '@/hooks/use-auto-resize-textarea';
 import { IUserInfo } from '@/interfaces/database/user-setting';
@@ -42,7 +41,6 @@ export default function SearchHome({
   userInfo?: IUserInfo;
   canSearch?: boolean;
 }) {
-  // const { data: userInfo } = useFetchUserInfo();
   const { t } = useTranslation();
   const searchInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -53,16 +51,12 @@ export default function SearchHome({
       message.warning(t('search.chooseDataset'));
       return;
     }
-    // Do not enter the searching view with an empty question: it would render
-    // the previous search's stale results from the mutation cache.
     if (isEmpty(trim(searchText))) {
       return;
     }
     setIsSearching(!isSearching);
   }, [canSearch, isSearching, searchText, setIsSearching, t]);
 
-  // A history tag names a question that was already asked, so it fills the box
-  // and goes straight to its results instead of stopping at the input.
   const handleSelectHistory = useCallback(
     (question: string) => {
       if (canSearch === false) {
@@ -77,32 +71,34 @@ export default function SearchHome({
   );
 
   return (
-    <section className="relative w-full flex transition-all justify-center items-center mt-[15vh]">
-      <div className="relative z-10 px-8 pt-8 flex  text-transparent flex-col justify-center items-center w-full max-w-[780px]">
-        <SearchBrandMark></SearchBrandMark>
-        <div className="rounded-lg  text-primary text-xl sticky flex justify-center w-full transform scale-100 mt-8 p-6 min-h-[240px] border">
-          {!isSearching && <Spotlight className="z-0" />}
-          <div className="flex flex-col justify-center items-center  w-2/3">
+    <section className="relative flex w-full justify-center items-center mt-[10vh]">
+      <div className="relative z-10 flex w-full max-w-[860px] flex-col items-center justify-center px-6">
+        <SearchBrandMark />
+
+        {/* 移除了原本会产生底部硬切割发光的 <Spotlight /> */}
+        <div className="relative mt-8 flex w-full flex-col items-center justify-center p-2 pb-8 text-xl text-primary">
+          <div className="flex w-full flex-col items-center justify-center">
             {!isSearching && (
               <>
-                <p className="mb-4 transition-opacity">👋 Hi there</p>
-                <p className="mb-10 transition-opacity">
+                <p className="mb-2 text-2xl font-medium transition-opacity">👋 Hi there</p>
+                <p className="mb-8 text-base text-text-secondary transition-opacity">
                   {userInfo && (
                     <>
-                      {t('search.welcomeBack')}, {userInfo.nickname}
+                      {t('search.welcomeBack')}, <span className="font-semibold text-text-primary">{userInfo.nickname}</span>
                     </>
                   )}
                 </p>
               </>
             )}
 
-            <div className="relative w-full ">
+            {/* 搜索输入框 */}
+            <div className="relative w-full">
               <textarea
                 ref={searchInputRef}
                 rows={1}
                 placeholder={t('search.searchGreeting')}
                 className={cn(
-                  'w-full py-4 px-4 pr-14 text-text-primary text-lg bg-bg-base border border-border-button resize-none scrollbar-thin outline-none focus-visible:ring-1 focus-visible:ring-text-primary/50',
+                  'w-full py-4 px-5 pr-14 text-text-primary text-lg bg-bg-base border border-border-button resize-none scrollbar-thin outline-none focus-visible:ring-1 focus-visible:ring-text-primary/50 shadow-sm transition-all',
                   isMultiLine ? 'rounded-3xl' : 'rounded-full',
                 )}
                 value={searchText}
@@ -124,10 +120,11 @@ export default function SearchHome({
                   setSearchText(e.target.value || '');
                 }}
               />
+
               <button
                 type="button"
                 className={cn(
-                  'absolute right-3 flex size-9 items-center justify-center rounded-full border border-transparent bg-transparent text-text-primary transition-colors hover:border-text-primary hover:bg-bg-input',
+                  'absolute right-3.5 flex size-9 items-center justify-center rounded-full border-none bg-text-primary text-bg-base outline-none transition-transform hover:scale-105 active:scale-95 shadow-sm',
                   isMultiLine ? 'bottom-3' : 'top-1/2 -translate-y-1/2',
                 )}
                 onClick={handleStartSearch}
@@ -136,7 +133,10 @@ export default function SearchHome({
               </button>
             </div>
 
-            <SearchHistory onSelect={handleSelectHistory}></SearchHistory>
+            {/* 搜索历史 */}
+            <div className="w-full mt-4">
+              <SearchHistory onSelect={handleSelectHistory} />
+            </div>
           </div>
         </div>
       </div>

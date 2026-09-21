@@ -33,15 +33,16 @@ export function SearchBrandMark({
   const { t } = useTranslation();
 
   return (
-    <div className="flex gap-4 items-center">
+    <div className="flex items-center justify-center">
       <h1
         onClick={onClick}
         className={cn(
-          'flex items-center gap-3 text-4xl font-bold text-cable-gradient',
+          'flex items-center gap-4 text-4xl font-bold tracking-tight text-cable-gradient select-none sm:text-5xl',
+          onClick && 'cursor-pointer transition-opacity hover:opacity-90',
         )}
       >
-        <span className="flex h-10 shrink-0 items-center justify-center border border-panel-border bg-white px-2">
-          <BrandLogo className="h-5 w-auto" />
+        <span className="flex shrink-0 items-center justify-center">
+          <BrandLogo className="h-9 w-auto object-contain sm:h-10" />
         </span>
         <span>{t('header.brandShort')}</span>
       </h1>
