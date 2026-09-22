@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright
 BASE = os.getenv("E2E_BASE_URL", "http://localhost:9223")
 EMAIL = os.getenv("E2E_ADMIN_EMAIL") or "admin@ragflow.io"
 PASSWORD = os.getenv("E2E_ADMIN_PASSWORD") or "admin"
-PROBE_NAME = '创建反馈探针（可删）'
+PROBE_NAME = "创建反馈探针（可删）"
 
 EMAIL_INPUT = "input[data-testid='auth-email'], [data-testid='auth-email'] input"
 PASSWORD_INPUT = "input[data-testid='auth-password'], [data-testid='auth-password'] input"
@@ -59,17 +59,10 @@ def main() -> int:
         requests = []
         page.on(
             "request",
-            lambda r: requests.append(f"{r.method} {r.url.split('/api/v1')[-1]}")
-            if "/api/v1/chats" in r.url and r.method in ("POST", "DELETE")
-            else None,
+            lambda r: requests.append(f"{r.method} {r.url.split('/api/v1')[-1]}") if "/api/v1/chats" in r.url and r.method in ("POST", "DELETE") else None,
         )
 
-        page.add_init_script(
-            "try {"
-            "  localStorage.setItem('lng', 'zh-Hans');"
-            "  localStorage.setItem('ragflow-ui-theme', 'light');"
-            "} catch (e) {}"
-        )
+        page.add_init_script("try {" "  localStorage.setItem('lng', 'zh-Hans');" "  localStorage.setItem('ragflow-ui-theme', 'light');" "} catch (e) {}")
 
         page.goto(f"{BASE}/login-next", wait_until="networkidle")
         page.wait_for_timeout(2000)
@@ -83,9 +76,7 @@ def main() -> int:
             return 1
 
         # Sweep a probe left by an interrupted run, so the name is free.
-        listed = page.evaluate(
-            MUTATE_JS, {"path": "/api/v1/chats?page=1&page_size=50", "method": "GET"}
-        )
+        listed = page.evaluate(MUTATE_JS, {"path": "/api/v1/chats?page=1&page_size=50", "method": "GET"})
         data = listed.get("data")
         rows = data.get("chats") if isinstance(data, dict) else []
         stale = [r["id"] for r in (rows or []) if "探针" in str(r.get("name") or "")]
@@ -160,9 +151,7 @@ def main() -> int:
             print("\n=> NO busy state was shown at any point while creating")
 
         # Clean up.
-        listed = page.evaluate(
-            MUTATE_JS, {"path": "/api/v1/chats?page=1&page_size=50", "method": "GET"}
-        )
+        listed = page.evaluate(MUTATE_JS, {"path": "/api/v1/chats?page=1&page_size=50", "method": "GET"})
         data = listed.get("data")
         rows = data.get("chats") if isinstance(data, dict) else []
         mine = [r["id"] for r in (rows or []) if r.get("name") == PROBE_NAME]

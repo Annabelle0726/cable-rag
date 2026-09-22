@@ -59,7 +59,7 @@ export function LoginHero() {
         {/* The poster is the company artwork, so the product wordmark stays real
             text beside it — the same company-and-product pair the app bar shows.
             The artwork is drawn on white, hence the plinth. */}
-        <span className="flex h-12 w-fit items-center justify-center gap-3 border border-panel-border bg-white px-3">
+        <span className="flex h-12 w-fit items-center justify-center gap-3 bg-white px-3">
           <BrandLogo variant="poster" className="h-9 w-auto" />
           <span className="text-lg font-semibold tracking-tight text-text-primary">
             {tHeader('brandShort')}

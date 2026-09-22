@@ -17,10 +17,7 @@ BASE = os.getenv("E2E_BASE_URL", "http://localhost:9223")
 EMAIL = os.getenv("E2E_ADMIN_EMAIL") or "admin@ragflow.io"
 PASSWORD = os.getenv("E2E_ADMIN_PASSWORD") or "admin"
 
-QUESTION = (
-    "根据国网标准 Q/GDW 73289.2-2026《450/750V 聚氯乙烯绝缘电缆采购标准 第2部分：专用技术规范》，"
-    "PVC/E 类型绝缘材料在热稳定性试验中的要求是什么？"
-)
+QUESTION = "根据国网标准 Q/GDW 73289.2-2026《450/750V 聚氯乙烯绝缘电缆采购标准 第2部分：专用技术规范》，" "PVC/E 类型绝缘材料在热稳定性试验中的要求是什么？"
 
 EMAIL_INPUT = "input[data-testid='auth-email'], [data-testid='auth-email'] input"
 PASSWORD_INPUT = "input[data-testid='auth-password'], [data-testid='auth-password'] input"
@@ -60,9 +57,7 @@ def main() -> int:
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="chrome", headless=True)
         page = browser.new_page(viewport={"width": 1400, "height": 900})
-        page.add_init_script(
-            "try { localStorage.setItem('lng', 'zh-Hans'); } catch (e) {}"
-        )
+        page.add_init_script("try { localStorage.setItem('lng', 'zh-Hans'); } catch (e) {}")
 
         page.goto(f"{BASE}/login-next", wait_until="networkidle")
         page.wait_for_timeout(2000)

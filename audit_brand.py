@@ -50,12 +50,7 @@ def main() -> int:
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="chrome", headless=True)
         page = browser.new_page(viewport={"width": 1600, "height": 950})
-        page.add_init_script(
-            "try {"
-            "  localStorage.setItem('lng', 'zh-Hans');"
-            "  localStorage.setItem('ragflow-ui-theme', 'light');"
-            "} catch (e) {}"
-        )
+        page.add_init_script("try {" "  localStorage.setItem('lng', 'zh-Hans');" "  localStorage.setItem('ragflow-ui-theme', 'light');" "} catch (e) {}")
 
         page.goto(f"{BASE}/login-next", wait_until="networkidle")
         page.wait_for_timeout(2500)

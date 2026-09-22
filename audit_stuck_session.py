@@ -22,8 +22,8 @@ PASSWORD = os.getenv("E2E_ADMIN_PASSWORD") or "admin"
 EMAIL_INPUT = "input[data-testid='auth-email'], [data-testid='auth-email'] input"
 PASSWORD_INPUT = "input[data-testid='auth-password'], [data-testid='auth-password'] input"
 
-PROBE_CHAT = '会话卡死探针（可删）'
-PROBE_SESSIONS = ['热稳定性试验追溯', 'PVC/E 绝缘规范']
+PROBE_CHAT = "会话卡死探针（可删）"
+PROBE_SESSIONS = ["热稳定性试验追溯", "PVC/E 绝缘规范"]
 
 MUTATE_JS = """
 async ({ path, method, body }) => {
@@ -71,12 +71,7 @@ def main() -> int:
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="chrome", headless=True)
         page = browser.new_page(viewport={"width": 1500, "height": 900})
-        page.add_init_script(
-            "try {"
-            "  localStorage.setItem('lng', 'zh-Hans');"
-            "  localStorage.setItem('ragflow-ui-theme', 'light');"
-            "} catch (e) {}"
-        )
+        page.add_init_script("try {" "  localStorage.setItem('lng', 'zh-Hans');" "  localStorage.setItem('ragflow-ui-theme', 'light');" "} catch (e) {}")
 
         page.goto(f"{BASE}/login-next", wait_until="networkidle")
         page.wait_for_timeout(2000)
@@ -165,9 +160,7 @@ def main() -> int:
             page.unroute_all(behavior="ignoreErrors")
             target = PROBE_SESSIONS[1]
             before_retry = len(attempted)
-            page.locator(
-                "[data-testid='chat-detail-session-item']", has_text=target
-            ).first.click()
+            page.locator("[data-testid='chat-detail-session-item']", has_text=target).first.click()
             page.wait_for_timeout(2000)
             report(
                 "clicking the failed row fires exactly one more attempt",
@@ -178,9 +171,7 @@ def main() -> int:
             healed_row = by_name(healed).get(target, {})
             report(
                 "the retry settles and clears the loading state",
-                not healed["skeleton"]
-                and healed_row.get("spinner") is False
-                and healed_row.get("disabled") is False,
+                not healed["skeleton"] and healed_row.get("spinner") is False and healed_row.get("disabled") is False,
                 json.dumps(healed_row, ensure_ascii=False),
             )
 
@@ -194,23 +185,16 @@ def main() -> int:
             page.wait_for_timeout(400)
             # Move the query string while the fetch is in flight, the way the send
             # flow does when it flips `isNew`.
-            page.locator(
-                "[data-testid='chat-detail-session-item']", has_text=target
-            ).first.click()
+            page.locator("[data-testid='chat-detail-session-item']", has_text=target).first.click()
             page.wait_for_timeout(400)
-            page.evaluate(
-                "() => { const u = new URL(location.href); u.searchParams.set('isNew', ''); "
-                "history.replaceState(null, '', u); window.dispatchEvent(new PopStateEvent('popstate')); }"
-            )
+            page.evaluate("() => { const u = new URL(location.href); u.searchParams.set('isNew', ''); " "history.replaceState(null, '', u); window.dispatchEvent(new PopStateEvent('popstate')); }")
             page.wait_for_timeout(5000)
             landed = page.evaluate(STATE_JS)
             print("after a mid-flight param change:", json.dumps(landed, ensure_ascii=False))
             landed_row = by_name(landed).get(target, {})
             report(
                 "a response that outlives a param change still clears the row",
-                not landed["skeleton"]
-                and not landed_row.get("spinner")
-                and landed_row.get("selected") is True,
+                not landed["skeleton"] and not landed_row.get("spinner") and landed_row.get("selected") is True,
                 json.dumps(landed_row, ensure_ascii=False),
             )
         finally:

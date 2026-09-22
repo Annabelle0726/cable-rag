@@ -42,11 +42,7 @@ for line in lines:
 if current is not None:
     hunks.append(current)
 
-keep = [
-    h
-    for h in hunks
-    if any(line.startswith("+") and marker in line for line in h)
-]
+keep = [h for h in hunks if any(line.startswith("+") and marker in line for line in h)]
 print(f"file has {len(hunks)} hunk(s); {len(keep)} add a line matching {marker!r}")
 
 if not keep:

@@ -202,8 +202,7 @@ def test_server_error_response_translates_a_provider_refusal():
 
     error = embedding_failure(
         "GeminiEmbed",
-        "429 RESOURCE_EXHAUSTED. {'error': {'details': [{'quotaId': "
-        "'EmbedContentRequestsPerDayPerProjectPerModel-FreeTier'}]}}",
+        "429 RESOURCE_EXHAUSTED. {'error': {'details': [{'quotaId': " "'EmbedContentRequestsPerDayPerProjectPerModel-FreeTier'}]}}",
     )
 
     body = api_utils.server_error_response(error)

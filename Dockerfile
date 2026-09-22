@@ -14,7 +14,7 @@ WORKDIR /ragflow
 
 # copy models downloaded via download_deps.py
 RUN mkdir -p /ragflow/rag/res/deepdoc /root/.ragflow
-RUN --mount=type=bind,from=infiniflow/wenruo_deps:latest,source=/huggingface.co,target=/huggingface.co \
+RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/huggingface.co,target=/huggingface.co \
     tar --exclude='.*' -cf - \
         /huggingface.co/InfiniFlow/text_concat_xgb_v1.0 \
         /huggingface.co/InfiniFlow/deepdoc \
@@ -22,7 +22,7 @@ RUN --mount=type=bind,from=infiniflow/wenruo_deps:latest,source=/huggingface.co,
 
 # https://github.com/chrismattmann/tika-python
 # This is the only way to run python-tika without internet access. Without this set, the default is to check the tika version and pull latest every time from Apache.
-RUN --mount=type=bind,from=infiniflow/wenruo_deps:latest,source=/,target=/deps \
+RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/,target=/deps \
     cp -r /deps/nltk_data /root/ && \
     cp /deps/tika-server-standard-3.3.0.jar /deps/tika-server-standard-3.3.0.jar.md5 /ragflow/ && \
     cp /deps/cl100k_base.tiktoken /ragflow/9b5ad71b2ce5302211f9c61530b329a4922fc6a4
@@ -95,7 +95,7 @@ RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt,sharing=locked \
     apt-mark hold nginx
 
 # Install uv
-RUN --mount=type=bind,from=infiniflow/wenruo_deps:latest,source=/,target=/deps \
+RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/,target=/deps \
     if [ "$NEED_MIRROR" == "1" ]; then \
         mkdir -p /etc/uv && \
         echo 'python-install-mirror = "https://registry.npmmirror.com/-/binary/python-build-standalone/"' > /etc/uv/uv.toml && \
@@ -123,35 +123,8 @@ RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get install -y nodejs
 
-# stagehand-server-v3 (Node.js SEA binary used by Browser component
-# in local mode).
-#
-# The `v3.21.0` value below is the `stagehand-go/v3` Go module
-# version pinned in `go.mod`. It is used here only to compute the
-# `go_<ver>/` subdirectory that `local.go:cacheDir()` will look in
-# for the binary at runtime — that subdirectory name is keyed by
-# the Go module's own `internal.PackageVersion`, NOT by the server
-# binary's release tag.
-#
-# The server binary itself is fetched separately by `download_deps.py`
-# from the browserbase/stagehand GitHub releases. The two are
-# LOOSELY MATCHED — both stay on the v3.x line and remain protocol-
-# compatible, but the version numbers do NOT track each other (Go
-# SDK is at v3.21.0, server binary is at v3.7.2 today). On every
-# go.mod bump, refresh the server binary pin in `download_deps.py`
-# to the current latest server release; no version correspondence
-# is required to maintain.
-#
-# Drift on the Go SDK pin (this ARG vs go.mod) forces a fresh
-# GitHub download at process boot — a hard failure in air-gapped
-# deployments. CI cross-checks the two values.
-#
-# The binary is pre-fetched by `download_deps.py` and shipped via
-# the wenruo_deps image, then written directly to the stagehand-go
-# cache path that `local.go:cacheDir()` constructs at runtime —
-# `/root/.cache/stagehand/lib/go_<ver>/stagehand-server-v3-<arch>`.
 ARG STAGEHAND_GO_VERSION=v3.21.0
-RUN --mount=type=bind,from=infiniflow/wenruo_deps:latest,source=/,target=/deps \
+RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/,target=/deps \
     set -eux; \
     arch="$(uname -m)"; \
     case "$arch" in \
@@ -167,41 +140,34 @@ RUN --mount=type=bind,from=infiniflow/wenruo_deps:latest,source=/,target=/deps \
     chmod +x "${stagehand_cache_dir}/stagehand-server-v3-linux-${stagehand_arch}"
 
 # Add msssql ODBC driver
-# macOS ARM64 environment, install msodbcsql18.
-# general x86_64 environment, install msodbcsql17.
 RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt,sharing=locked \
     curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
     curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
     apt update && \
     arch="$(uname -m)"; \
     if [ "$arch" = "arm64" ] || [ "$arch" = "aarch64" ]; then \
-        # ARM64 (macOS/Apple Silicon or Linux aarch64) \
         ACCEPT_EULA=Y apt install -y unixodbc-dev msodbcsql18; \
     else \
-        # x86_64 or others \
         ACCEPT_EULA=Y apt install -y unixodbc-dev msodbcsql17; \
     fi || \
     { echo "Failed to install ODBC driver"; exit 1; }
 
-
-
 # Add dependencies of selenium
-RUN --mount=type=bind,from=infiniflow/wenruo_deps:latest,source=/chrome-linux64-121-0-6167-85,target=/chrome-linux64.zip \
+RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/chrome-linux64-121-0-6167-85,target=/chrome-linux64.zip \
     unzip /chrome-linux64.zip && \
     mv chrome-linux64 /opt/chrome && \
     ln -s /opt/chrome/chrome /usr/local/bin/
-RUN --mount=type=bind,from=infiniflow/wenruo_deps:latest,source=/chromedriver-linux64-121-0-6167-85,target=/chromedriver-linux64.zip \
+RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/chromedriver-linux64-121-0-6167-85,target=/chromedriver-linux64.zip \
     unzip -j /chromedriver-linux64.zip chromedriver-linux64/chromedriver && \
     mv chromedriver /usr/local/bin/ && \
     rm -f /usr/bin/google-chrome
 
-RUN --mount=type=bind,from=infiniflow/wenruo_deps:latest,source=/,target=/deps \
+RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/,target=/deps \
     if [ "$(uname -m)" = "x86_64" ]; then \
         dpkg -i /deps/libssl1.1_1.1.1f-1ubuntu2_amd64.deb; \
     elif [ "$(uname -m)" = "aarch64" ]; then \
         dpkg -i /deps/libssl1.1_1.1.1f-1ubuntu2_arm64.deb; \
     fi
-
 
 # builder stage
 FROM base AS builder
@@ -210,7 +176,6 @@ USER root
 WORKDIR /ragflow
 
 # Install build-only dependencies for compiling Python C extensions.
-# These are not inherited from base to keep the production image smaller.
 RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt,sharing=locked \
     apt-get update --fix-missing && \
     apt-get install -y build-essential libpython3-dev libicu-dev libgbm-dev && \
@@ -219,13 +184,6 @@ RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt,sharing=locked \
 # install dependencies from uv.lock file
 COPY pyproject.toml uv.lock ./
 
-# https://github.com/astral-sh/uv/issues/10462
-# uv records index url into uv.lock but doesn't failover among multiple indexes
-# Also rewrite pypi.tuna.tsinghua.edu.cn to mirrors.aliyun.com/pypi so locks
-# that were resolved against the Tsinghua mirror (e.g. when UV_INDEX pointed
-# there) get normalized to the Aliyun mirror in NEED_MIRROR=1 builds. Without
-# this, stale Tsinghua URLs slip through and `uv sync --frozen` 404s on
-# packages that the Tsinghua mirror no longer carries.
 RUN --mount=type=cache,id=ragflow_uv,target=/root/.cache/uv,sharing=locked \
     if [ "$NEED_MIRROR" == "1" ]; then \
         sed -i 's|pypi.org|mirrors.aliyun.com/pypi|g' uv.lock; \
@@ -235,35 +193,13 @@ RUN --mount=type=cache,id=ragflow_uv,target=/root/.cache/uv,sharing=locked \
         sed -i 's|pypi.tuna.tsinghua.edu.cn|pypi.org|g' uv.lock; \
         sed -i 's|gitee.com|github.com|g' uv.lock; \
     fi; \
-    # --refresh-package litellm forces a re-download of litellm from the
-    # (post-sed) URLs in uv.lock even if BuildKit's persistent uv cache mount
-    # holds a stale wheel from a previous build. litellm 1.88.x has had
-    # multiple internal ImportError issues (1.88.1 missing
-    # DEFAULT_HEALTH_CHECK_STALENESS_MULTIPLIER, 1.88.0 wheel pulled via
-    # some proxies missing RedisPipelineLpopOperation) — always re-fetching
-    # the locked version avoids serving a half-broken cached copy.
     uv sync --python 3.13 --frozen --refresh-package litellm && \
-    # Ensure pip is available in the venv for runtime package installation (fixes #12651)
     .venv/bin/python3 -m ensurepip --upgrade
 
-# Frontend build knobs.
-#
-# WEB_BUILD_HEAP_MB caps V8's old space for npm/rollup. It has to stay well
-# below what the Docker VM can back with real RAM, minus the memory the
-# dependency containers keep resident (Elasticsearch reserves ~4 GB, MySQL
-# ~2.4 GB). A ceiling above that budget makes V8 grow into swap, and rollup's
-# "rendering chunks" phase then crawls for tens of minutes instead of failing
-# fast. Roughly half of the VM's memory is a safe value.
-#
-# WEB_DIST_MODE=prebuilt skips the in-container frontend build entirely and
-# ships the `web/dist/` directory already present in the build context, i.e.
-# produced by a local `npm run build` in web/. Use it where the containerized
-# build is slow (small WSL2 VM, few CPUs).
 ARG WEB_BUILD_HEAP_MB=4096
 ARG WEB_DIST_MODE=build
 
-# Install frontend dependencies — depends only on package manifests so
-# web source / docs changes don't invalidate this layer.
+# Install frontend dependencies
 COPY web/package.json web/package-lock.json web/.npmrc ./web/
 RUN --mount=type=cache,id=ragflow_npm,target=/root/.npm,sharing=locked \
     if [ "$WEB_DIST_MODE" = "prebuilt" ]; then \
@@ -340,9 +276,8 @@ COPY --from=builder /ragflow/VERSION /ragflow/VERSION
 # Set environment variables
 ENV HF_ENDPOINT=https://hf-mirror.com
 
-ENTRYPOINT ["./entrypoint.sh"]
-# 设置允许代理下载的环境变量，避免触发 NLTK 代理安全拦截
 ENV NLTK_ALLOW_PROXIED_URLOPEN=1
 
-# 一次性预下载所有必需的 NLTK 数据包到镜像内部
 RUN python3 -c "import nltk; nltk.download('punkt_tab'); nltk.download('wordnet'); nltk.download('punkt'); nltk.download('averaged_perceptron_tagger')"
+
+ENTRYPOINT ["./entrypoint.sh"]

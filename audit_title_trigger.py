@@ -26,8 +26,8 @@ BASE = os.getenv("E2E_BASE_URL", "http://localhost:9223")
 EMAIL = os.getenv("E2E_ADMIN_EMAIL") or "admin@ragflow.io"
 PASSWORD = os.getenv("E2E_ADMIN_PASSWORD") or "admin"
 
-PROBE_CHAT = '标题触发探针（可删）'
-QUESTION = '电缆缆芯的绞合节距和最外层绞向有什么具体要求'
+PROBE_CHAT = "标题触发探针（可删）"
+QUESTION = "电缆缆芯的绞合节距和最外层绞向有什么具体要求"
 
 EMAIL_INPUT = "input[data-testid='auth-email'], [data-testid='auth-email'] input"
 PASSWORD_INPUT = "input[data-testid='auth-password'], [data-testid='auth-password'] input"
@@ -53,12 +53,7 @@ def main() -> int:
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="chrome", headless=True)
         page = browser.new_page(viewport={"width": 1500, "height": 900})
-        page.add_init_script(
-            "try {"
-            "  localStorage.setItem('lng', 'zh-Hans');"
-            "  localStorage.setItem('ragflow-ui-theme', 'light');"
-            "} catch (e) {}"
-        )
+        page.add_init_script("try {" "  localStorage.setItem('lng', 'zh-Hans');" "  localStorage.setItem('ragflow-ui-theme', 'light');" "} catch (e) {}")
 
         def on_request(request):
             if request.url.endswith("/api/v1/chat/title") and request.method == "POST":
@@ -89,9 +84,7 @@ def main() -> int:
         print("base:", BASE)
 
         try:
-            existing = page.evaluate(
-                MUTATE_JS, {"path": "/api/v1/chats?page=1&page_size=50", "method": "GET"}
-            )
+            existing = page.evaluate(MUTATE_JS, {"path": "/api/v1/chats?page=1&page_size=50", "method": "GET"})
             data = existing.get("data")
             rows = data.get("chats") if isinstance(data, dict) else []
             stale = [r["id"] for r in (rows or []) if "探针" in str(r.get("name") or "")]
@@ -163,12 +156,8 @@ def main() -> int:
             # effect a moment before deciding it never asked.
             page.wait_for_timeout(12000)
 
-            rail_visible = page.evaluate(
-                "() => Boolean(document.querySelector(\"[data-testid='chat-detail-sessions']\"))"
-            )
-            header_mounted = page.evaluate(
-                "() => Boolean(document.querySelector(\"[data-testid='chat-detail-header-toggle']\"))"
-            )
+            rail_visible = page.evaluate("() => Boolean(document.querySelector(\"[data-testid='chat-detail-sessions']\"))")
+            header_mounted = page.evaluate("() => Boolean(document.querySelector(\"[data-testid='chat-detail-header-toggle']\"))")
             print("sessions rail visible:", rail_visible, "| header mounted:", header_mounted)
 
             print(f"\ntitle requests: {len(titles)}")
