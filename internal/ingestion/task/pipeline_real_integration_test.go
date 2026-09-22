@@ -529,7 +529,7 @@ func taskMustWriteTokenizerPOSDef(t *testing.T, dictPath, outPath string) {
 
 func taskMustPrepareTokenizerWordNet(t *testing.T, root string) {
 	t.Helper()
-	zipPath := filepath.Join(taskRepoRoot(t), "ragflow_deps", "nltk_data", "corpora", "wordnet.zip")
+	zipPath := filepath.Join(taskRepoRoot(t), "wenruo_deps", "nltk_data", "corpora", "wordnet.zip")
 	reader, err := zip.OpenReader(zipPath)
 	if err != nil {
 		t.Skipf("open wordnet zip %s: %v", zipPath, err)

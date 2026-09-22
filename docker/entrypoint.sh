@@ -336,7 +336,7 @@ if [[ "${ENABLE_WEBSERVER}" -eq 1 ]]; then
 
     if [[ "${API_PROXY_SCHEME}" == "hybrid" ]] || [[ "${API_PROXY_SCHEME}" == "python" ]]; then
         echo "Attempt to start RAGFlow python server..."
-        run_with_restart "RAGFlow python server" "$PY" api/ragflow_server.py ${INIT_SUPERUSER_ARGS} &
+        run_with_restart "RAGFlow python server" "$PY" api/wenruo_server.py ${INIT_SUPERUSER_ARGS} &
     fi
 
     if [[ "${API_PROXY_SCHEME}" == "hybrid" ]] || [[ "${API_PROXY_SCHEME}" == "go" ]]; then

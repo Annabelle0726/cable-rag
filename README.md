@@ -90,7 +90,7 @@ Wenruo RAG is self-hosted. Pick the path that matches your goal:
 Wenruo RAG runs as a small stack behind a single nginx entry point:
 
 - **Web UI** — the frontend bundle built into the image and served by nginx on port `80`.
-- **API server** (`api/ragflow_server.py`) — the HTTP API on port `9380` and the admin API on port `9381`.
+- **API server** (`api/wenruo_server.py`) — the HTTP API on port `9380` and the admin API on port `9381`.
 - **Task executor** (`rag/svr/task_executor.py`) — background workers that parse, OCR, chunk and index documents.
 - **Document engine** — Elasticsearch by default; Infinity and OpenSearch are also supported for full-text and vector storage.
 - **Metadata, objects and queues** — MySQL for metadata, MinIO for original files, Redis for queues and locks.
@@ -278,8 +278,8 @@ docker compose build wenruo-rag-cpu
 > repository and can be recreated at any time without network access:
 >
 > ```bash
-> cd ragflow_deps
-> docker build -f Dockerfile -t infiniflow/ragflow_deps:latest .
+> cd wenruo_deps
+> docker build -f Dockerfile -t infiniflow/wenruo_deps:latest .
 > ```
 
 ## 🔨 Launch Service from Source for Development
@@ -307,7 +307,7 @@ local startup procedure, and keep the Docker dependencies running in the backgro
 
    ```powershell
    uv sync --python 3.13
-   uv run python ragflow_deps/download_deps.py
+   uv run python wenruo_deps/download_deps.py
    ```
 
 3. Install the frontend dependencies:
@@ -355,7 +355,7 @@ local startup procedure, and keep the Docker dependencies running in the backgro
 
    | Frontend (dev) | API proxy target | Purpose |
    |----------------|------------------|---------|
-   | `http://localhost:9222` | `http://127.0.0.1:9380` | `/api`, `/v1` — application API served by `api/ragflow_server.py` |
+   | `http://localhost:9222` | `http://127.0.0.1:9380` | `/api`, `/v1` — application API served by `api/wenruo_server.py` |
    | `http://localhost:9222` | `http://127.0.0.1:9381` | `/api/v1/admin` — admin API served by the same process |
 
 5. Open <http://localhost:9222> to use Wenruo RAG:

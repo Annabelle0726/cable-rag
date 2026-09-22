@@ -42,8 +42,8 @@ PDF_OXIDE_VERSION="0.3.73"
 # (--undefined=OrtGetApiBase + --dynamic-list, no --whole-archive); OrtGetApiBase
 # is then resolved via dlopen(NULL) (the process-global symbol table, not the
 # executable's own path), so no libonnxruntime.so is needed at runtime.
-# Downloaded by ragflow_deps/download_go_deps.py (and
-# ragflow_deps/download_deps.py) into onnxruntime/static_lib.
+# Downloaded by wenruo_deps/download_go_deps.py (and
+# wenruo_deps/download_deps.py) into onnxruntime/static_lib.
 ONNXRUNTIME_STATIC_PREFIX="${HOME}/ragflow-native-libs/onnxruntime/static_lib"
 
 # Copy a dependency from the system pre-seed directory to the user cache.

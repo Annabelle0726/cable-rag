@@ -223,7 +223,7 @@ backup
 /target
 
 # Do not include in PR (local dev / build artifacts / working notes)
-ragflow.egg-info/
+wenruo.egg-info/
 uv-aarch64*.tar.gz
 uv-aarch64-unknown-linux-gnu.tar.gz
 docker/launch_backend_service_windows.sh
@@ -268,7 +268,7 @@ internal/ingestion/task/tool/generate_dataflow_golden.py
 internal/ingestion/task/tool/README.md
 internal/cpp/cmake-build-release
 
-# downloaded native static-lib artifacts (fetched by ragflow_deps/download_deps.py)
+# downloaded native static-lib artifacts (fetched by wenruo_deps/download_deps.py)
 ragflow_deps/*.zip
 
 # external DeepDoc testdata, fetched on demand via scripts/fetch_deepdoc_testdata.sh

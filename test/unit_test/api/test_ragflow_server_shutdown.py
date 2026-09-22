@@ -3,7 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-SERVER_PATH = Path(__file__).resolve().parents[3] / "api" / "ragflow_server.py"
+SERVER_PATH = Path(__file__).resolve().parents[3] / "api" / "wenruo_server.py"
 
 
 def test_signal_handler_forces_exit_on_second_signal():
