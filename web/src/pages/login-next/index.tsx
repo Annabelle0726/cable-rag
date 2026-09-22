@@ -171,7 +171,7 @@ function LoginFormContent({
                   name="remember"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex gap-2 group">
+                      <div className="flex items-center gap-2 group">
                         <FormControl>
                           <Checkbox
                             checked={field.value}
@@ -291,9 +291,6 @@ const Login = () => {
   const { t: tSetting } = useTranslation('translation', {
     keyPrefix: 'setting',
   });
-  const { t: tHeader } = useTranslation('translation', {
-    keyPrefix: 'header',
-  });
   const [isLoginPage, setIsLoginPage] = useState(true);
 
   const loading = signLoading || registerLoading || loginWithChannelLoading;
@@ -411,13 +408,10 @@ const Login = () => {
             <LoginHero />
 
             <div className="flex w-full flex-col items-center lg:col-span-7">
-              <header className="mb-4 flex flex-row items-center justify-center gap-3 lg:hidden">
-                <span className="flex h-10 shrink-0 items-center justify-center border border-panel-border bg-white px-2">
-                  <BrandLogo className="h-5 w-auto" />
+              <header className="mb-4 flex flex-row items-center justify-center lg:hidden">
+                <span className="flex h-10 shrink-0 items-center justify-center bg-transparent dark:rounded-lg dark:bg-white dark:px-2 dark:py-1">
+                  <BrandLogo variant="lockup" className="h-5 w-auto" />
                 </span>
-                <p className="text-xl font-semibold tracking-tight text-text-primary">
-                  {tHeader('brandShort')}
-                </p>
               </header>
 
               <FlipCard3D isLoginPage={isLoginPage}>
