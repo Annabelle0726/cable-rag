@@ -114,14 +114,14 @@ func findRealBpeTable(t *testing.T) string {
 			}
 		}
 	}
-	// 2. repo-local ragflow_deps/cl100k_base.tiktoken (provisioned by download
+	// 2. repo-local wenruo_deps/cl100k_base.tiktoken (provisioned by download
 	//    scripts / CI), walking up from the package dir.
 	pkgDir, err := os.Getwd()
 	if err != nil {
 		return ""
 	}
 	for dir := pkgDir; ; {
-		p := filepath.Join(dir, "ragflow_deps", "cl100k_base.tiktoken")
+		p := filepath.Join(dir, "wenruo_deps", "cl100k_base.tiktoken")
 		if fileExists(p) {
 			return p
 		}

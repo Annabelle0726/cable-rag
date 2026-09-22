@@ -108,7 +108,7 @@ ONNX Runtime — there is no separate DeepDoc service to deploy. ONNX Runtime is
 statically linked into the server binary (resolved at runtime via dlopen(NULL);
 no `libonnxruntime.so` is required) and the models are loaded at runtime;
 `DEEPDOC_MODEL_DIR` overrides the default model directory, which falls back to
-the `ragflow_deps/download_deps.py` snapshot.
+the `../wenruo_deps` snapshot.
 
 ### Timezone
 

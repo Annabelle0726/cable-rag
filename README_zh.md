@@ -90,7 +90,7 @@
 文若 RAG 以一个轻量栈的形式运行在统一的 nginx 入口之后：
 
 - **Web UI** —— 构建进镜像的前端产物，由 nginx 在 `80` 端口提供服务。
-- **API 服务**（`api/ragflow_server.py`）—— 应用 API 监听 `9380`，管理 API 监听 `9381`。
+- **API 服务**（`api/wenruo_server.py`）—— 应用 API 监听 `9380`，管理 API 监听 `9381`。
 - **任务执行器**（`rag/svr/task_executor.py`）—— 负责文档解析、OCR、切片与索引的后台进程。
 - **文档引擎** —— 默认 Elasticsearch，也可切换为 Infinity 或 OpenSearch，用于全文与向量存储。
 - **元数据、对象与队列** —— MySQL 存元数据，MinIO 存原始文件，Redis 负责队列与锁。
@@ -276,8 +276,8 @@ docker compose build wenruo-rag-cpu
 > 两种方式都需要一个内含模型与 native 依赖库的依赖镜像；它构建自本仓库，任何时候都可以在无外网的情况下重新生成：
 >
 > ```bash
-> cd ragflow_deps
-> docker build -f Dockerfile -t infiniflow/ragflow_deps:latest .
+> cd wenruo_deps
+> docker build -f Dockerfile -t infiniflow/wenruo_deps:latest .
 > ```
 
 ## 🔨 以源代码启动服务
@@ -305,7 +305,7 @@ docker compose build wenruo-rag-cpu
 
    ```powershell
    uv sync --python 3.13
-   uv run python ragflow_deps/download_deps.py
+   uv run python wenruo_deps/download_deps.py
    ```
 
 3. 安装前端依赖：
@@ -352,7 +352,7 @@ docker compose build wenruo-rag-cpu
 
    | 前端（开发） | API 代理目标 | 用途 |
    |--------------|--------------|------|
-   | `http://localhost:9222` | `http://127.0.0.1:9380` | `/api`、`/v1` —— 由 `api/ragflow_server.py` 提供的应用 API |
+   | `http://localhost:9222` | `http://127.0.0.1:9380` | `/api`、`/v1` —— 由 `api/wenruo_server.py` 提供的应用 API |
    | `http://localhost:9222` | `http://127.0.0.1:9381` | `/api/v1/admin` —— 同一进程提供的管理 API |
 
 5. 浏览器访问 <http://localhost:9222> 即可使用 文若 RAG：

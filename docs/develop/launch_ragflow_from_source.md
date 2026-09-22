@@ -106,7 +106,7 @@ docker compose -f docker/docker-compose-base.yml up -d
    LD_PRELOAD=$JEMALLOC_PATH python rag/svr/task_executor.py -i 1;
    ```
    ```shell
-   python api/ragflow_server.py;
+   python api/wenruo_server.py;
    ```
 
 ### Launch the RAGFlow Frontend Service

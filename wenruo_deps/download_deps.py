@@ -9,25 +9,25 @@
 # ]
 # ///
 
-# This script downloads every artifact that the `infiniflow/ragflow_deps`
+# This script downloads every artifact that the `infiniflow/wenruo_deps`
 # Docker image bakes in. Run it from anywhere — the `__main__` block
 # chdir's into this file's own directory, so all outputs land under
-# `ragflow_deps/` regardless of the caller's CWD.
+# `wenruo_deps/` regardless of the caller's CWD.
 #
-# Build-context relationship: `ragflow_deps/Dockerfile` is built with
-# `ragflow_deps/` as its build context, so the files written here MUST
-# sit at the top of `ragflow_deps/`. The Dockerfile's COPY lines assume
+# Build-context relationship: `wenruo_deps/Dockerfile` is built with
+# `wenruo_deps/` as its build context, so the files written here MUST
+# sit at the top of `wenruo_deps/`. The Dockerfile's COPY lines assume
 # top-level paths (`huggingface.co`, `nltk_data`, `cl100k_base.tiktoken`,
 # `*.deb`, `*.jar`, `*.tar.gz`, `stagehand-server-v3-linux-<arch>`).
 #
 # Typical workflow:
 #
-#   uv run python3 ragflow_deps/download_deps.py            # download
-#   cd ragflow_deps
-#   docker build -f Dockerfile -t infiniflow/ragflow_deps .
+#   uv run python3 wenruo_deps/download_deps.py            # download
+#   cd wenruo_deps
+#   docker build -f Dockerfile -t infiniflow/wenruo_deps .
 #
 # The main `Dockerfile` (built from the project root) pulls this image
-# via `--mount=type=bind,from=infiniflow/ragflow_deps:latest,...` and
+# via `--mount=type=bind,from=infiniflow/wenruo_deps:latest,...` and
 # is unaffected by where these files live locally.
 
 import argparse
@@ -44,7 +44,7 @@ import nltk
 from huggingface_hub import snapshot_download
 
 # mirrors internal/common.DeepDocORTVersion (Go in-process backend). ONE OF
-# FOUR places (with that Go constant, ORT_VERSION in ragflow_deps/download_go_deps.py,
+# FOUR places (with that Go constant, ORT_VERSION in wenruo_deps/download_go_deps.py,
 # and ARG ORT_VERSION in Dockerfile_go) that must carry the same ONNX Runtime
 # native release for the statically-linked Go DeepDoc backend. This file's
 # download URL and extracted dir name are derived from ORT_VERSION here, but
@@ -193,8 +193,8 @@ def download_model(repository_id):
 if __name__ == "__main__":
     # Anchor CWD to this file's directory so all relative outputs
     # (huggingface.co/, nltk_data/, *.deb, *.jar, *.tar.gz, etc.) land
-    # at the top of ragflow_deps/ regardless of where the user invokes
-    # the script from. This is the build context for `ragflow_deps/Dockerfile`.
+    # at the top of wenruo_deps/ regardless of where the user invokes
+    # the script from. This is the build context for `wenruo_deps/Dockerfile`.
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     parser = argparse.ArgumentParser(description="Download dependencies with optional China mirror support")

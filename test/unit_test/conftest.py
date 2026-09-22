@@ -43,7 +43,7 @@ import warnings
 # if absent so the fallback download below lands in a repo-local, reproducible
 # location instead of a shared home directory.
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
-_LOCAL_NLTK_DATA = os.path.join(_REPO_ROOT, "ragflow_deps", "nltk_data")
+_LOCAL_NLTK_DATA = os.path.join(_REPO_ROOT, "wenruo_deps", "nltk_data")
 os.makedirs(_LOCAL_NLTK_DATA, exist_ok=True)
 if _LOCAL_NLTK_DATA not in nltk.data.path:
     nltk.data.path.insert(0, _LOCAL_NLTK_DATA)

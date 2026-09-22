@@ -157,7 +157,7 @@ class TestTiktokenCacheOnImport:
         Testing _ensure_tiktoken_cache alone passes even if nothing calls it,
         so drive it through a real import.
         """
-        bundled = tmp_path / "ragflow_deps" / "cl100k_base.tiktoken"
+        bundled = tmp_path / "wenruo_deps" / "cl100k_base.tiktoken"
         bundled.parent.mkdir()
         bundled.write_bytes(b"bundled cl100k table")
         monkeypatch.setenv("RAG_PROJECT_BASE", str(tmp_path))

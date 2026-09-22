@@ -17,7 +17,7 @@ WORKDIR /ragflow
 # exclude them from the tar extract and symlink them to layout.onnx instead,
 # saving ~219MB in the image.
 RUN mkdir -p /ragflow/rag/res/deepdoc /root/.ragflow
-RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/huggingface.co,target=/huggingface.co \
+RUN --mount=type=bind,from=infiniflow/wenruo_deps:latest,source=/huggingface.co,target=/huggingface.co \
     tar --exclude='.*' \
         --exclude='layout.laws.onnx' \
         --exclude='layout.manual.onnx' \
@@ -43,12 +43,12 @@ RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/huggingface.co
 # Copy the cl100k_base BPE table used by the Go tokenizer (tiktoken-go
 # cl100k_base). The deps image ships it at its root; the Go image previously
 # mounted only /huggingface.co and omitted this file, so NumTokensFromString
-# silently returned 0. localBpeLoader resolves it from <workdir>/ragflow_deps/,
+# silently returned 0. localBpeLoader resolves it from <workdir>/wenruo_deps/,
 # so dropping it here makes the table load offline at startup (see
 # InitCL100KEncoder fail-fast guard).
-RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/cl100k_base.tiktoken,target=/tmp/cl100k_base.tiktoken \
-    mkdir -p /ragflow/ragflow_deps && \
-    cp /tmp/cl100k_base.tiktoken /ragflow/ragflow_deps/cl100k_base.tiktoken
+RUN --mount=type=bind,from=infiniflow/wenruo_deps:latest,source=/cl100k_base.tiktoken,target=/tmp/cl100k_base.tiktoken \
+    mkdir -p /ragflow/wenruo_deps && \
+    cp /tmp/cl100k_base.tiktoken /ragflow/wenruo_deps/cl100k_base.tiktoken
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -162,7 +162,7 @@ COPY build.sh ./
 # build.sh's check_ort_version_consistency (run via `./build.sh --go`) greps the
 # ORT version pins from these files; without them the --go build fails with
 # "could not parse the ONNX Runtime version from one of the pinned locations".
-COPY ragflow_deps/download_go_deps.py ragflow_deps/download_deps.py ./ragflow_deps/
+COPY wenruo_deps/download_go_deps.py ragflow_deps/download_deps.py ./ragflow_deps/
 COPY Dockerfile_go ./
 
 # ONNX Runtime static archives: build.sh's _seed_from_system looks for the ORT

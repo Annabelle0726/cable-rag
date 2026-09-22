@@ -39,7 +39,7 @@ go version
 ### 1.4 Install dependent library
 ```shell
 sudo apt install libpcre2-dev
-python3 ragflow_deps/download_go_deps.py
+python3 wenruo_deps/download_go_deps.py
 ```
 
 > **Note**: If you use IDEs like GoLand to run/debug directly (via Run/Debug buttons), or run `go build` / `go run` from command line, set these CGO environment variables:
@@ -108,7 +108,7 @@ python3 ragflow_deps/download_go_deps.py
 > build with `Error: ONNX Runtime version is inconsistent`:
 > - `internal/common/environments.go` — `DeepDocORTVersion`
 > - `Dockerfile_go` — `ARG ORT_VERSION`
-> - `ragflow_deps/download_go_deps.py` and `ragflow_deps/download_deps.py` — `ORT_VERSION`
+> - `../wenruo_deps` and `../wenruo_deps` — `ORT_VERSION`
 >
 > `build.sh` runs this consistency check automatically before the Go build
 > (through `check_go_deps`) and fails fast on any mismatch. Run it on demand

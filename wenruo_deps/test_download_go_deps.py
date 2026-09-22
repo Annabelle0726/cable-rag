@@ -1,4 +1,4 @@
-# Tests for ragflow_deps/download_go_deps.py ONNX Runtime extraction.
+# Tests for wenruo_deps/download_go_deps.py ONNX Runtime extraction.
 #
 # build.sh's build_go() fails fast when libonnxruntime.a is not linked, so these
 # tests must guarantee the archive is really landed on disk — above all after an

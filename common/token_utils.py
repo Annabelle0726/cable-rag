@@ -29,7 +29,7 @@ def _ensure_tiktoken_cache() -> str:
     cache_dir = get_project_base_directory()
     os.environ["TIKTOKEN_CACHE_DIR"] = cache_dir
 
-    bundled_encoding_path = get_project_base_directory("ragflow_deps", "cl100k_base.tiktoken")
+    bundled_encoding_path = get_project_base_directory("wenruo_deps", "cl100k_base.tiktoken")
     encoding_url = "https://openaipublic.blob.core.windows.net/encodings/cl100k_base.tiktoken"
     cached_encoding_path = os.path.join(cache_dir, hashlib.sha1(encoding_url.encode()).hexdigest())
 
