@@ -27,6 +27,7 @@ from api.db.services.tenant_model_provider_service import TenantModelProviderSer
 from api.db.services.tenant_model_instance_service import TenantModelInstanceService
 from api.db.services.tenant_model_service import TenantModelService
 from api.utils import model_utils
+from api.utils.masking import client_supplied_secret, mask_secret, resolve_secret_on_write
 from rag.llm import ChatModel, CvModel, EmbeddingModel, ModelMeta, OcrModel, RerankModel, Seq2txtModel, TTSModel
 
 
@@ -419,6 +420,14 @@ async def update_provider_instance(
     if not instance_obj:
         return False, f"No instance found for provider '{provider_id_or_name}' and instance '{instance_id_or_name}'"
 
+    # An empty or masked api_key means the client supplied no new credential:
+    # it either left the field alone or echoed back the mask that
+    # show_provider_instance handed it. Fall back to the stored value so the
+    # connection test still runs against the real credential and the record is
+    # never overwritten with a mask or an empty string.
+    if not client_supplied_secret(api_key):
+        api_key = instance_obj.api_key
+
     base_url = _normalize_provider_base_url(provider_name, base_url)
     api_key = _normalize_provider_api_key(provider_name, api_key)
     region = (region or "").strip()
@@ -431,9 +440,9 @@ async def update_provider_instance(
     if bedrock_api_key_auth:
         api_key = bedrock_api_key_config
 
-    api_key_str = ""
-    if api_key:
-        api_key_str = api_key if isinstance(api_key, str) else json.dumps(api_key)
+    # A credential the client echoed back may still carry a mask in nested
+    # bundle fields (Bedrock, Spark, ...), so resolve it field by field.
+    api_key_str = resolve_secret_on_write(api_key, instance_obj.api_key)
 
     # Verify api_key
     model_verify_result = {}
@@ -443,10 +452,11 @@ async def update_provider_instance(
         if not success:
             return False, msg
 
-    # Update instance record
-    update_dict = {
-        "api_key": api_key_str,
-    }
+    # Update instance record. api_key is omitted when unchanged so that an
+    # update touching only the name or base URL cannot disturb the credential.
+    update_dict = {}
+    if api_key_str != instance_obj.api_key:
+        update_dict["api_key"] = api_key_str
     if instance_name != instance_obj.instance_name:
         update_dict["instance_name"] = instance_name
 
@@ -1059,7 +1069,9 @@ def show_provider_instance(tenant_id: str, provider_id_or_name: str, instance_id
         "provider_id": provider_id,
         "region": extra_fields.get("region", ""),
         "base_url": extra_fields.get("base_url", ""),
-        "api_key": instance_obj.api_key,
+        # Masked, never cleartext: this response reaches the browser, and a
+        # masked value echoed back on update is treated as "unchanged".
+        "api_key": mask_secret(instance_obj.api_key),
         "status": instance_obj.status,
     }
 
