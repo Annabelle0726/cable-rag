@@ -208,7 +208,13 @@ class TenantService(CommonService):
         return list(
             cls.model.select(*fields)
             .join(
-                UserTenant, on=((cls.model.id == UserTenant.tenant_id) & (UserTenant.user_id == user_id) & (UserTenant.status == StatusEnum.VALID.value) & (UserTenant.role == UserTenantRole.NORMAL))
+                UserTenant,
+                on=(
+                    (cls.model.id == UserTenant.tenant_id)
+                    & (UserTenant.user_id == user_id)
+                    & (UserTenant.status == StatusEnum.VALID.value)
+                    & (UserTenant.role.in_([UserTenantRole.NORMAL, UserTenantRole.ADMIN]))
+                ),
             )
             .where(cls.model.status == StatusEnum.VALID.value)
             .dicts()
@@ -326,3 +332,39 @@ class UserTenantService(CommonService):
             return user_tenant
         except peewee.DoesNotExist:
             return None
+
+    @classmethod
+    @DB.connection_context()
+    def can_manage_tenant(cls, user_id, tenant_id) -> bool:
+        """Returns True if the user holds OWNER or ADMIN on the given tenant.
+
+        This supports delegated administration across tenants in multi-tenant
+        deployments. OWNER implies ADMIN: the role hierarchy is
+        OWNER > ADMIN > NORMAL, so a tenant owner needs no extra row to manage
+        the tenant it owns.
+        """
+        return (
+            cls.model.select()
+            .where(
+                (cls.model.user_id == user_id) & (cls.model.tenant_id == tenant_id) & (cls.model.role.in_([UserTenantRole.OWNER, UserTenantRole.ADMIN])) & (cls.model.status == StatusEnum.VALID.value)
+            )
+            .exists()
+        )
+
+    @classmethod
+    @DB.connection_context()
+    def get_role(cls, user_id, tenant_id):
+        row = cls.model.select(cls.model.role).where((cls.model.user_id == user_id) & (cls.model.tenant_id == tenant_id) & (cls.model.status == StatusEnum.VALID.value)).first()
+        return row.role if row else None
+
+    @classmethod
+    @DB.connection_context()
+    def set_role(cls, user_id, tenant_id, role):
+        """Set a tenant-level role. Only ADMIN and NORMAL are assignable.
+
+        OWNER is reached by creating a tenant, never by promotion, and INVITE is
+        owned by the invitation flow.
+        """
+        if role not in (UserTenantRole.ADMIN, UserTenantRole.NORMAL):
+            raise ValueError(f"role {role} is not assignable")
+        return cls.model.update(role=role).where((cls.model.user_id == user_id) & (cls.model.tenant_id == tenant_id) & (cls.model.status == StatusEnum.VALID.value)).execute()

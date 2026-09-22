@@ -21,6 +21,8 @@ from common.constants import PipelineTaskType
 
 
 class UserTenantRole(StrEnum):
+    """Tenant-level roles. Hierarchy: OWNER > ADMIN > NORMAL (OWNER implies ADMIN)."""
+
     OWNER = "owner"
     ADMIN = "admin"
     NORMAL = "normal"
