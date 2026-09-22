@@ -8,13 +8,17 @@ const config: Config = {
     '^.+\\.(ts|tsx|js|jsx)$': '<rootDir>/jest-esbuild-transformer.cjs',
   },
   moduleNameMapper: {
+    // Resource-extension rules must come BEFORE the '@/...' alias rule: an
+    // aliased asset (e.g. '@/assets/icon/brand-lockup.png') matches both, and
+    // Jest uses the first matching pattern, so a resource rule placed last
+    // never fires and Jest tries to execute the binary as JavaScript.
+    '\\.(css|less|scss|sass)$': '<rootDir>/__mocks__/styleMock.js',
+    '\\.(jpg|jpeg|png|gif|svg|webp)$': '<rootDir>/__mocks__/fileMock.js',
     // Drags the app shell (routes/react-router) into jsdom; see __mocks__
     '^@/components/layout-recognize-form-field$':
       '<rootDir>/__mocks__/layout-recognize-form-field.js',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^human-id$': '<rootDir>/__mocks__/human-id.js',
-    '\\.(css|less|scss|sass)$': '<rootDir>/__mocks__/styleMock.js',
-    '\\.(jpg|jpeg|png|gif|svg|webp)$': '<rootDir>/__mocks__/fileMock.js',
   },
   setupFilesAfterEnv: ['<rootDir>/jest-setup.ts'],
   collectCoverageFrom: [
