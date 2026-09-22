@@ -274,3 +274,8 @@ ragflow_deps/*.zip
 # external DeepDoc testdata, fetched on demand via scripts/fetch_deepdoc_testdata.sh
 # (symlinked into place from ~/.cache/ragflow-testdata; never committed)
 internal/deepdoc/native/testdata
+
+# Database dumps produced by one-off migration work. These hold cleartext
+# credentials (user password hashes, provider API keys), so they must never be
+# committed. Move them out of the repository once the migration is verified.
+migration/
