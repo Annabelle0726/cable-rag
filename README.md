@@ -174,7 +174,7 @@ See [docs/](./docs) for the administrator, developer and reference guides.
                          Wenruo RAG Engine                   
 
    Wenruo RAG version: v0.27.1-<git-describe>
-   project base: /ragflow
+   project base: /wenruo-rag
    Wenruo RAG server is ready after 131.1s initialization.
    Running on http://0.0.0.0:9380 (CTRL + C to quit)
    ```
@@ -306,7 +306,6 @@ local startup procedure, and keep the Docker dependencies running in the backgro
 2. Install the Python dependencies and download the native libraries:
 
    ```powershell
-   cd C:\Projects\RAG\ragflow
    uv sync --python 3.13
    uv run python ragflow_deps/download_deps.py
    ```
@@ -314,7 +313,7 @@ local startup procedure, and keep the Docker dependencies running in the backgro
 3. Install the frontend dependencies:
 
    ```powershell
-   cd C:\Projects\RAG\ragflow\web
+   cd web
    npm install
    ```
 
@@ -331,7 +330,6 @@ local startup procedure, and keep the Docker dependencies running in the backgro
 2. Terminal 1 — task executor, the background worker that parses and indexes documents:
 
    ```powershell
-   cd C:\Projects\RAG\ragflow
    $env:PYTHONPATH="."
    $env:HF_ENDPOINT="https://hf-mirror.com"
    $env:PYTHONUTF8="1"
@@ -341,7 +339,6 @@ local startup procedure, and keep the Docker dependencies running in the backgro
 3. Terminal 2 — Web API service, listening on port 9380:
 
    ```powershell
-   cd C:\Projects\RAG\ragflow
    $env:PYTHONPATH="."
    $env:HF_ENDPOINT="https://hf-mirror.com"
    $env:PYTHONUTF8="1"
@@ -351,7 +348,7 @@ local startup procedure, and keep the Docker dependencies running in the backgro
 4. Terminal 3 — frontend UI, serving <http://localhost:9222> and proxying the API:
 
    ```powershell
-   cd C:\Projects\RAG\ragflow\web
+   cd web
    npm run dev
    ```
    ![Frontend UI interface](./probe-register-light.png)

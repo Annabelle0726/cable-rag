@@ -175,7 +175,7 @@
                          Wenruo RAG Engine                   
 
    Wenruo RAG version: v0.27.1-<git-describe>
-   project base: /ragflow
+   project base: /wenruo-rag
    Wenruo RAG server is ready after 131.1s initialization.
    Running on http://0.0.0.0:9380 (CTRL + C to quit)
    ```
@@ -304,7 +304,6 @@ docker compose build wenruo-rag-cpu
 2. 安装 Python 依赖并下载 native 依赖库：
 
    ```powershell
-   cd C:\Projects\RAG\ragflow
    uv sync --python 3.13
    uv run python ragflow_deps/download_deps.py
    ```
@@ -312,7 +311,7 @@ docker compose build wenruo-rag-cpu
 3. 安装前端依赖：
 
    ```powershell
-   cd C:\Projects\RAG\ragflow\web
+   cd web
    npm install
    ```
 
@@ -328,7 +327,6 @@ docker compose build wenruo-rag-cpu
 2. 终端 1 —— Task Executor 任务后台，负责文档解析与索引：
 
    ```powershell
-   cd C:\Projects\RAG\ragflow
    $env:PYTHONPATH="."
    $env:HF_ENDPOINT="https://hf-mirror.com"
    $env:PYTHONUTF8="1"
@@ -338,7 +336,6 @@ docker compose build wenruo-rag-cpu
 3. 终端 2 —— Web API 服务，监听 9380 端口：
 
    ```powershell
-   cd C:\Projects\RAG\ragflow
    $env:PYTHONPATH="."
    $env:HF_ENDPOINT="https://hf-mirror.com"
    $env:PYTHONUTF8="1"
@@ -348,7 +345,7 @@ docker compose build wenruo-rag-cpu
 4. 终端 3 —— 前端 UI，访问地址 <http://localhost:9222>，并代理后端 API：
 
    ```powershell
-   cd C:\Projects\RAG\ragflow\web
+   cd web
    npm run dev
    ```
    ![前端 UI 界面](./probe-register-light.png)
