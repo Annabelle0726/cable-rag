@@ -298,7 +298,7 @@ docker compose build wenruo-rag-cpu
 1. 安装 `uv`。如已经安装，可跳过本步骤：
 
    ```powershell
-   pipx install uv
+   pip install uv
    ```
 
 2. 安装 Python 依赖并下载 native 依赖库：

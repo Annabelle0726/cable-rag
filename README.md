@@ -300,7 +300,7 @@ local startup procedure, and keep the Docker dependencies running in the backgro
 1. Install `uv`, or skip this step if it is already installed:
 
    ```powershell
-   pipx install uv
+   pip install uv
    ```
 
 2. Install the Python dependencies and download the native libraries:
