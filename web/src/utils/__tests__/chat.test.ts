@@ -20,10 +20,19 @@ import {
 // Type-only: a value import used in an annotation fails the Babel transform that
 // this suite's module graph is built with.
 import type { IConversation } from '@/interfaces/database/chat';
+import remarkMath from 'remark-math';
+import remarkParse from 'remark-parse';
+import { unified } from 'unified';
 
 describe('preprocessLaTeX', () => {
-  it('converts block \\[ \\] to $$ $$', () => {
-    expect(preprocessLaTeX('\\[ x + y \\]')).toBe('$$x + y$$');
+  // `\[ ... \]` is display math, so the output must be a fenced block: the
+  // opening `$$` on its own line and the body on the next. See the flow-form
+  // assertion at the end of this block, which is the one that actually pins the
+  // rendering behaviour.
+  const asBlock = (body: string) => `\n$$\n${body}\n$$\n`;
+
+  it('converts block \\[ \\] to a $$ block', () => {
+    expect(preprocessLaTeX('\\[ x + y \\]')).toBe(asBlock('x + y'));
   });
 
   it('converts inline \\( \\) to $ $', () => {
@@ -37,7 +46,7 @@ describe('preprocessLaTeX', () => {
     expect(result).toContain('\\right]');
     expect(result).toContain('\\frac{1}{|y|}');
     expect(result).toBe(
-      '$$ C_{seq}(y|x) = \\frac{1}{|y|} \\sum_{t=1}^{|y|} \\right] $$',
+      asBlock('C_{seq}(y|x) = \\frac{1}{|y|} \\sum_{t=1}^{|y|} \\right]'),
     );
   });
 
@@ -45,13 +54,13 @@ describe('preprocessLaTeX', () => {
     const content = '\\( f(x) + \\big) \\)';
     const result = preprocessLaTeX(content);
     expect(result).toContain('\\big)');
-    expect(result).toBe('$ f(x) + \\big) $');
+    expect(result).toBe('$f(x) + \\big)$');
   });
 
   it('handles multiple block equations', () => {
     const content = 'First \\[ a \\] then \\[ b \\right] c \\]';
     const result = preprocessLaTeX(content);
-    expect(result).toBe('First $$a$$ then $$ b \\right] c $$');
+    expect(result).toBe(`First ${asBlock('a')} then ${asBlock('b \\right] c')}`);
   });
 
   it('handles double-escaped inline LaTeX', () => {
@@ -61,7 +70,7 @@ describe('preprocessLaTeX', () => {
   });
 
   it('handles double-escaped block LaTeX', () => {
-    expect(preprocessLaTeX('\\\\[E = mc^2\\\\]')).toBe('$$E = mc^2$$');
+    expect(preprocessLaTeX('\\\\[E = mc^2\\\\]')).toBe(asBlock('E = mc^2'));
   });
 
   it('decodes HTML entities', () => {
@@ -74,6 +83,45 @@ describe('preprocessLaTeX', () => {
 
   it('passes through already correct single-escaped delimiters unchanged', () => {
     expect(preprocessLaTeX('\\(x = 1\\)')).toBe('$x = 1$');
+  });
+
+  // The behavioural assertion: it is not enough for the text to look like a
+  // block. remark-math only emits a `math` (flow) node when `$$` opens a line,
+  // so parse the output the way the renderer does and pin the node type. An
+  // inline `$$...$$` silently becomes `inlineMath` and renders inside the
+  // paragraph, which is the regression this guards.
+  it('emits display math that remark-math parses as a flow node, not inlineMath', () => {
+    const output = preprocessLaTeX('\\[ x = y \\]');
+
+    const processor = unified().use(remarkParse).use(remarkMath);
+    const tree = processor.runSync(processor.parse(output));
+    const types: string[] = [];
+    const walk = (node: any) => {
+      if (node.type === 'math' || node.type === 'inlineMath') {
+        types.push(node.type);
+      }
+      (node.children ?? []).forEach(walk);
+    };
+    walk(tree);
+
+    expect(types).toEqual(['math']);
+  });
+
+  it('still emits inline math as an inlineMath node', () => {
+    const output = preprocessLaTeX('\\( x = y \\)');
+
+    const processor = unified().use(remarkParse).use(remarkMath);
+    const tree = processor.runSync(processor.parse(output));
+    const types: string[] = [];
+    const walk = (node: any) => {
+      if (node.type === 'math' || node.type === 'inlineMath') {
+        types.push(node.type);
+      }
+      (node.children ?? []).forEach(walk);
+    };
+    walk(tree);
+
+    expect(types).toEqual(['inlineMath']);
   });
 });
 

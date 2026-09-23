@@ -156,14 +156,23 @@ export const preprocessLaTeX = (content: string) => {
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&');
 
+  // `\[ ... \]` is LaTeX *display* math, so it has to land as a block. Emitting
+  // `$$...$$` inline on the current line is not enough: remark-math only
+  // produces a `math` (flow) node when the opening `$$` starts a line and the
+  // body follows on its own lines. Left inline, the equation parses as
+  // `inlineMath` and renders inside the surrounding paragraph instead of
+  // centred. The surrounding newlines force the flow form.
   const blockProcessedContent = normalizedContent.replace(
     BLOCK_MATH_RE,
-    (_, equation) => `$$${equation}$$`,
+    (_, equation) => `\n$$\n${equation.trim()}\n$$\n`,
   );
 
+  // `\( ... \)` is inline math, so `$...$` is the right shape. Trim the padding:
+  // micromark tolerates it, but the delimiters read as `$ x $` and a leading or
+  // trailing space is exactly the pattern reserved for currency.
   const inlineProcessedContent = blockProcessedContent.replace(
     INLINE_MATH_RE,
-    (_, equation) => `$${equation}$`,
+    (_, equation) => `$${equation.trim()}$`,
   );
 
   return inlineProcessedContent;
