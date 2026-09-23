@@ -280,6 +280,43 @@ def login_required(func: Callable[P, Awaitable[T]] = None, auth_types=None) -> C
     return decorator(func)
 
 
+def require_tenant_admin(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
+    """Restrict a route to a user who may administer the target tenant.
+
+    Authorisation comes from ``UserTenantService.can_manage_tenant``, which is
+    true when the caller holds OWNER or ADMIN on that tenant. OWNER implies
+    ADMIN, so a tenant owner passes without any extra row.
+
+    This is deliberately separate from ``login_required``: that decorator is the
+    single authentication entry point for the whole API, so widening it to carry
+    role logic would put every route at risk. Role checks are applied per route
+    instead.
+
+    The tenant under test comes from ``kwargs["tenant_id"]``, falling back to
+    the caller's own id. On routes that use ``add_tenant_id_to_kwargs`` the
+    injected value is already ``current_user.id``, so keep that decorator
+    OUTSIDE this one (listed above it) — the check then reads a value that is
+    present rather than relying on the fallback.
+    """
+
+    @wraps(func)
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        from api.db.services.user_service import UserTenantService
+        from api.utils.api_utils import get_error_permission_result
+
+        user = current_user
+        if not user:
+            raise QuartAuthUnauthorized()
+
+        tenant_id = kwargs.get("tenant_id") or user.id
+        if not UserTenantService.can_manage_tenant(user.id, tenant_id):
+            return get_error_permission_result("admin role required for this tenant")
+
+        return await current_app.ensure_async(func)(*args, **kwargs)
+
+    return wrapper
+
+
 def login_user(user, remember=False, duration=None, force=False, fresh=True):
     """
     Logs a user in. You should pass the actual user object to this. If the
