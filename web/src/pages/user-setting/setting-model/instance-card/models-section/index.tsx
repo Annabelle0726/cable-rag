@@ -36,6 +36,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { AddCustomModelDialog } from '../add-custom-model-dialog';
 import { mapModelKey } from '../available-models';
+import { useModelSettingsReadOnly } from '../../read-only-context';
 import { ModelRow } from './components/model-row';
 import { TagFilterButton } from './components/tag-filter-button';
 import {
@@ -54,12 +55,16 @@ export function ModelsSection(props: ModelsSectionProps) {
   const { t } = useTranslation();
   const { t: tSetting } = useTranslate('setting');
   const { t: tc } = useCommonTranslation();
+  // A read-only viewer may browse the model catalog but not toggle, edit or
+  // verify models: every one of those calls a model endpoint that is
+  // admin-only server-side.
+  const readOnly = useModelSettingsReadOnly();
 
   const {
     providerName,
     instanceName,
     instance,
-    hideActions = false,
+    hideActions: hideActionsProp = false,
     hideIfEmpty = false,
     getFormValues,
     verifyTransform,
@@ -69,6 +74,9 @@ export function ModelsSection(props: ModelsSectionProps) {
     onInstanceModelsEdited,
     onInstanceModelsStatusChange,
   } = props;
+  // Folding the read-only flag into `hideActions` also keeps the catalog /
+  // mutation hooks below from fetching or persisting anything.
+  const hideActions = hideActionsProp || readOnly;
 
   const isDraftInstance =
     !instanceName || instanceName === DRAFT_INSTANCE_SENTINEL;
@@ -343,21 +351,23 @@ export function ModelsSection(props: ModelsSectionProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleBatchVerifyClick}
-            disabled={batchVerifying || filteredModels.length === 0}
-            data-testid="models-batch-verify"
-            className="ml-auto"
-          >
-            {batchVerifying ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <ShieldCheck className="size-3" />
-            )}
-            {tSetting('batchVerifyModels')}
-          </Button>
+          {!readOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBatchVerifyClick}
+              disabled={batchVerifying || filteredModels.length === 0}
+              data-testid="models-batch-verify"
+              className="ml-auto"
+            >
+              {batchVerifying ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <ShieldCheck className="size-3" />
+              )}
+              {tSetting('batchVerifyModels')}
+            </Button>
+          )}
           {!hideActions && (
             // When the toggle is in "remove all" mode the click opens a
             // confirmation dialog instead of mutating directly; the button

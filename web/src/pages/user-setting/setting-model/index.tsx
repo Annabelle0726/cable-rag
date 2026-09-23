@@ -23,15 +23,18 @@ import {
   useFetchProviderInstances,
   useUpdateProviderInstance,
 } from '@/hooks/use-llm-request';
+import { useFetchUserInfo } from '@/hooks/use-user-setting-request';
 import { IProviderInstance } from '@/interfaces/database/llm';
+import { isModelSettingsReadOnly } from '@/utils/tenant-role';
 import { useQueryClient } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { Info, Plus } from 'lucide-react';
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ProviderInstanceCardRef } from './instance-card/interface';
 import { ProviderInstanceCard } from './instance-card/provider-instance-card';
 import { ProviderHeaderBar } from './layout/provider-header-bar';
 import { Sidebar, SidebarSelection } from './layout/sidebar';
 import SystemSetting from './layout/system-setting';
+import { ModelSettingsReadOnlyProvider } from './read-only-context';
 
 /**
  * Sidebar-driven model provider settings page.
@@ -66,6 +69,13 @@ const SettingModelV2: FC = () => {
   const [draftIds, setDraftIds] = useState<string[]>([]);
 
   const [saving, setSaving] = useState(false);
+
+  // A tenant member (NORMAL) may look at the tenant's model configuration but
+  // not change it. Every mutating model endpoint is admin-only server-side, so
+  // the whole page degrades to a viewing surface: the notice banner explains
+  // why, and every write affordance below is suppressed.
+  const { data: userInfo } = useFetchUserInfo();
+  const readOnly = isModelSettingsReadOnly(userInfo?.role);
 
   // Tracks the instance name that was just persisted by the top Save
   // button. The corresponding saved card mounts expanded so the user
@@ -144,12 +154,13 @@ const SettingModelV2: FC = () => {
   // resolves. Gating on `!instancesLoading` skips that flicker and
   // keeps the UI clean for providers that do have instances.
   useEffect(() => {
+    if (readOnly) return;
     if (selection === 'default' || cancelledRef.current) return;
     if (instancesLoading) return;
     if (instances.length === 0 && draftIds.length === 0) {
       addDraft();
     }
-  }, [selection, instances, instancesLoading, draftIds, addDraft]);
+  }, [readOnly, selection, instances, instancesLoading, draftIds, addDraft]);
 
   const { addProviderInstance } = useAddProviderInstance();
   const { updateProviderInstance } = useUpdateProviderInstance();
@@ -170,6 +181,7 @@ const SettingModelV2: FC = () => {
   //      saved card's baseline so the next save short-circuits, and
   //      invalidate the instance query so the new/updated cards appear.
   const handleSaveAll = useCallback(async () => {
+    if (readOnly) return;
     const refs = Array.from(cardRefs.current.values()).filter(
       (r): r is ProviderInstanceCardRef => r !== null,
     );
@@ -248,6 +260,7 @@ const SettingModelV2: FC = () => {
       setSaving(false);
     }
   }, [
+    readOnly,
     addProviderInstance,
     updateProviderInstance,
     queryClient,
@@ -262,7 +275,8 @@ const SettingModelV2: FC = () => {
   // there is nothing to save, and if there is something the user can
   // always attempt a save (dirty saved cards short-circuit inside
   // `getSavePayload`). The button is disabled while a save is in flight.
-  const canSave = !saving && (draftIds.length > 0 || instances.length > 0);
+  const canSave =
+    !readOnly && !saving && (draftIds.length > 0 || instances.length > 0);
 
   // User clicked Cancel on a specific draft - remove it from the list
   // and stop the auto-show effect from re-opening it for the current
@@ -281,77 +295,92 @@ const SettingModelV2: FC = () => {
   );
 
   return (
-    // Not a card: no radius, no outer border and no gutter, so the provider list
-    // and the configuration area fill the whole panel and only their shared
-    // hairline separates them. `min-h-0` at every level of the column is what
-    // lets the scroll areas inside actually scroll rather than stretching the
-    // panel past the viewport.
-    <div className="glass-surface relative flex h-full min-h-0 w-full overflow-hidden">
-      {/* The provider list is its own rail: the glass tint, then the ceramic seam
-          that separates it from the configuration panel. */}
-      <section className="ceramic-rail ceramic-seam-r flex flex-col gap-4 w-[320px] shrink-0 px-5 overflow-auto scrollbar-auto">
-        <Sidebar selection={selection} onSelect={setSelection} />
-      </section>
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {selection === 'default' ? (
-          <div className="min-h-0 flex-1 overflow-auto scrollbar-auto">
-            <SystemSetting />
-          </div>
-        ) : (
-          <>
-            {/* Sticky top: provider name + doc-link arrow + batch Save */}
-            <ProviderHeaderBar
-              providerName={selection as string}
-              onSave={handleSaveAll}
-              saving={saving}
-              canSave={canSave}
-            />
-
-            {/* Scrollable middle: instance cards + optional draft cards */}
-            <div className="flex-1 min-h-0 overflow-auto scrollbar-auto p-4 flex flex-col gap-4">
-              {instances.length === 0 && draftIds.length === 0 && (
-                <div className="text-text-secondary text-sm py-6 text-center">
-                  {tSetting('noInstancesConfigured')}
-                </div>
-              )}
-              {instances.map((instance, index) => (
-                <ProviderInstanceCard
-                  key={instance.instance_name}
-                  ref={setCardRef(instance.instance_name)}
-                  providerName={selection as string}
-                  instance={instance}
-                  defaultOpen={
-                    index === 0 ||
-                    instance.instance_name === newlySavedInstanceName
-                  }
-                />
-              ))}
-              {draftIds.map((id) => (
-                <ProviderInstanceCard
-                  key={id}
-                  ref={setCardRef(id)}
-                  providerName={selection as string}
-                  instance={draftInstance}
-                  isDraft
-                  onDelete={() => handleDraftCancel(id)}
-                />
-              ))}
-              <div className="z-10 border-border-button py-4">
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-center gap-2 px-3 py-1 rounded-md border border-dashed border-border-button text-text-secondary hover:bg-bg-input hover:text-text-primary transition-colors"
-                  onClick={addDraft}
-                  data-testid="add-instance-bottom"
-                >
-                  <Plus className="size-4" />
-                  <span className="text-sm">{tSetting('addInstanceText')}</span>
-                </button>
-              </div>
+    <ModelSettingsReadOnlyProvider readOnly={readOnly}>
+      {/* Not a card: no radius, no outer border and no gutter, so the provider list
+          and the configuration area fill the whole panel and only their shared
+          hairline separates them. `min-h-0` at every level of the column is what
+          lets the scroll areas inside actually scroll rather than stretching the
+          panel past the viewport. */}
+      <div className="glass-surface relative flex h-full min-h-0 w-full overflow-hidden">
+        {/* The provider list is its own rail: the glass tint, then the ceramic seam
+            that separates it from the configuration panel. */}
+        <section className="ceramic-rail ceramic-seam-r flex flex-col gap-4 w-[320px] shrink-0 px-5 overflow-auto scrollbar-auto">
+          <Sidebar selection={selection} onSelect={setSelection} />
+        </section>
+        <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {readOnly && (
+            <div
+              className="flex items-start gap-2 border-b border-border-default bg-accent-primary-5 px-4 py-3 text-sm text-text-secondary"
+              data-testid="model-settings-readonly-notice"
+            >
+              <Info className="mt-0.5 size-4 shrink-0" />
+              <span>{tSetting('adminManagedNotice')}</span>
             </div>
-          </>
-        )}
-      </section>
-    </div>
+          )}
+          {selection === 'default' ? (
+            <div className="min-h-0 flex-1 overflow-auto scrollbar-auto">
+              <SystemSetting />
+            </div>
+          ) : (
+            <>
+              {/* Sticky top: provider name + doc-link arrow + batch Save */}
+              <ProviderHeaderBar
+                providerName={selection as string}
+                onSave={handleSaveAll}
+                saving={saving}
+                canSave={canSave}
+              />
+
+              {/* Scrollable middle: instance cards + optional draft cards */}
+              <div className="flex-1 min-h-0 overflow-auto scrollbar-auto p-4 flex flex-col gap-4">
+                {instances.length === 0 && draftIds.length === 0 && (
+                  <div className="text-text-secondary text-sm py-6 text-center">
+                    {tSetting('noInstancesConfigured')}
+                  </div>
+                )}
+                {instances.map((instance, index) => (
+                  <ProviderInstanceCard
+                    key={instance.instance_name}
+                    ref={setCardRef(instance.instance_name)}
+                    providerName={selection as string}
+                    instance={instance}
+                    defaultOpen={
+                      index === 0 ||
+                      instance.instance_name === newlySavedInstanceName
+                    }
+                  />
+                ))}
+                {draftIds.map((id) => (
+                  <ProviderInstanceCard
+                    key={id}
+                    ref={setCardRef(id)}
+                    providerName={selection as string}
+                    instance={draftInstance}
+                    isDraft
+                    onDelete={() => handleDraftCancel(id)}
+                  />
+                ))}
+                {!readOnly && (
+                  <div className="z-10 border-border-button py-4">
+                    <button
+                      type="button"
+                      className="w-full flex items-center justify-center gap-2 px-3 py-1 rounded-md border border-dashed border-border-button text-text-secondary hover:bg-bg-input hover:text-text-primary transition-colors"
+                      onClick={addDraft}
+                      data-testid="add-instance-bottom"
+                    >
+                      <Plus className="size-4" />
+                      <span className="text-sm">
+                        {tSetting('addInstanceText')}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+      </div>
+    </ModelSettingsReadOnlyProvider>
   );
 };
 

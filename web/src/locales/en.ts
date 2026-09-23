@@ -2027,6 +2027,8 @@ export default {
       roleMember: 'Member',
       roleInvite: 'Invited',
       roleLabel: 'System role',
+      adminManagedNotice:
+        'Model API keys and default models for this tenant are configured and maintained by an administrator. You can view them here.',
       system: 'System',
       logout: 'Log out',
       api: 'API',

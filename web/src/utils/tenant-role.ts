@@ -11,6 +11,20 @@ import { TenantRole } from '@/pages/user-setting/constants';
 export const canManageTenant = (role?: string): boolean =>
   role === TenantRole.Owner || role === TenantRole.Admin;
 
+/**
+ * Whether the model-settings UI must fall back to a read-only presentation for
+ * `role`.
+ *
+ * Unlike {@link canManageTenant}, an unknown role resolves to `false` here: the
+ * caller's privileges are genuinely unknown when the server does not report a
+ * `role` (a server predating the field, or the Go backend), and presuming
+ * "member" would lock a tenant owner out of their own configuration. The server
+ * guards every mutation, so presuming editable can only produce a 403 the
+ * caller would have hit anyway.
+ */
+export const isModelSettingsReadOnly = (role?: string): boolean =>
+  Boolean(role) && !canManageTenant(role);
+
 export interface IRoleDisplayConfig {
   /**
    * Translation key, resolved by the caller with `t()`. Kept as a key rather

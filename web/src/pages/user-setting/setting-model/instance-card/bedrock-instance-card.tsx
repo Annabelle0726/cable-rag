@@ -55,6 +55,7 @@ import { z } from 'zod';
 import { BedrockRegionList } from '../constants';
 import { VerifyResult } from '../hooks';
 import { splitProviderPayload } from '../payload-utils';
+import { useModelSettingsReadOnly } from '../read-only-context';
 import {
   ProviderInstanceCardProps,
   ProviderInstanceCardRef,
@@ -106,6 +107,9 @@ export const BedrockInstanceCard = forwardRef<
 ) {
   const { t } = useTranslation();
   const { t: tSetting } = useTranslate('setting');
+  // A read-only viewer keeps the disclosure but loses delete / verify / model
+  // actions, and the whole field group renders inside a disabled fieldset.
+  const readOnly = useModelSettingsReadOnly();
   const { buildModelTypeOptions } = useBuildModelTypeOptions();
   const [open, setOpen] = useState(isDraft || defaultOpen);
   const [draftName, setDraftName] = useState('');
@@ -520,166 +524,175 @@ export const BedrockInstanceCard = forwardRef<
   );
 
   // ──────────────── Field group rendered in both modes ────────────────
+  // A read-only viewer gets a `<fieldset disabled>` around the whole group:
+  // every descendant control (inputs, segmented, multi-select, verify) is
+  // natively disabled by the attribute, so no per-field wiring is needed.
+  // `display: contents` keeps the fieldset out of the layout.
   const renderFields = () => (
     <Form {...form}>
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-        {isDraft && authMode !== 'bedrock_api_key' && (
-          <>
-            <RAGFlowFormItem
-              name="model_type"
-              label={tSetting('modelType')}
-              required
-            >
+        <fieldset disabled={readOnly} className="contents">
+          {isDraft && authMode !== 'bedrock_api_key' && (
+            <>
+              <RAGFlowFormItem
+                name="model_type"
+                label={tSetting('modelType')}
+                required
+              >
+                {(field) => (
+                  <MultiSelect
+                    options={buildModelTypeOptions(['chat', 'embedding'])}
+                    placeholder={tSetting('modelTypeMessage')}
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    variant="inverted"
+                    maxCount={100}
+                  />
+                )}
+              </RAGFlowFormItem>
+
+              <RAGFlowFormItem
+                name="llm_name"
+                label={tSetting('modelName')}
+                required
+              >
+                <Input placeholder={tSetting('bedrockModelNameMessage')} />
+              </RAGFlowFormItem>
+            </>
+          )}
+
+          <div>
+            <RAGFlowFormItem name="auth_mode">
               {(field) => (
-                <MultiSelect
-                  options={buildModelTypeOptions(['chat', 'embedding'])}
-                  placeholder={tSetting('modelTypeMessage')}
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  variant="inverted"
-                  maxCount={100}
+                <Segmented
+                  value={field.value}
+                  onChange={(value) => {
+                    if (isDraft && value !== field.value) {
+                      modelInfoRef.current = [];
+                    }
+                    if (value !== 'access_key_secret') {
+                      form.setValue('bedrock_ak', '');
+                      form.setValue('bedrock_sk', '');
+                    }
+                    if (value !== 'iam_role') {
+                      form.setValue('aws_role_arn', '');
+                    }
+                    if (value !== 'bedrock_api_key') {
+                      form.setValue('bedrock_api_key', '');
+                    }
+                    field.onChange(value);
+                  }}
+                  options={[
+                    {
+                      label: tSetting('awsAuthModeAccessKeySecret'),
+                      value: 'access_key_secret',
+                    },
+                    {
+                      label: tSetting('awsAuthModeIamRole'),
+                      value: 'iam_role',
+                    },
+                    {
+                      label: tSetting('awsAuthModeAssumeRole'),
+                      value: 'assume_role',
+                    },
+                    {
+                      label: tSetting('apiKey'),
+                      value: 'bedrock_api_key',
+                    },
+                  ]}
                 />
               )}
             </RAGFlowFormItem>
-
-            <RAGFlowFormItem
-              name="llm_name"
-              label={tSetting('modelName')}
-              required
-            >
-              <Input placeholder={tSetting('bedrockModelNameMessage')} />
-            </RAGFlowFormItem>
-          </>
-        )}
-
-        <div>
-          <RAGFlowFormItem name="auth_mode">
-            {(field) => (
-              <Segmented
-                value={field.value}
-                onChange={(value) => {
-                  if (isDraft && value !== field.value) {
-                    modelInfoRef.current = [];
-                  }
-                  if (value !== 'access_key_secret') {
-                    form.setValue('bedrock_ak', '');
-                    form.setValue('bedrock_sk', '');
-                  }
-                  if (value !== 'iam_role') {
-                    form.setValue('aws_role_arn', '');
-                  }
-                  if (value !== 'bedrock_api_key') {
-                    form.setValue('bedrock_api_key', '');
-                  }
-                  field.onChange(value);
-                }}
-                options={[
-                  {
-                    label: tSetting('awsAuthModeAccessKeySecret'),
-                    value: 'access_key_secret',
-                  },
-                  { label: tSetting('awsAuthModeIamRole'), value: 'iam_role' },
-                  {
-                    label: tSetting('awsAuthModeAssumeRole'),
-                    value: 'assume_role',
-                  },
-                  {
-                    label: tSetting('apiKey'),
-                    value: 'bedrock_api_key',
-                  },
-                ]}
-              />
-            )}
-          </RAGFlowFormItem>
-        </div>
-
-        {authMode === 'access_key_secret' && (
-          <>
-            <RAGFlowFormItem
-              name="bedrock_ak"
-              label={tSetting('awsAccessKeyId')}
-              required
-            >
-              <Input placeholder={tSetting('bedrockAKMessage')} />
-            </RAGFlowFormItem>
-            <RAGFlowFormItem
-              name="bedrock_sk"
-              label={tSetting('awsSecretAccessKey')}
-              required
-            >
-              <Input placeholder={tSetting('bedrockSKMessage')} />
-            </RAGFlowFormItem>
-          </>
-        )}
-
-        {authMode === 'iam_role' && (
-          <RAGFlowFormItem
-            name="aws_role_arn"
-            label={tSetting('awsRoleArn')}
-            required
-          >
-            <Input placeholder={tSetting('awsRoleArnMessage')} />
-          </RAGFlowFormItem>
-        )}
-
-        {authMode === 'bedrock_api_key' && (
-          <RAGFlowFormItem
-            name="bedrock_api_key"
-            label={tSetting('apiKey')}
-            required
-          >
-            <Input
-              type="password"
-              placeholder={tSetting('apiKeyMessage')}
-              autoComplete="off"
-            />
-          </RAGFlowFormItem>
-        )}
-
-        {authMode === 'assume_role' && (
-          <div className="text-sm text-text-secondary">
-            {tSetting('awsAssumeRoleTip')}
           </div>
-        )}
 
-        <RAGFlowFormItem
-          name="bedrock_region"
-          label={tSetting('bedrockRegion')}
-          required
-        >
-          {(field) => (
-            <SelectWithSearch
-              value={field.value}
-              onChange={field.onChange}
-              options={regionOptions}
-              placeholder={tSetting('bedrockRegionMessage')}
-              allowClear
-            />
+          {authMode === 'access_key_secret' && (
+            <>
+              <RAGFlowFormItem
+                name="bedrock_ak"
+                label={tSetting('awsAccessKeyId')}
+                required
+              >
+                <Input placeholder={tSetting('bedrockAKMessage')} />
+              </RAGFlowFormItem>
+              <RAGFlowFormItem
+                name="bedrock_sk"
+                label={tSetting('awsSecretAccessKey')}
+                required
+              >
+                <Input placeholder={tSetting('bedrockSKMessage')} />
+              </RAGFlowFormItem>
+            </>
           )}
-        </RAGFlowFormItem>
 
-        {isDraft && authMode !== 'bedrock_api_key' && (
+          {authMode === 'iam_role' && (
+            <RAGFlowFormItem
+              name="aws_role_arn"
+              label={tSetting('awsRoleArn')}
+              required
+            >
+              <Input placeholder={tSetting('awsRoleArnMessage')} />
+            </RAGFlowFormItem>
+          )}
+
+          {authMode === 'bedrock_api_key' && (
+            <RAGFlowFormItem
+              name="bedrock_api_key"
+              label={tSetting('apiKey')}
+              required
+            >
+              <Input
+                type="password"
+                placeholder={tSetting('apiKeyMessage')}
+                autoComplete="off"
+              />
+            </RAGFlowFormItem>
+          )}
+
+          {authMode === 'assume_role' && (
+            <div className="text-sm text-text-secondary">
+              {tSetting('awsAssumeRoleTip')}
+            </div>
+          )}
+
           <RAGFlowFormItem
-            name="max_tokens"
-            label={tSetting('maxTokens')}
+            name="bedrock_region"
+            label={tSetting('bedrockRegion')}
             required
           >
             {(field) => (
-              <Input
-                type="number"
-                placeholder={tSetting('maxTokensTip')}
+              <SelectWithSearch
                 value={field.value}
-                onChange={(e) => field.onChange(Number(e.target.value))}
+                onChange={field.onChange}
+                options={regionOptions}
+                placeholder={tSetting('bedrockRegionMessage')}
+                allowClear
               />
             )}
           </RAGFlowFormItem>
-        )}
+
+          {isDraft && authMode !== 'bedrock_api_key' && (
+            <RAGFlowFormItem
+              name="max_tokens"
+              label={tSetting('maxTokens')}
+              required
+            >
+              {(field) => (
+                <Input
+                  type="number"
+                  placeholder={tSetting('maxTokensTip')}
+                  value={field.value}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                />
+              )}
+            </RAGFlowFormItem>
+          )}
+        </fieldset>
       </form>
 
       {/* VerifyButton lives inside <Form> (FormProvider) so its
           internal useFormContext() resolves the form instance.
           Rendered outside <form> so it never triggers submission. */}
-      {authMode !== 'bedrock_api_key' && (
+      {!readOnly && authMode !== 'bedrock_api_key' && (
         <div className="pt-3">
           <VerifyButton onVerify={handleVerify} isAbsolute={false} />
         </div>
@@ -775,17 +788,19 @@ export const BedrockInstanceCard = forwardRef<
                   {draftName || instance.instance_name}
                 </span>
               </div>
-              <ConfirmDeleteDialog onOk={handleDelete}>
-                <Button
-                  variant="delete"
-                  size="icon-sm"
-                  aria-label={tSetting('deleteInstance')}
-                  data-testid="instance-delete"
-                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </ConfirmDeleteDialog>
+              {!readOnly && (
+                <ConfirmDeleteDialog onOk={handleDelete}>
+                  <Button
+                    variant="delete"
+                    size="icon-sm"
+                    aria-label={tSetting('deleteInstance')}
+                    data-testid="instance-delete"
+                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </ConfirmDeleteDialog>
+              )}
             </div>
           </CollapsibleTrigger>
           <CollapsibleContent

@@ -1684,6 +1684,8 @@ export default {
       roleMember: '成员',
       roleInvite: '已邀请',
       roleLabel: '系统角色',
+      adminManagedNotice:
+        '当前租户的模型 API Key 与默认模型由管理员统一配置与维护，您可以在此查看。',
       system: '系统',
       logout: '登出',
       api: 'API',

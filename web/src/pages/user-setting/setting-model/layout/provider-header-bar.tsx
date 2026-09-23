@@ -20,6 +20,7 @@ import { APIMapUrl } from '@/constants/llm';
 import { useTranslate } from '@/hooks/common-hooks';
 import { ArrowUpRight, Loader2, Save } from 'lucide-react';
 import { getProviderConfig } from '../provider-schema/field-config';
+import { useModelSettingsReadOnly } from '../read-only-context';
 
 interface ProviderHeaderBarProps {
   providerName: string;
@@ -47,6 +48,9 @@ export function ProviderHeaderBar({
   canSave = false,
 }: ProviderHeaderBarProps) {
   const { t: tSetting } = useTranslate('setting');
+  // Read-only viewers get no Save affordance at all - the mutation is refused
+  // server-side, so a disabled button would only invite a pointless click.
+  const readOnly = useModelSettingsReadOnly();
   const apiLink = APIMapUrl[providerName as keyof typeof APIMapUrl];
   const providerConfig = getProviderConfig(providerName);
   const docLink = providerConfig.docLink;
@@ -96,21 +100,23 @@ export function ProviderHeaderBar({
         </a>
       )}
       <div className="flex-1" />
-      <Button
-        type="button"
-        size="sm"
-        onClick={onSave}
-        disabled={saving || !canSave}
-        data-testid="provider-save-all"
-        className="gap-1.5"
-      >
-        {saving ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Save className="size-4" />
-        )}
-        {tSetting('save')}
-      </Button>
+      {!readOnly && (
+        <Button
+          type="button"
+          size="sm"
+          onClick={onSave}
+          disabled={saving || !canSave}
+          data-testid="provider-save-all"
+          className="gap-1.5"
+        >
+          {saving ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Save className="size-4" />
+          )}
+          {tSetting('save')}
+        </Button>
+      )}
     </div>
   );
 }

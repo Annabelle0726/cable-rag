@@ -728,6 +728,9 @@ export function useFormFields(
   baseUrlOptions: SelectOption[] | undefined,
   hideWhenInstanceExists: (values: any) => boolean,
 ) {
+  // A read-only viewer sees the credentials (masked by the server) but must not
+  // be able to edit them; `useProviderFields` disables every field for that
+  // case, so no override is needed here.
   const { fields, defaultValues } = useProviderFields({
     llmFactory: providerName,
     // Always seed initial values (drafts need the default base_url;

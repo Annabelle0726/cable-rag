@@ -1,5 +1,9 @@
 import { TenantRole } from '@/pages/user-setting/constants';
-import { canManageTenant, getRoleDisplayConfig } from '@/utils/tenant-role';
+import {
+  canManageTenant,
+  getRoleDisplayConfig,
+  isModelSettingsReadOnly,
+} from '@/utils/tenant-role';
 
 describe('canManageTenant', () => {
   it('admits a tenant owner, because OWNER implies ADMIN', () => {
@@ -25,6 +29,29 @@ describe('canManageTenant', () => {
   it('rejects a missing role, so servers predating this field do not grant access', () => {
     expect(canManageTenant(undefined)).toBe(false);
     expect(canManageTenant('')).toBe(false);
+  });
+});
+
+describe('isModelSettingsReadOnly', () => {
+  it('is read-only for a member and for a merely invited user', () => {
+    expect(isModelSettingsReadOnly(TenantRole.Normal)).toBe(true);
+    expect(isModelSettingsReadOnly(TenantRole.Invite)).toBe(true);
+  });
+
+  it('is editable for an owner and for an admin', () => {
+    expect(isModelSettingsReadOnly(TenantRole.Owner)).toBe(false);
+    expect(isModelSettingsReadOnly(TenantRole.Admin)).toBe(false);
+  });
+
+  it('stays editable when the role is unknown, so an owner is never locked out', () => {
+    // A server predating the role field reports nothing; presuming "member"
+    // would hide every control from the very people allowed to use them.
+    expect(isModelSettingsReadOnly(undefined)).toBe(false);
+    expect(isModelSettingsReadOnly('')).toBe(false);
+  });
+
+  it('is read-only for an unrecognised role string', () => {
+    expect(isModelSettingsReadOnly('something-else')).toBe(true);
   });
 });
 

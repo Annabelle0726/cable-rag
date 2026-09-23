@@ -22,6 +22,7 @@ import { useMemo } from 'react';
 import { ControllerRenderProps, FieldValues } from 'react-hook-form';
 import { LIST_MODEL_FIELD_NAMES, LIST_MODEL_PROVIDERS } from '../constants';
 import { getProviderConfig } from '../field-config';
+import { useModelSettingsReadOnly } from '../../read-only-context';
 import type { FieldConfig, SelectOption } from '../types';
 
 interface UseProviderFieldsParams {
@@ -85,6 +86,7 @@ const setNestedValue = (obj: any, path: string, value: any) => {
  * - shouldRender token → predicate resolution.
  * - Hiding the 4 model_* fields when the list-models picker is active.
  * - Disabling non-model fields in viewMode.
+ * - Disabling every field for a read-only tenant member.
  * - Custom inputSelect rendering (Input + dropdown of suggestions).
  */
 export const useProviderFields = ({
@@ -96,6 +98,10 @@ export const useProviderFields = ({
   hideWhenInstanceExists,
 }: UseProviderFieldsParams) => {
   const { t } = useTranslate('setting');
+  // A tenant member may inspect the tenant's credentials but not change them.
+  // Resolved here rather than at the card so the flag also reaches the custom
+  // `inputSelect` renderer, which does not go through `field.disabled`.
+  const readOnly = useModelSettingsReadOnly();
 
   const config = useMemo(() => getProviderConfig(llmFactory), [llmFactory]);
 
@@ -218,8 +224,10 @@ export const useProviderFields = ({
           shouldRender: resolveShouldRender(field.shouldRender),
           // In viewMode, only the model-related fields are editable.
           // All other fields (instance_name, api_key, base_url, etc.)
-          // are rendered as disabled.
-          disabled: !!viewMode && !LIST_MODEL_FIELD_NAMES.has(field.name),
+          // are rendered as disabled. A read-only viewer may not edit
+          // anything at all.
+          disabled:
+            readOnly || (!!viewMode && !LIST_MODEL_FIELD_NAMES.has(field.name)),
           dependencies:
             field.shouldRender === 'modelTypeIncludesChat' ||
             field.shouldRender === 'modelTypeSupportsToolCall' ||
@@ -241,6 +249,19 @@ export const useProviderFields = ({
             type: FormFieldType.Custom,
             options: inputSelectOptions as any,
             render: (fieldProps: ControllerRenderProps) => {
+              // `InputSelect` has no disabled state, so a read-only field
+              // degrades to a plain disabled input that still shows the
+              // configured value.
+              if (baseField.disabled) {
+                return (
+                  <Input
+                    {...fieldProps}
+                    disabled
+                    placeholder={placeholderText}
+                    autoComplete={field.autoComplete}
+                  />
+                );
+              }
               return inputSelectOptions.length > 0 ? (
                 <InputSelect
                   {...fieldProps}
@@ -273,6 +294,7 @@ export const useProviderFields = ({
     llmFactory,
     hasModelNameField,
     viewMode,
+    readOnly,
   ]);
 
   const defaultValues: FieldValues = useMemo(() => {

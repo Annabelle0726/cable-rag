@@ -79,12 +79,15 @@ export function ModelRow({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        <ModelVerifyButton
-          status={verifyStatus}
-          onVerify={onVerify}
-          modelName={model.name}
-        />
-
+        {/* Verification calls the admin-only connection endpoint, so it goes
+            with the rest of the actions. */}
+        {!hideActions && (
+          <ModelVerifyButton
+            status={verifyStatus}
+            onVerify={onVerify}
+            modelName={model.name}
+          />
+        )}
         {!hideActions && (
           <ConfirmDeleteDialog
             hidden={!isAdded}

@@ -29,6 +29,7 @@ import {
 import { parseModelValue } from '@/utils/llm-util';
 import { CircleQuestionMark } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
+import { useModelSettingsReadOnly } from '../read-only-context';
 
 interface ModelFieldItemProps {
   id: string;
@@ -48,6 +49,10 @@ function ModelFieldItem({
   onChange,
 }: ModelFieldItemProps) {
   const { t } = useTranslate('setting');
+  // Choosing a tenant default model is an admin-only write
+  // (`PATCH /models/default`), so a read-only viewer gets a disabled select
+  // that still shows the model in force.
+  const readOnly = useModelSettingsReadOnly();
 
   return (
     <div className="flex gap-3 items-center">
@@ -73,6 +78,7 @@ function ModelFieldItem({
           onChange={(val) => onChange(id, val)}
           placeholder={t('selectModelPlaceholder')}
           showSearch
+          disabled={readOnly}
           allowClear={id !== 'llm_id'}
           // Glass well with the shared hairline: the accent ring on focus comes
           // with the class, so the select matches the search fields.

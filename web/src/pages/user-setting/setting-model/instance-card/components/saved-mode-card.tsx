@@ -36,6 +36,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { DRAFT_INSTANCE_SENTINEL, SavedModeCardProps } from '../interface';
 import { ModelsSection } from '../models-section';
+import { useModelSettingsReadOnly } from '../../read-only-context';
 import VerifyButton from '../verify-button';
 import { cn } from '@/lib/utils';
 
@@ -72,6 +73,10 @@ export function SavedModeCard({
 }: SavedModeCardProps) {
   const { t } = useTranslation();
   const { t: tSetting } = useTranslate('setting');
+  // A read-only viewer keeps the disclosure (they must still be able to
+  // browse the instance) but loses every write affordance: delete, verify and
+  // the model actions.
+  const readOnly = useModelSettingsReadOnly();
 
   // Inline rename state: when true, the name turns into an editable
   // Input. The user double-clicks the name to enter rename mode,
@@ -186,17 +191,19 @@ export function SavedModeCard({
               </div>
             )}
           </div>
-          <ConfirmDeleteDialog onOk={handleDelete}>
-            <Button
-              variant="delete"
-              size="icon-sm"
-              aria-label={tSetting('deleteInstance')}
-              data-testid="instance-delete"
-              onClick={(e: React.MouseEvent) => e.stopPropagation()}
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          </ConfirmDeleteDialog>
+          {!readOnly && (
+            <ConfirmDeleteDialog onOk={handleDelete}>
+              <Button
+                variant="delete"
+                size="icon-sm"
+                aria-label={tSetting('deleteInstance')}
+                data-testid="instance-delete"
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </ConfirmDeleteDialog>
+          )}
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent forceMount className="data-[state=closed]:hidden">
@@ -211,7 +218,7 @@ export function SavedModeCard({
             resetOptions={{ keepDirtyValues: true }}
           />
 
-          {providerName !== LLMFactory.OpenAiAPICompatible && (
+          {!readOnly && providerName !== LLMFactory.OpenAiAPICompatible && (
             <div className="pt-3">
               <VerifyButton
                 onVerify={handleVerify}
