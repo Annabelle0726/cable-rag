@@ -37,3 +37,11 @@ COPY api/apps/restful_apis/langfuse_api.py         /ragflow/api/apps/restful_api
 
 # ---- P4-05: model-configuration reads resolve a member's shared tenant -------
 COPY api/apps/services/models_api_service.py       /ragflow/api/apps/services/models_api_service.py
+
+# ---- P4-03b: read-only model settings for a tenant member --------------------
+# The bundle is built the same way the image builds it
+# (VITE_BUILD_SOURCEMAP=false VITE_MINIFY=esbuild npm run build). The base
+# layer's dist is removed first so no chunk from the previous build survives as
+# an unreferenced file.
+RUN rm -rf /ragflow/web/dist
+COPY web/dist                                        /ragflow/web/dist
