@@ -408,7 +408,14 @@ async def user_profile():
               type: string
               description: User email.
     """
-    return get_json_result(data=current_user.to_safe_dict(for_self=True))
+    profile = current_user.to_safe_dict(for_self=True)
+    # The caller's role in their active tenant. That tenant is current_user.id by
+    # the existing convention (add_tenant_id_to_kwargs sets
+    # kwargs["tenant_id"] = current_user.id). Only the role itself is exposed:
+    # a derived "can manage" boolean would duplicate the server-side hierarchy
+    # rule in the payload.
+    profile["role"] = UserTenantService.get_role(current_user.id, current_user.id)
+    return get_json_result(data=profile)
 
 
 def rollback_user_registration(user_id):

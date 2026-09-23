@@ -15,6 +15,8 @@ export interface IUserInfo {
   login_channel: string;
   nickname: string;
   password: string;
+  /** The caller's role in their active tenant. Absent on servers predating P1-05. */
+  role?: string;
   status: string;
   timezone: string;
   update_date: string;
