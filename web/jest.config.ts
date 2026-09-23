@@ -21,6 +21,18 @@ const config: Config = {
     '^human-id$': '<rootDir>/__mocks__/human-id.js',
   },
   setupFilesAfterEnv: ['<rootDir>/jest-setup.ts'],
+  // Jest's default excludes everything under node_modules from transformation,
+  // but the unified/remark/rehype ecosystem ships ESM-only packages. Left
+  // untransformed they reach Jest's CJS runtime as `export {...}` and abort the
+  // importing suite with "Unexpected token 'export'" — which is why the
+  // highlight-markdown suite (the only coverage of the markdown -> math ->
+  // KaTeX pipeline) never ran. The transformer already emits CJS, so these
+  // simply need to be let through. Kept as an allow-list of families rather
+  // than disabling the default entirely, so ordinary node_modules stay
+  // untransformed and the suite does not slow down.
+  transformIgnorePatterns: [
+    '/node_modules/(?!(?:hast-util-[^/]+|mdast-util-[^/]+|micromark[^/]*|unist-util-[^/]+|remark-[^/]+|rehype-[^/]+|vfile[^/]*|unified|property-information|space-separated-tokens|comma-separated-tokens|html-void-elements|web-namespaces|zwitch|ccount|character-entities[^/]*|decode-named-character-reference|devlop|longest-streak|markdown-table|trim-lines|bail|trough|is-plain-obj|parse5|hastscript|katex)/)',
+  ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx,js,jsx}',
     '!src/.umi/**',
