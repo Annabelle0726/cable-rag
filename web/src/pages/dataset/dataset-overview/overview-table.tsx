@@ -25,8 +25,8 @@ import {
 } from '@/constants/knowledge';
 import { useTranslate } from '@/hooks/common-hooks';
 import { cn } from '@/lib/utils';
-import { useDataSourceInfo } from '@/pages/user-setting/data-source/constant';
-import { IDataSourceInfoMap } from '@/pages/user-setting/data-source/interface';
+import { useDataSourceInfo } from '@/components/data-source/constant';
+import { IDataSourceInfoMap } from '@/components/data-source/interface';
 import { formatDate, formatSecondsToHumanReadable } from '@/utils/date';
 import {
   ColumnDef,

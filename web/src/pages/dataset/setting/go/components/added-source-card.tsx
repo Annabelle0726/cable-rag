@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import {
   IDataSorceInfo,
   IDataSourceBase,
-} from '@/pages/user-setting/data-source/interface';
+} from '@/components/data-source/interface';
 import { Check } from 'lucide-react';
 import { useMemo } from 'react';
 

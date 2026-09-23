@@ -10,7 +10,7 @@ jest.mock('@/hooks/use-knowledge-request', () => ({
   useFetchDatasetPipelineConfiguration: jest.fn(),
   useUpdateKnowledge: jest.fn(),
 }));
-jest.mock('@/pages/user-setting/data-source/constant', () => ({
+jest.mock('@/components/data-source/constant', () => ({
   useDataSourceInfo: jest.fn(() => ({ dataSourceInfo: {} })),
 }));
 jest.mock('@/services/knowledge-service', () => ({

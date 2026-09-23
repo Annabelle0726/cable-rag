@@ -16,7 +16,7 @@
 
 import { FilterFormField, FormFieldType } from '@/components/dynamic-form';
 import { TFunction } from 'i18next';
-import { BedrockRegionList } from '../../setting-model/constants';
+import { BedrockRegionList } from '@/pages/user-setting/setting-model/constants';
 
 const awsRegionOptions = BedrockRegionList.map((r) => ({
   label: r,

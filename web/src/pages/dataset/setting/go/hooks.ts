@@ -5,7 +5,7 @@ import {
   useUpdateKnowledge,
 } from '@/hooks/use-knowledge-request';
 import { IConnector } from '@/interfaces/database/dataset';
-import { useDataSourceInfo } from '@/pages/user-setting/data-source/constant';
+import { useDataSourceInfo } from '@/components/data-source/constant';
 import { checkEmbedding } from '@/services/knowledge-service';
 import {
   getOperatorType,
