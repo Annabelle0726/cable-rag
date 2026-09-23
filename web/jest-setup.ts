@@ -42,3 +42,19 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
     disconnect() {}
   };
 }
+
+// Initialise a real i18next instance for tests. Without it react-i18next logs
+// "You will need to pass in an i18next instance by using initReactI18next" on
+// every render and `t()` returns the key, so a component that renders copy
+// cannot be asserted on. The app's own en resource is used so tests see the
+// same strings the UI does, rather than key echoes.
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import translationEn from './src/locales/en';
+
+void i18n.use(initReactI18next).init({
+  lng: 'en',
+  fallbackLng: 'en',
+  resources: { en: translationEn },
+  interpolation: { escapeValue: false },
+});

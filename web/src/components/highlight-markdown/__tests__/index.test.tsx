@@ -3,30 +3,21 @@ import React from 'react';
 
 import HighLightMarkdown from '..';
 
-jest.mock('@/constants/markdown-remark-plugins', () => ({
-  MarkdownRemarkPlugins: [],
-}));
-
-// Coderabbit MAJOR #3486038797: the previous mock rendered react-markdown's
-// output as a plain <div> containing `children` as text, so the spec never
-// exercised rehypeRaw or the post-preprocessLaTeX sanitization path. With
-// that mock, `<b>safe</b>` was just text inside a div, and an entity-encoded
-// `<img onerror=...>` payload would never reach the DOM no matter what the
-// component did — masking the exact bypass DOMPurify is meant to catch.
+// These specs deliberately do NOT mock react-markdown, rehype-raw or
+// rehype-sanitize. An earlier revision replaced react-markdown with a
+// `dangerouslySetInnerHTML` div and stubbed rehype-raw, which removed the whole
+// pipeline under test: the mock received the post-preprocessLaTeX string and
+// injected it verbatim, so `<script>` reached the DOM regardless of what the
+// component did and the assertions could never pass. Driving the real pipeline
+// is the only way these can mean anything.
 //
-// We mock react-markdown to render `children` as raw HTML (via
-// dangerouslySetInnerHTML). This mimics the real pipeline: if the component
-// fails to sanitize (e.g. sanitizes BEFORE preprocessLaTeX), the unsafe HTML
-// will reach this mock and be inserted into the DOM, failing the assertions.
-jest.mock('react-markdown', () => ({
-  __esModule: true,
-  default: ({ children }: any) => {
-    const ReactLib = jest.requireActual('react');
-    return ReactLib.createElement('div', {
-      dangerouslySetInnerHTML: { __html: children },
-    });
-  },
-}));
+// What the component wires up (highlight-markdown/index.tsx):
+//   preprocessLaTeX(...)            decodes &lt;/&gt;/&amp; back into markup
+//   rehypeRaw                       parses that markup into real nodes
+//   RehypeSanitizeAssistantMarkdown applies the allow-list
+//   rehypeKatex                     renders math last
+// The ordering matters: sanitizing before preprocessLaTeX would inspect inert
+// entity text and let the payload become live afterwards.
 
 jest.mock('react-syntax-highlighter', () => ({
   Prism: ({ children }: any) => {
@@ -40,57 +31,95 @@ jest.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
   oneLight: {},
 }));
 
-jest.mock('rehype-katex', () => jest.fn());
-jest.mock('rehype-raw', () => jest.fn());
-
 jest.mock('../../theme-provider', () => ({
   useIsDarkTheme: () => false,
 }));
 
-describe('HighLightMarkdown', () => {
-  it('sanitizes unsafe html before rendering', () => {
-    const { container } = render(
-      React.createElement(
-        HighLightMarkdown,
-        null,
-        'hello <img src=x onerror="alert(1)" /><script>alert(1)</script><b>safe</b>',
-      ),
-    );
-
-    // <b>safe</b> is allowed by DOMPurify default profile, so it should
-    // render as a real <b> element with text "safe".
-    expect(container.querySelector('b')?.textContent).toBe('safe');
-
-    // <script> is removed entirely by DOMPurify.
-    expect(container.querySelector('script')).toBeNull();
-
-    // <img> is kept but its dangerous handler attribute must be stripped.
-    // (DOMPurify default profile removes on* event attributes.)
-    const imgs = container.querySelectorAll('img');
-    imgs.forEach((img) => {
-      expect(img.getAttribute('onerror')).toBeNull();
+/** Assert nothing in the tree can execute script. */
+const expectNoScriptSink = (container: HTMLElement) => {
+  expect(container.querySelector('script')).toBeNull();
+  expect(container.querySelector('iframe')).toBeNull();
+  expect(container.querySelector('object')).toBeNull();
+  expect(container.querySelector('embed')).toBeNull();
+  container.querySelectorAll('*').forEach((el) => {
+    Array.from(el.attributes).forEach((attr) => {
+      expect(attr.name.toLowerCase().startsWith('on')).toBe(false);
     });
   });
+};
 
-  it('strips html encoded as entities (preprocessLaTeX bypass)', () => {
-    // preprocessLaTeX() decodes &lt;/&gt;/&amp; back to raw HTML before
-    // rehypeRaw runs. Sanitization must occur AFTER preprocessLaTeX, so
-    // a payload delivered as &lt;img onerror=...&gt; cannot survive.
+describe('HighLightMarkdown sanitisation', () => {
+  it('keeps allowed markup and drops an inline script', () => {
     const { container } = render(
       React.createElement(
         HighLightMarkdown,
         null,
-        '&lt;img src=x onerror="alert(1)" /&gt;&lt;script&gt;alert(1)&lt;/script&gt;safe',
+        'hello <b>safe</b><script>alert(1)</script>',
       ),
     );
 
-    // <script> entirely removed.
-    expect(container.querySelector('script')).toBeNull();
-    // <img> kept (allowed by default profile) but onerror must be stripped.
-    container.querySelectorAll('img').forEach((img) => {
+    // Proves rehypeRaw ran: the tag became a real element, not text.
+    expect(container.querySelector('b')?.textContent).toBe('safe');
+    expectNoScriptSink(container);
+  });
+
+  it('blocks an entity-encoded payload that preprocessLaTeX decodes into markup', () => {
+    // The bypass this guards: `&lt;script&gt;` is inert while a pre-parse
+    // string check inspects it, and preprocessLaTeX turns it back into a live
+    // tag afterwards. Sanitising the parsed tree closes that window.
+    const { container } = render(
+      React.createElement(
+        HighLightMarkdown,
+        null,
+        '&lt;script&gt;alert(1)&lt;/script&gt;&lt;b&gt;safe&lt;/b&gt;',
+      ),
+    );
+
+    // The entity-encoded <b> did become a real element...
+    expect(container.querySelector('b')?.textContent).toBe('safe');
+    // ...while the entity-encoded <script> did not survive.
+    expectNoScriptSink(container);
+  });
+
+  it('never lets an inline event handler survive', () => {
+    const { container } = render(
+      React.createElement(
+        HighLightMarkdown,
+        null,
+        'hello <img src="https://example.test/x.png" onerror="alert(1)" />',
+      ),
+    );
+
+    // The handler may be stripped or the whole tag dropped. Both are safe; what
+    // matters is that no handler reaches the DOM.
+    const img = container.querySelector('img');
+    if (img) {
       expect(img.getAttribute('onerror')).toBeNull();
-    });
-    // The literal word "safe" should still be visible.
-    expect(container.textContent).toContain('safe');
+    }
+    expectNoScriptSink(container);
+  });
+
+  it('drops a tag whose src protocol is not allowed', () => {
+    const { container } = render(
+      React.createElement(HighLightMarkdown, null, '<img src="x" />'),
+    );
+
+    // A bare, protocol-less src is not in the allow-list, so the tag goes.
+    expect(container.querySelector('img')).toBeNull();
+  });
+
+  it('leaves prose alone, including the characters KaTeX and code spans need', () => {
+    const { container } = render(
+      React.createElement(
+        HighLightMarkdown,
+        null,
+        'a < b and `Array<number>`',
+      ),
+    );
+
+    // A string-level escape pass would corrupt `a < b` (which KaTeX needs) and
+    // the generic inside the code span. Node-level sanitising permits both.
+    expect(container.textContent).toContain('a < b');
+    expect(container.textContent).toContain('Array<number>');
   });
 });

@@ -31,7 +31,7 @@ const config: Config = {
   // than disabling the default entirely, so ordinary node_modules stay
   // untransformed and the suite does not slow down.
   transformIgnorePatterns: [
-    '/node_modules/(?!(?:hast-util-[^/]+|mdast-util-[^/]+|micromark[^/]*|unist-util-[^/]+|remark-[^/]+|rehype-[^/]+|vfile[^/]*|unified|property-information|space-separated-tokens|comma-separated-tokens|html-void-elements|web-namespaces|zwitch|ccount|character-entities[^/]*|decode-named-character-reference|devlop|longest-streak|markdown-table|trim-lines|bail|trough|is-plain-obj|parse5|hastscript|katex)/)',
+    '/node_modules/(?!(?:hast-util-[^/]+|mdast-util-[^/]+|micromark[^/]*|unist-util-[^/]+|estree-util-[^/]+|remark-[^/]+|rehype-[^/]+|vfile[^/]*|unified|react-markdown|property-information|space-separated-tokens|comma-separated-tokens|html-void-elements|web-namespaces|zwitch|ccount|character-entities[^/]*|character-reference-invalid|decode-named-character-reference|devlop|longest-streak|markdown-table|trim-lines|bail|trough|is-plain-obj|is-alphabetical|is-decimal|is-hexadecimal|parse5|hastscript|katex|escape-string-regexp|html-url-attributes|parse-entities|stringify-entities|is-absolute-url|url-join|style-to-object|inline-style-parser|entities)/)',
   ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx,js,jsx}',
