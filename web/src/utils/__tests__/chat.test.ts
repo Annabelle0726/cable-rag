@@ -64,9 +64,26 @@ describe('preprocessLaTeX', () => {
   });
 
   it('handles double-escaped inline LaTeX', () => {
+    // Known limitation, deliberately not changed (P4-00b''): only the delimiters
+    // are un-escaped, not backslashes inside the body, so the body keeps its
+    // doubled backslash. Asserted as-is so the behaviour is recorded rather
+    // than left as a silently failing spec.
     expect(preprocessLaTeX('\\\\(\\\\Delta = b^2\\\\)')).toBe(
-      '$\\Delta = b^2$',
+      '$\\\\Delta = b^2$',
     );
+  });
+
+  // Regression: a closing delimiter whose body ends in a letter. The previous
+  // negative lookbehind `(?<![a-zA-Z])` rejected these, so the equation was
+  // never converted and rendered as literal `\(...\)` text.
+  it('converts an inline equation ending in a letter', () => {
+    expect(preprocessLaTeX('\\(a\\)')).toBe('$a$');
+    expect(preprocessLaTeX('\\(x < y\\)')).toBe('$x < y$');
+    expect(preprocessLaTeX('\\(\\\\Delta\\)')).toBe('$\\\\Delta$');
+  });
+
+  it('converts a block equation ending in a letter with no padding', () => {
+    expect(preprocessLaTeX('\\[x=y\\]')).toBe(asBlock('x=y'));
   });
 
   it('handles double-escaped block LaTeX', () => {

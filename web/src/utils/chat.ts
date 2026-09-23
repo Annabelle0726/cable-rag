@@ -136,15 +136,18 @@ export const buildMessageUuidWithRole = (
 // Preprocess LaTeX equations to be rendered by KaTeX
 // ref: https://github.com/remarkjs/react-markdown/issues/785
 //
-// Delimiter matching: we only treat \] and \) as block/inline endings when they
-// are not part of a LaTeX command (e.g. \right], \big), \left)). Use a negative
-// lookbehind (?<![a-zA-Z]) so that \] or \) preceded by a letter (command name)
-// is not considered the closing delimiter. Use greedy matching so we match up to
-// the last valid delimiter and avoid cutting at the first \] or \) inside the
-// equation (e.g. \frac{1}{|y|} or \right]).
+// Delimiter matching: the closing delimiter is the first `\]` / `\)` in the
+// body. This previously carried a negative lookbehind `(?<![a-zA-Z])`, meant to
+// stop `\]`/`\)` inside a command name (e.g. `\right]`, `\big)`) from being
+// read as the close. That guard protected nothing real and broke the common
+// case: `\right]` and `\big)` do not contain `\]` or `\)` at all (the bracket
+// and paren there are bare), while the lookbehind did reject a legitimate close
+// whenever the body ended in a letter, so `\(a\)` and `\(x < y\)` were left
+// unconverted and rendered as literal text. Verified against every case in the
+// suite, including the #13134 equation, which matches identically either way.
 
-const BLOCK_MATH_RE = /\\\[([\s\S]*?)(?<![a-zA-Z])\\\]/g;
-const INLINE_MATH_RE = /\\\(([\s\S]*?)(?<![a-zA-Z])\\\)/g;
+const BLOCK_MATH_RE = /\\\[([\s\S]*?)\\\]/g;
+const INLINE_MATH_RE = /\\\(([\s\S]*?)\\\)/g;
 
 export const preprocessLaTeX = (content: string) => {
   const normalizedContent = content
