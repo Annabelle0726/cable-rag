@@ -1,6 +1,8 @@
-# RAGFlow Instructions
+# Wenruo-RAG (文若 RAG) Instructions
 
-Use this file as the local operating guide for the current codebase. Prefer the code and the current CLAUDE.md over any older convention or remembered project shape.
+Use this file as the local operating guide for the current codebase.
+Prefer the current code and explicit architecture decisions in this file
+and the current CLAUDE.md over older conventions or remembered project shape.
 
 ## Core Stance
 - Treat legacy code as liability, not as a compatibility target.
@@ -10,126 +12,104 @@ Use this file as the local operating guide for the current codebase. Prefer the 
 - Reduce public surface area when a helper can be made private or internal.
 - Keep refactors centered on the owning abstraction, not on adjacent compatibility layers.
 
-## Current stack
-- Backend: Python 3.13+, Quart-based API server, Peewee ORM, async workers.
-- Frontend: React + TypeScript + Vite in `web/`. When working under `web/`, read and follow `web/CLAUDE.md` — it holds the frontend conventions (dual-backend Go/Python variants, test placement, styling, data fetching).
-- Go: the repository also has a substantial Go module for servers, ingestion, parser/runtime, CLI, and supporting services.
-- Runtime services commonly include MySQL/PostgreSQL, Redis, MinIO, and Elasticsearch/Infinity/OpenSearch depending on configuration.
+## Current Architecture Decisions (CRITICAL)
+- **Active Backend**: `API_PROXY_SCHEME=python` is frozen as the sole active and supported backend path.
+- **Python Authoritative**: Python (`api/`) is the single source of truth for current permission, RBAC, and tenant refactoring.
+- **Go Backend Deprecation**: Go (`internal/`) permission and authentication paths are INACTIVE for current features.
+- **No Dual Sync**: Do NOT attempt to revive or edit Go backend code for symmetry.
+- **Error Response Standard**: Permission denials MUST follow RAGFlow standard `HTTP 200` with `code=108` (`get_error_data_result`) for seamless frontend Toast and error handling.
+- **Frontend HTTP Payload Contract**: `umi-request` calls MUST wrap payload bodies in `{ data: body }` (e.g., `request.put(url, { data: { role } })`), otherwise parameters fail validation with `code=101`.
 
-## Code Layout to Expect
-- `api/`: Python API server entrypoints, blueprints, services, and database code.
-- `rag/`: ingestion, retrieval, LLM integration, and graph RAG logic.
-- `deepdoc/`: parsing and OCR.
-- `agent/`: workflow canvas, components, tools, and templates.
-- `cmd/`: Go entrypoints. `ragflow_main` is the main server/admin/ingestor binary surface; `ragflow-cli` is the CLI entrypoint.
-- `internal/`: main Go application code. Important subtrees:
-- `internal/agent/`: Go agent runtime, canvas execution, components, tool bindings, workflow helpers.
-- `internal/cli/`: CLI parsing, HTTP transport, command execution, response formatting.
-- `internal/dao/`: Go data-access layer and persistence-facing helpers.
-- `internal/deepdoc/`: Go DeepDOC integrations, especially native-backed PDF/DOCX parsing.
-- `internal/engine/`: search/index backends such as Elasticsearch and Infinity.
-- `internal/entity/`: shared Go entities and model definitions.
-- `internal/handler/`: HTTP handlers and route-facing request logic.
-- `internal/ingestion/`: Go ingestion pipeline, canvas adapter, components, wiring, service orchestration.
-- `internal/ingestion/component/`: stage implementations such as file/parser/chunker/tokenizer/extractor.
-- `internal/ingestion/pipeline/`: DSL translation, canvas-driven execution, checkpoints, resume/run logic.
-- `internal/parser/`: parser and chunk libraries used by ingestion and other Go paths.
-- `internal/parser/parser/`: typed parse-result parsers for markdown/html/pdf/docx/xlsx/text and related families.
-- `internal/parser/chunk/`: chunk operator library and DSL/typed execution helpers.
-- `internal/service/`: higher-level business services used by handlers and server flows.
-- `internal/storage/`: storage backends and in-memory test doubles.
-- `internal/router/`: HTTP route registration.
-- `internal/server/`: server bootstrap/config wiring.
-- `internal/cpp/`: C++ sources used by native-backed Go features.
-- `web/`: frontend application.
-- `docker/`: local and production compose files.
-- `sdk/` and `test/`: SDK and automated tests.
+## Tenant & RBAC Model (CRITICAL)
 
-## Go-Specific Rules
-- Treat `internal/ingestion`, `internal/parser`, and `internal/deepdoc` as actively refactored code. Prefer collapsing duplicate paths over preserving transitional wrappers.
-- Do not add or preserve deprecated Go APIs just to ease migration inside the repo.
-- Remove commented-out Go code instead of leaving recovery notes in place.
-- Keep package comments and doc comments aligned with the current runtime path, not with migration history.
+The tenant role hierarchy is strictly enforced as:
 
-## Go Test Tiers
-Go tests are classified by build tag so the default `go test ./...` run stays self-contained. Tag a test file with `//go:build <tier>` placed before the `package` clause.
+**OWNER > ADMIN > NORMAL**
 
-| Tier | Build tag | Runs by default? | Needs |
-|---|---|---|---|
-| Unit | (none) | Yes (`go test ./...`) | Native CGO static libs (wired by `build.sh --test`); no external services — uses in-memory SQLite, miniredis, or `httptest` stubs. |
-| Integration | `integration` | No (`-tags integration`) | A real service: MySQL/MinIO/Elasticsearch/Infinity/LLM. Single component, reasonably fast. |
-| E2E | `e2e` | No (`-tags e2e`) | Full cross-component pipeline (ingest → index → retrieve) against real services; heavy/slow. |
-| Manual | `manual` | No (`-tags manual`) | Very slow/expensive (deepdoc render/parity/snapshot/bench). **Local opt-in ONLY — never run in CI.** |
-| Native (orthogonal) | `cgo` / `!cgo` | `cgo` auto-satisfies under CGO_ENABLED=1 | Native static libs (`office_oxide`/`pdfium`/`pdf_oxide`). Combine with tiers, e.g. `//go:build cgo && integration`. |
+### Role Definitions
+- **OWNER**: Tenant creator/owner. Full tenant authority, manages administrators and overall tenant settings.
+- **ADMIN**: Granted tenant-management permissions by RBAC layer. Manages members and assigned configurations; cannot override OWNER.
+- **NORMAL**: Standard tenant user. Cannot manage members, tenant-level providers, or system settings.
 
-Run tiers locally via `build.sh`:
-```bash
-bash build.sh --test                      # unit tier (no tags)
-bash build.sh --test-integration ./...    # integration tier
-bash build.sh --test-e2e                  # e2e tier
-bash build.sh --test-manual               # manual tier (very slow)
-bash build.sh --test-all                  # integration + e2e (never includes manual)
-```
-Rules:
-- New tests that touch a real external service MUST carry `integration`/`e2e`/`manual` — do not rely on `t.Skip` + env vars to soft-isolate them in the default unit run. Keep an env guard as a harmless secondary safety net if desired.
-- `manual` is never wired into CI or any automated pipeline.
-- `unit` (no tag) must stay free of external-service dependencies so `go test ./...` passes without MySQL/MinIO/ES/Infinity/LLM. The native CGO static libraries (`office_oxide`/`pdfium`/`pdf_oxide`) are still required at build time and are wired automatically by `build.sh --test`; that is expected, not an external service.
+### Tenant Context & Multi-Tenancy Architecture
+- **Active Tenant Context**: NEVER assume `user.id == tenant_id` for non-owner users. All workspace operations MUST be scoped to the `active_tenant_id` resolved via `TenantService.resolve_config_tenant_id` or active session/request context.
+- **Joined Tenant Access**: NORMAL members without personal tenants inherit read-only access to their joined tenant's shared model configurations and knowledge bases (`resolve_config_tenant_id`).
+- **Backend Enforcement**: Frontend UI/component hiding is NEVER an authorization boundary. Sensitive endpoints MUST enforce `@require_tenant_admin`.
+- **Visibility vs Ownership**: `visibility` (e.g. `me` vs `team`) DOES NOT equal ownership.
+- **Access vs Management**: Read/query permission DOES NOT imply permission to modify, delete, transfer, or manage.
+- **Decoupled Roles & Attributes**: Tenant roles (`role` -> authorization) and organizational attributes (`department_id`, `title` -> profile) MUST be handled via distinct endpoints (`PUT /role` vs `PUT /profile`).
+- **Private Visibility Semantics**: `private` (`permission='me'`) knowledge bases are visible to the **Creator + Tenant Owner/Admin** for enterprise governance and auditing.
+
+## Permission Refactor Progress Base (P1 ~ P5)
+
+Preserve and build upon these established milestones:
+
+### Completed Milestones
+- **P1-01**: Disabled public registration (`REGISTER_ENABLED=0`).
+- **P1-02**: Role hierarchy definition & `can_manage_tenant` helper.
+- **P1-03**: Backend decorator `@require_tenant_admin`.
+- **P1-04**: System account `admin@ragflow.io` hardened, `ADMIN_DEFAULT_PASSWORD` neutralized in `docker/.env`, and test Normal user `0realannabelle0@gmail.com` initialized for E2E validation.
+- **P1-05**: User API `/users/me` returning active `role` and resolved tenant scope.
+- **P3-02**: Tenant member role update API (`PUT /tenants/<id>/users/<user_id>/role`), umi-request `{ data }` payload wrapper bug fix, and transport-layer service unit tests.
+- **P4-00a/b/c**: Markdown & LaTeX rendering pipeline overhaul (fixed `\[...\]` block math line breaks, fixed `\(a\)` letter-ending inline math, added real-pipeline Sanitizer & KaTeX tests, Jest ESM transformer fixes).
+- **P4-01**: Provider API Key output masking.
+- **P4-02**: Comprehensive RBAC endpoint guards (`@require_tenant_admin` on 15 sensitive write/execute provider, model, and langfuse APIs; 8 read endpoints remain open).
+- **P4-03a**: Standardized frontend `RoleTag` component with semantic tokens (`src/tailwind.css`), i18n support, and UI mounting.
+- **P4-03b**: Frontend Model Settings read-only mode for NORMAL users (disabled controls, hidden action buttons, admin managed notice banner).
+- **P4-05**: Multi-tenant model config resolution (`TenantService.resolve_config_tenant_id`) enabling NORMAL users to seamlessly read joined tenant model configurations without 102 Tenant errors.
+- **P5-00**: Department & Title architecture (`department` table + `user_tenant.department_id`/`title` append-only columns), department CRUD API with non-empty member guards (`code=102`), profile update API (`PUT /profile`), and flat UI department management.
+- **P5-01**: Global Active Tenant Context Middleware & `/user-setting/team` workspace switcher refactor.
+- **Data Source Module Cleanup**: Migrated shared data-source modules from deprecated `pages/user-setting/data-source/` to `src/components/data-source/`, fixing relative imports across 11 files and completely deleting the user-setting data-source page.
+
+### Pending / Active Implementation
+- **P3-03**: Knowledge-base 3-tier fine-grained authorization (`private`, `team`, `custom`), `knowledgebase_authorization` mapping table, `can_read_dataset` SQL list masking, strict `can_write_dataset` write/delete separation, and UI quick actions (pin/unpin, hide/show).
+- **P2-01~07**: Tenant invitation & onboard workflow.
+- **P3-01a/b**: Member removal and asset transfer/cleanup logic.
+- **P4-04**: Owner-Tenant model configuration resolution for Assistant usage.
+
+## Database Migration Rules (Peewee)
+- **No Auto Schema Migration**: Peewee's `init_database_tables` skips existing tables without adding missing columns.
+- **Adding Columns**: Any new model column MUST be appended via `alter_db_add_column(...)` at the end of `migrate_db()` in `api/db/db_models.py`.
+- **Append-Only Migration**: Migration execution is strict append-only. NEVER delete, reorder, or modify existing `alter_db_*` calls.
+- **Explicit Defaults & Nullability**: New columns MUST use explicit, conservative defaults or allow `NULL` (e.g. `department_id` nullable) so unassigned users/records are never incorrectly matched by authorization logic.
+
+## Resource Ownership & Dataset Authorization (P3-03)
+- **Decoupled Read vs Write Guards**: `can_read_dataset` (listing & vector retrieval) MUST be strictly decoupled from `can_write_dataset` (upload, parse, edit, delete). Users granted custom read/retrieval access MUST NOT inherit write or delete authority.
+- **SQL-Level Dataset Masking**: Unpermitted datasets MUST be filtered out at the SQL query level in listing APIs. Never rely on frontend component hiding to conceal sensitive knowledge base metadata.
+- **Dynamic Department Inheritance**: KB authorizations bound to `department_id` are dynamic—members joining or transferring into a department automatically inherit its assigned dataset retrieval access.
+
+## Security & API Key Management
+- **API Key Redaction**: API endpoints returning model instances MUST redact/mask `api_key` before output.
+- **No Query Key Leaks**: Never pass or log raw credentials in GET query parameters.
+- **Crypto Header Compatibility**: When encrypting stored credentials, preserve the `ENCRYPTED_MAGIC` (`b"RAGF"`) header bypass so unencrypted legacy database rows remain readable.
+- **Registration Control**: Registration is strictly toggled via `REGISTER_ENABLED` in Python configuration.
+
+## Resource Ownership & Assistant Scope
+- **Asset Transfer Safety**: Member removal MUST explicitly transfer or reassign assets—never default private assets to shared visibility.
+- **Assistant Model Resolution**: When a NORMAL user invokes a Tenant Assistant:
+  1. Determine the effective tenant owning the Assistant.
+  2. Resolve model/provider configuration using the **Owner Tenant** scope via `resolve_config_tenant_id`.
+  3. Strict isolation: Normal users MUST NOT use this resolution path to access model configurations of unrelated tenants.
+
+## Code Layout
+- `api/`: Active Python API server, blueprints, services, and database layers.
+- `rag/`: Core ingestion, retrieval, LLM integration, and graph RAG logic.
+- `deepdoc/`: Document parsing and OCR pipeline.
+- `agent/`: Workflow canvas, components, tools, and execution engine.
+- `internal/`: Go application code (Legacy/Inactive for current tenant refactor).
+- `web/`: React + TypeScript + Vite frontend. Follow `web/CLAUDE.md` for web-specific conventions.
+- `docker/`: Compose files for dev and production deployments.
 
 ## Working Rules
-- When reviewing documentation or code, inspect the full affected path and report all verifiable findings in one review; do not return after only a few findings and expose further issues in later rounds.
-- When handling review comments, independently verify each substantive claim against the current code or tests before accepting, rejecting, or acting on it.
-- Before editing, inspect the nearest code path that actually owns the behavior.
-- Keep changes small and local unless the task is explicitly a broader refactor.
-- Prefer one implementation path instead of preserving old and new versions side by side.
-- Preserve behavior with focused tests when the behavior is still valid; do not keep tests that protect obsolete behavior.
-- If a surface is only there for compatibility, remove it unless the user asks to keep it.
-- Do not add new compatibility wording in comments or docs.
-- When a maintainer takes over a community PR, a new commit generated by rewriting history (e.g. `merge`, `rebase -i`) must preserve the original author and add the maintainer as co-author (via a `Co-authored-by:` trailer) instead of overwriting the author with the maintainer alone.
 
-## Commands
-### Backend
-```bash
-uv sync --python 3.13 --all-extras
-uv run python3 wenruo_deps/download_deps.py
-docker compose -f docker/docker-compose-base.yml up -d
-source .venv/bin/activate
-export PYTHONPATH=$(pwd)
-bash docker/launch_backend_service.sh
-uv run pytest
-ruff check
-ruff format
-```
+Before editing:
+1. Identify the owning code path in `api/` or `web/`.
+2. Trace request flow: Route → Service → Database/Resource.
+3. Verify **Active Tenant Context** (`active_tenant_id`) and **Resource Owner**.
+4. Check explicit RBAC permission requirements (`OWNER`, `ADMIN`, or `NORMAL`).
+5. Keep modifications local, surgical, and minimal. Do NOT modify Go files for symmetry.
 
-### Frontend
-```bash
-cd web
-npm install
-npm run dev
-npm run build
-npm run lint
-npm run test
-npm run type-check
-```
-
-### Go
-```bash
-uv run wenruo_deps/download_deps.py
-bash build.sh --test ./path/to/package/...
-bash build.sh --go
-# or build specific binaries:
-bash build.sh --all
-```
-
-## Validation Preference
-- Run the narrowest relevant test, lint, or build command after a change.
-- For backend changes, prefer targeted pytest or ruff checks over full-suite runs.
-- For frontend changes, prefer the touched-package lint, type-check, or test command.
-- For Go changes, prefer package-scoped `bash build.sh --test ...` first.
-- Do not default to raw `go test`, `go build`, or IDE Run/Debug for Go in this repo. They often miss the required CGO flags and native static libraries (`office_oxide`, `pdfium-static`, `pdf_oxide`) that `build.sh` wires correctly.
-- If Go native builds fail, inspect `build.sh` and `internal/development.md` before changing code. Common environment issues are missing downloaded native deps and missing `lld` on Linux.
-
-## Default review checklist
-- Remove instead of retaining `deprecated`, `legacy`, or compatibility-only code.
-- Collapse duplicate implementations to one path.
-- Drop stale comments and documentation that describe a superseded design.
-- Keep exported APIs only when the current code actually needs them.
+After editing:
+1. Inspect git diff for unintended changes.
+2. Run targeted tests (Python `pytest` / `ruff`, Frontend `npm run lint` / `type-check`).
+3. Verify both **ALLOWED** and **DENIED** authorization outcomes for permission edits.
