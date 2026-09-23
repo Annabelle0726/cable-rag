@@ -5,6 +5,34 @@ volume to another (`docker_mysql_data` → `wenruo-rag_mysql_data`). Read this
 before repeating a metadata-DB migration or moving data between two deployments
 of this repository.
 
+## Creating an account by hand: hash `base64(password)`, not `password`
+
+`decrypt(crypt(x)) == base64(x)` (`api/utils/crypt.py`), and the login route
+feeds that value straight into the password check
+(`api/apps/restful_apis/user_api.py`: `password = decrypt(password)` →
+`UserService.query_user(email, password)`). `UserService.save` and
+`UserService.update_user_password` hash whatever they are handed.
+
+So the value passed to those two functions must be **base64 text**, never the
+typed password:
+
+```python
+from api.common.base64 import encode_to_base64
+UserService.update_user_password(user.id, encode_to_base64("typed-password"))
+```
+
+Every product path already does this (`admin/server/auth.py:210`,
+`user_api.py` reset-password, the `PATCH /users/me` branch). Passing the plain
+string stores a hash that **no login can ever match**, and the account looks
+fine in the database — the failure only shows up when someone tries to log in.
+Authenticating an end-to-end check with a JWT (`User.access_token` via
+`User.get_id()`) does **not** exercise this path, so a JWT-only test passes
+while the password is unusable. Verify an account by calling
+`POST /api/v1/auth/login` with `crypt(typed_password)`.
+
+Whoever implements the invite-only registration flow (P2) must use the
+base64 form, or every invited user will be locked out.
+
 ## Scope that worked: config + users only
 
 Migrated tables (8):
