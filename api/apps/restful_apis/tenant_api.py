@@ -20,6 +20,7 @@ from typing import Set
 from api.apps import current_user, login_required, requested_tenant_id
 from api.db import UserTenantRole
 from api.db.db_models import UserTenant
+from api.db.services.department_service import DepartmentService
 from api.db.services.user_service import TenantService, UserService, UserTenantService
 from api.utils.api_utils import (
     get_data_error_result,
@@ -64,6 +65,156 @@ def _member_list(tenant_id):
         member["delta_seconds"] = delta_seconds(str(member["update_date"]))
         member["is_owner"] = member["user_id"] in owner_ids
     return members
+
+
+@manager.route("/tenants/<tenant_id>/departments", methods=["GET"])  # noqa: F821
+@login_required
+def department_list(tenant_id):
+    """The workspace's departments.
+
+    Readable by every member: the roster filter and the dataset authorization
+    dialog both need the names.
+    """
+    denied = _require_membership(tenant_id)
+    if denied:
+        return denied
+
+    try:
+        return get_json_result(data=DepartmentService.list_by_tenant_id(tenant_id))
+    except Exception as exc:
+        return server_error_response(exc)
+
+
+@manager.route("/tenants/<tenant_id>/departments", methods=["POST"])  # noqa: F821
+@login_required
+@validate_request("name")
+async def create_department(tenant_id):
+    denied = _require_manager(tenant_id)
+    if denied:
+        return denied
+
+    req = await get_request_json()
+    name = (req["name"] or "").strip()
+    if not name:
+        return get_data_error_result(message="A department needs a name.")
+    if DepartmentService.find_by_tenant_and_name(tenant_id, name):
+        return get_data_error_result(message=f"Department '{name}' already exists.")
+    parent_id = req.get("parent_id") or None
+    if parent_id and not DepartmentService.get_by_tenant_and_id(tenant_id, parent_id):
+        return get_data_error_result(message="The parent department does not exist in this workspace.")
+
+    try:
+        department_id = get_uuid()
+        DepartmentService.save(id=department_id, tenant_id=tenant_id, name=name, parent_id=parent_id, status=StatusEnum.VALID.value)
+        return get_json_result(data={"id": department_id, "name": name, "parent_id": parent_id})
+    except Exception as exc:
+        return server_error_response(exc)
+
+
+@manager.route("/tenants/<tenant_id>/departments/<department_id>", methods=["PUT"])  # noqa: F821
+@login_required
+async def update_department(tenant_id, department_id):
+    denied = _require_manager(tenant_id)
+    if denied:
+        return denied
+
+    department = DepartmentService.get_by_tenant_and_id(tenant_id, department_id)
+    if not department:
+        return get_data_error_result(message="This department does not exist in this workspace.")
+
+    req = await get_request_json()
+    update = {}
+    if "name" in req:
+        name = (req["name"] or "").strip()
+        if not name:
+            return get_data_error_result(message="A department needs a name.")
+        existing = DepartmentService.find_by_tenant_and_name(tenant_id, name)
+        if existing and existing.id != department_id:
+            return get_data_error_result(message=f"Department '{name}' already exists.")
+        update["name"] = name
+    if "parent_id" in req:
+        parent_id = req["parent_id"] or None
+        if parent_id == department_id:
+            return get_data_error_result(message="A department cannot be its own parent.")
+        if parent_id and not DepartmentService.get_by_tenant_and_id(tenant_id, parent_id):
+            return get_data_error_result(message="The parent department does not exist in this workspace.")
+        update["parent_id"] = parent_id
+
+    if not update:
+        return get_data_error_result(message="Nothing to update.")
+
+    try:
+        DepartmentService.update_by_id(department_id, update)
+        return get_json_result(data={"id": department_id, **update})
+    except Exception as exc:
+        return server_error_response(exc)
+
+
+@manager.route("/tenants/<tenant_id>/departments/<department_id>", methods=["DELETE"])  # noqa: F821
+@login_required
+def delete_department(tenant_id, department_id):
+    """Delete a department.
+
+    Refused while members are still placed in it, rather than silently leaving
+    them unassigned - a silent unassignment would drop their dataset access
+    without anyone asking for it.
+    """
+    denied = _require_manager(tenant_id)
+    if denied:
+        return denied
+
+    if not DepartmentService.get_by_tenant_and_id(tenant_id, department_id):
+        return get_data_error_result(message="This department does not exist in this workspace.")
+
+    members = DepartmentService.count_members(tenant_id, department_id)
+    if members:
+        return get_data_error_result(message=f"{members} member(s) still belong to this department. Move them first.")
+
+    try:
+        DepartmentService.update_by_id(department_id, {"status": StatusEnum.INVALID.value})
+        return get_json_result(data=True)
+    except Exception as exc:
+        return server_error_response(exc)
+
+
+@manager.route("/tenants/<tenant_id>/users/<user_id>/profile", methods=["PUT"])  # noqa: F821
+@login_required
+async def set_member_profile(tenant_id, user_id):
+    """Set a member's department and title.
+
+    Separate from the role endpoint because these are attributes, not
+    authorization: a manager may reorganise the workspace without touching who
+    can administer it. `title` is free text on purpose - the org chart decides
+    it, not this system.
+    """
+    denied = _require_manager(tenant_id)
+    if denied:
+        return denied
+
+    if UserTenantService.get_role(user_id, tenant_id) is None:
+        return get_data_error_result(message="This user is not a member of the workspace.")
+
+    req = await get_request_json()
+    update = {}
+    if "department_id" in req:
+        department_id = req["department_id"] or None
+        if department_id and not DepartmentService.get_by_tenant_and_id(tenant_id, department_id):
+            return get_data_error_result(message="This department does not exist in this workspace.")
+        update["department_id"] = department_id
+    if "title" in req:
+        title = (req["title"] or "").strip() or None
+        if title and len(title) > 64:
+            return get_data_error_result(message="The title is too long.")
+        update["title"] = title
+
+    if not update:
+        return get_data_error_result(message="Nothing to update.")
+
+    try:
+        UserTenantService.filter_update([UserTenant.tenant_id == tenant_id, UserTenant.user_id == user_id], update)
+        return get_json_result(data={"user_id": user_id, **update})
+    except Exception as exc:
+        return server_error_response(exc)
 
 
 @manager.route("/tenants/<tenant_id>/users", methods=["GET"])  # noqa: F821

@@ -22,7 +22,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from api.db import UserTenantRole
 from api.db.db_models import DB, UserTenant
-from api.db.db_models import User, Tenant
+from api.db.db_models import User, Tenant, Department
+from peewee import JOIN
 from api.db.services.common_service import CommonService
 from common.misc_utils import get_uuid
 from common.time_utils import current_timestamp, datetime_format
@@ -329,16 +330,21 @@ class UserTenantService(CommonService):
     @classmethod
     @DB.connection_context()
     def get_by_tenant_id(cls, tenant_id):
-        """The workspace roster, owner included.
+        """The workspace roster, owner included, with organisational attributes.
 
         The owner is a member like any other and the team page must show them,
-        so unlike the pre-existing roster this does not filter OWNER out.
+        so unlike the pre-existing roster this does not filter OWNER out. The
+        department name comes from a left join: a member without a department is
+        still a row.
         """
         fields = [
             cls.model.id,
             cls.model.user_id,
             cls.model.status,
             cls.model.role,
+            cls.model.department_id,
+            cls.model.title,
+            Department.name.alias("department_name"),
             User.nickname,
             User.email,
             User.avatar,
@@ -349,7 +355,14 @@ class UserTenantService(CommonService):
             User.update_date,
             User.is_superuser,
         ]
-        return list(cls.model.select(*fields).join(User, on=((cls.model.user_id == User.id) & (cls.model.status == StatusEnum.VALID.value))).where(cls.model.tenant_id == tenant_id).dicts())
+        return list(
+            cls.model.select(*fields)
+            .join(User, on=((cls.model.user_id == User.id) & (cls.model.status == StatusEnum.VALID.value)))
+            .switch(cls.model)
+            .join(Department, JOIN.LEFT_OUTER, on=((cls.model.department_id == Department.id) & (Department.status == StatusEnum.VALID.value)))
+            .where(cls.model.tenant_id == tenant_id)
+            .dicts()
+        )
 
     @classmethod
     @DB.connection_context()

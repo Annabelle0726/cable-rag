@@ -42,6 +42,9 @@ COPY api/apps/services/models_api_service.py       /ragflow/api/apps/services/mo
 # ---- P5-01: active tenant context + team management -------------------------
 COPY api/apps/restful_apis/tenant_api.py           /ragflow/api/apps/restful_apis/tenant_api.py
 
+# ---- P5-00: departments and titles ------------------------------------------
+COPY api/db/services/department_service.py         /ragflow/api/db/services/department_service.py
+
 # ---- P4-03b: read-only model settings for a tenant member --------------------
 # The bundle is built the same way the image builds it
 # (VITE_BUILD_SOURCEMAP=false VITE_MINIFY=esbuild npm run build). The base

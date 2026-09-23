@@ -1185,10 +1185,32 @@ class UserTenant(DataBaseModel):
     tenant_id = CharField(max_length=32, null=False, index=True)
     role = CharField(max_length=32, null=False, help_text="UserTenantRole", index=True)
     invited_by = CharField(max_length=32, null=False, index=True)
+    # Organisational attributes. NULL means "not placed yet": an unassigned
+    # member belongs to no department, so a department grant can never capture
+    # a member who was never assigned one.
+    department_id = CharField(max_length=32, null=True, help_text="department id", index=True)
+    title = CharField(max_length=64, null=True, help_text="job title")
     status = CharField(max_length=1, null=True, help_text="is it validate(0: wasted, 1: validate)", default="1", index=True)
 
     class Meta:
         db_table = "user_tenant"
+
+
+class Department(DataBaseModel):
+    """An organisational unit inside one tenant.
+
+    `parent_id` is stored from the start so the hierarchy can be rendered later
+    without a second migration; the MVP presents departments as a flat list.
+    """
+
+    id = CharField(max_length=32, primary_key=True)
+    tenant_id = CharField(max_length=32, null=False, index=True)
+    name = CharField(max_length=100, null=False, help_text="department name", index=True)
+    parent_id = CharField(max_length=32, null=True, help_text="parent department id", index=True)
+    status = CharField(max_length=1, null=True, help_text="is it validate(0: wasted, 1: validate)", default="1", index=True)
+
+    class Meta:
+        db_table = "department"
 
 
 class InvitationCode(DataBaseModel):
@@ -2479,6 +2501,10 @@ def migrate_db():
     # resolver then falls back to the first tenant the user joined, so no
     # existing row needs a backfill and no owner is affected.
     alter_db_add_column(migrator, "user", "current_tenant_id", CharField(max_length=32, null=True, help_text="active tenant (workspace) id", index=True))
+    # P5-00: organisational attributes on the membership row. Nullable, so no
+    # backfill and no member silently lands in a department.
+    alter_db_add_column(migrator, "user_tenant", "department_id", CharField(max_length=32, null=True, help_text="department id", index=True))
+    alter_db_add_column(migrator, "user_tenant", "title", CharField(max_length=64, null=True, help_text="job title"))
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_secret_key")
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_public_key")
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_host")
