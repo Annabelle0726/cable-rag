@@ -1,5 +1,6 @@
-# Cumulative overlay for the permission work orders (P1-02 / P1-03 / P1-05),
-# which also carries P4-01 so the resulting image is a single coherent unit.
+# Cumulative overlay for the permission work orders (P1-02 / P1-03 / P1-05 /
+# P4-02), which also carries P4-01 so the resulting image is a single coherent
+# unit.
 #
 # BASE is pinned to a dated tag, never to `latest`: this build is tagged
 # `latest`, and a self-referencing FROM would be ambiguous about which image
@@ -28,3 +29,8 @@ COPY api/apps/__init__.py                          /ragflow/api/apps/__init__.py
 
 # ---- P1-05: current-tenant role on /users/me --------------------------------
 COPY api/apps/restful_apis/user_api.py             /ragflow/api/apps/restful_apis/user_api.py
+
+# ---- P4-02: tenant-admin guard on the credential and model-config routes ----
+COPY api/apps/restful_apis/provider_api.py         /ragflow/api/apps/restful_apis/provider_api.py
+COPY api/apps/restful_apis/models_api.py           /ragflow/api/apps/restful_apis/models_api.py
+COPY api/apps/restful_apis/langfuse_api.py         /ragflow/api/apps/restful_apis/langfuse_api.py

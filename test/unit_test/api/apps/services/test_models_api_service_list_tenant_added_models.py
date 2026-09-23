@@ -101,7 +101,13 @@ def _load_module(monkeypatch, *, tenant_model_records, factory_llm_infos=None):
     _stub(
         monkeypatch,
         "api.db.services.user_service",
-        TenantService=SimpleNamespace(get_by_id=lambda tenant_id: (True, tenant)),
+        TenantService=SimpleNamespace(
+            get_by_id=lambda tenant_id: (True, tenant),
+            # Identity stands in for a caller that owns its own tenant; the
+            # member fallback is covered by
+            # test/unit_test/api/db/services/test_resolve_config_tenant_id.py.
+            resolve_config_tenant_id=lambda tenant_id: tenant_id,
+        ),
     )
     _stub(
         monkeypatch,

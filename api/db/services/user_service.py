@@ -217,8 +217,29 @@ class TenantService(CommonService):
                 ),
             )
             .where(cls.model.status == StatusEnum.VALID.value)
+            .order_by(cls.model.create_time)
             .dicts()
         )
+
+    @classmethod
+    @DB.connection_context()
+    def resolve_config_tenant_id(cls, user_id):
+        """Tenant whose model configuration `user_id` reads.
+
+        A member that owns no tenant of its own owns no model configuration
+        either: the credentials live in the tenant it joined, which that
+        tenant's owner administers. Such a caller therefore reads the shared
+        tenant, while a caller with any membership on its own id keeps reading
+        its own tenant - so an owner and an admin are unaffected.
+
+        This resolves READS only. Writes keep targeting the caller's own tenant
+        through ``add_tenant_id_to_kwargs``, which is what
+        ``@require_tenant_admin`` refuses for a member.
+        """
+        if UserTenantService.get_role(user_id, user_id):
+            return user_id
+        joined = cls.get_joined_tenants_by_user_id(user_id)
+        return joined[0]["tenant_id"] if joined else user_id
 
     @classmethod
     @DB.connection_context()

@@ -409,12 +409,13 @@ async def user_profile():
               description: User email.
     """
     profile = current_user.to_safe_dict(for_self=True)
-    # The caller's role in their active tenant. That tenant is current_user.id by
-    # the existing convention (add_tenant_id_to_kwargs sets
-    # kwargs["tenant_id"] = current_user.id). Only the role itself is exposed:
-    # a derived "can manage" boolean would duplicate the server-side hierarchy
+    # The caller's role in the tenant their model configuration comes from:
+    # their own for anyone holding a membership on their own id, and the tenant
+    # they joined for a member who owns none. Only the role itself is exposed: a
+    # derived "can manage" boolean would duplicate the server-side hierarchy
     # rule in the payload.
-    profile["role"] = UserTenantService.get_role(current_user.id, current_user.id)
+    config_tenant_id = TenantService.resolve_config_tenant_id(current_user.id)
+    profile["role"] = UserTenantService.get_role(current_user.id, config_tenant_id)
     return get_json_result(data=profile)
 
 

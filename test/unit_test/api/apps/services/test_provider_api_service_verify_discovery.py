@@ -68,6 +68,13 @@ def _load_service(monkeypatch, discovery):
 
     _stub(monkeypatch, "common.settings", FACTORY_LLM_INFOS=[{"name": PROVIDER, "llm": [], "url": ""}])
     _stub(monkeypatch, "api.db.db_models", DB=SimpleNamespace())
+    # `_read_tenant_id` resolves a member's model-configuration tenant through
+    # TenantService; identity stands in for a caller that owns its own tenant.
+    _stub(
+        monkeypatch,
+        "api.db.services.user_service",
+        TenantService=SimpleNamespace(resolve_config_tenant_id=lambda tenant_id: tenant_id),
+    )
     _stub(
         monkeypatch,
         "api.db.joint_services.tenant_model_service",

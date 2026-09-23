@@ -26,9 +26,28 @@ from api.db.joint_services.tenant_model_service import resolve_model_config, del
 from api.db.services.tenant_model_provider_service import TenantModelProviderService
 from api.db.services.tenant_model_instance_service import TenantModelInstanceService
 from api.db.services.tenant_model_service import TenantModelService
+from api.db.services.user_service import TenantService
 from api.utils import model_utils
 from api.utils.masking import client_supplied_secret, mask_secret, resolve_secret_on_write
 from rag.llm import ChatModel, CvModel, EmbeddingModel, ModelMeta, OcrModel, RerankModel, Seq2txtModel, TTSModel
+
+
+def _read_tenant_id(tenant_id: str) -> str:
+    """The model-configuration tenant `tenant_id` reads from.
+
+    See ``TenantService.resolve_config_tenant_id``: a member with no tenant of
+    its own reads the tenant it joined, everyone else reads its own.
+    """
+    return TenantService.resolve_config_tenant_id(tenant_id)
+
+
+def _get_provider(tenant_id: str, provider_id_or_name: str):
+    """Resolve a configured provider for the tenant the caller reads from."""
+    read_tenant_id = _read_tenant_id(tenant_id)
+    provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(read_tenant_id, provider_id_or_name)
+    if not provider_obj:
+        provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(read_tenant_id, provider_id_or_name)
+    return provider_obj
 
 
 def _to_int(v, default=500):
@@ -177,14 +196,15 @@ def list_providers(tenant_id: str, all_available: bool = False):
         return True, providers
 
     # List tenant-configured providers
-    factory_names = TenantModelProviderService.list_provider_names_by_tenant_id(tenant_id)
+    read_tenant_id = _read_tenant_id(tenant_id)
+    factory_names = TenantModelProviderService.list_provider_names_by_tenant_id(read_tenant_id)
 
     providers = []
     factory_info_mapping = {f["name"]: f for f in FACTORY_LLM_INFOS}
     for name in factory_names:
         if name not in ["Youdao", "FastEmbed", "BAAI", "Builtin", "siliconflow_intl"] and factory_info_mapping.get(name):
             factory_info = factory_info_mapping[name]
-            provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, name)
+            provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(read_tenant_id, name)
             has_instance = bool(provider_obj and TenantModelInstanceService.get_all_by_provider_id(provider_obj.id))
             model_types = sorted(set(model_type for llm in factory_info.get("llm", []) for model_type in _factory_model_types(llm))) if factory_info.get("llm", []) else []
             if name in ["MinerU", "PaddleOCR", "OpenDataLoader", "Mistral OCR"]:
@@ -716,9 +736,7 @@ def list_provider_instances(tenant_id: str, provider_id_or_name: str):
     :param provider_id_or_name: provider/factory ID or name
     :return: (success, result_or_error_message)
     """
-    provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
-    if not provider_obj:
-        provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)
+    provider_obj = _get_provider(tenant_id, provider_id_or_name)
     if not provider_obj:
         return False, f"No provider found for provider '{provider_id_or_name}'"
     provider_id = provider_obj.id
@@ -1045,9 +1063,7 @@ def show_provider_instance(tenant_id: str, provider_id_or_name: str, instance_id
     :param instance_id_or_name: instance ID or name
     :return: (success, result_or_error_message)
     """
-    provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
-    if not provider_obj:
-        provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)
+    provider_obj = _get_provider(tenant_id, provider_id_or_name)
     if not provider_obj:
         return False, f"No provider found for provider '{provider_id_or_name}'"
     provider_id = provider_obj.id
@@ -1221,9 +1237,7 @@ async def list_instance_models(tenant_id: str, provider_id_or_name: str, instanc
     :param supported_only: if True, only list supported models (from LLM dictionary)
     :return: (success, result_or_error_message)
     """
-    provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
-    if not provider_obj:
-        provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)
+    provider_obj = _get_provider(tenant_id, provider_id_or_name)
     if not provider_obj:
         return False, f"No provider found for provider '{provider_id_or_name}'"
 
