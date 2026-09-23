@@ -15,7 +15,7 @@
  */
 
 import message from '@/components/ui/message';
-import { Authorization } from '@/constants/authorization';
+import { ActiveTenantHeader, Authorization } from '@/constants/authorization';
 import i18n from '@/locales/config';
 import authorizationUtil, {
   getAuthorization,
@@ -24,6 +24,7 @@ import authorizationUtil, {
 import notification from '@/utils/notification';
 import axios from 'axios';
 import { reportApiError } from './api-error';
+import { getActiveTenantId } from './active-tenant';
 import { convertTheKeysOfTheObjectToSnake, isFormData } from './common-util';
 import { setCachedLlmList } from './llm-cache';
 import { addTenantParams } from './llm-util';
@@ -115,6 +116,14 @@ request.interceptors.request.use(
     // Skip token if explicitly requested
     if (!(newConfig as any).skipToken) {
       newConfig.headers.set(Authorization, getAuthorization());
+    }
+
+    // Tell the server which workspace this request is for. The resolver only
+    // honours a tenant the caller belongs to, so this carries a request, never
+    // a grant; an absent header falls back to the selection stored server-side.
+    const activeTenantId = getActiveTenantId();
+    if (activeTenantId) {
+      newConfig.headers.set(ActiveTenantHeader, activeTenantId);
     }
 
     return newConfig;

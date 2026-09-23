@@ -25,11 +25,19 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal/modal';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { IModalProps } from '@/interfaces/common';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import * as z from 'zod';
+import { TenantRole } from '../constants';
 
 /**
  * The invite dialog's card: the glass surface at the translucent token, a 24px
@@ -64,7 +72,7 @@ const AddingUserModal = ({
   hideModal,
   loading,
   onOk,
-}: IModalProps<string>) => {
+}: IModalProps<{ email: string; role?: string }>) => {
   const { t } = useTranslation();
 
   const formSchema = z.object({
@@ -72,6 +80,7 @@ const AddingUserModal = ({
       .string()
       .email()
       .min(1, { message: t('common.required') }),
+    role: z.string().default('normal'),
   });
 
   type FormData = z.infer<typeof formSchema>;
@@ -80,11 +89,12 @@ const AddingUserModal = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: '',
+      role: TenantRole.Normal,
     },
   });
 
   const handleOk = async (data: FormData) => {
-    return onOk?.(data.email);
+    return onOk?.({ email: data.email, role: data.role });
   };
 
   return (
@@ -117,6 +127,34 @@ const AddingUserModal = ({
                 </FormControl>
                 <FormDescription className="text-xs">
                   {t('setting.inviteTip')}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('setting.role')}</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger className="ceramic-field h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={TenantRole.Normal}>
+                      {t('setting.roleMember')}
+                    </SelectItem>
+                    <SelectItem value={TenantRole.Admin}>
+                      {t('setting.roleAdmin')}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription className="text-xs">
+                  {t('setting.inviteRoleTip')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>

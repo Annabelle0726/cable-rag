@@ -2282,8 +2282,11 @@ export default {
       updateDate: 'Date',
       role: 'State',
       invite: 'Invite member',
-      inviteTip:
-        'Only registered users can be invited. Please register the account before sending an invitation.',
+      inviteTip: 'Only registered users can be invited. Please register the account before sending an invitation.',
+      inviteRoleTip: 'The role takes effect immediately. Admins can manage members and model configuration.',
+      switchWorkspace: 'Switch',
+      currentWorkspace: 'Current workspace',
+      switchedWorkspace: 'Workspace switched',
       agree: 'Accept',
       refuse: 'Decline',
       teamMembers: 'Team members',

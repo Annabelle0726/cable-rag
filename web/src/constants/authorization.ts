@@ -15,6 +15,7 @@
  */
 
 export const Authorization = 'Authorization';
+export const ActiveTenantHeader = 'X-Tenant-Id';
 export const Token = 'token';
 export const UserInfo = 'userInfo';
 export const ThinkingLevel = 'thinkingLevel';

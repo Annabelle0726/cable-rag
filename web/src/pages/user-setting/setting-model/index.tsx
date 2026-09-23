@@ -25,7 +25,7 @@ import {
 } from '@/hooks/use-llm-request';
 import { useFetchUserInfo } from '@/hooks/use-user-setting-request';
 import { IProviderInstance } from '@/interfaces/database/llm';
-import { isModelSettingsReadOnly } from '@/utils/tenant-role';
+import { isTenantMemberReadOnly } from '@/utils/tenant-role';
 import { useQueryClient } from '@tanstack/react-query';
 import { Info, Plus } from 'lucide-react';
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -75,7 +75,7 @@ const SettingModelV2: FC = () => {
   // the whole page degrades to a viewing surface: the notice banner explains
   // why, and every write affordance below is suppressed.
   const { data: userInfo } = useFetchUserInfo();
-  const readOnly = isModelSettingsReadOnly(userInfo?.role);
+  const readOnly = isTenantMemberReadOnly(userInfo?.role);
 
   // Tracks the instance name that was just persisted by the top Save
   // button. The corresponding saved card mounts expanded so the user

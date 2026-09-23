@@ -30,17 +30,36 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useListTenantUser } from '@/hooks/use-user-setting-request';
+import {
+  useListTenantUser,
+  useFetchUserInfo,
+  useUpdateTenantUserRole,
+} from '@/hooks/use-user-setting-request';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { isTenantMemberReadOnly } from '@/utils/tenant-role';
 import { formatDate } from '@/utils/date';
 import { ArrowDown, ArrowUp, ArrowUpDown, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { TenantRole } from '../constants';
 import EmptyTableRow from './empty-table-row';
 import { useHandleDeleteUser } from './hooks';
 
 const UserTable = ({ searchUser }: { searchUser: string }) => {
   const { data, loading } = useListTenantUser();
+  const { data: userInfo } = useFetchUserInfo();
   const { deleteTenantUser } = useHandleDeleteUser();
+  // Only a workspace manager may change the roster, and the owner is never
+  // removable. Showing the control to anyone else invites a click that the
+  // server refuses with 108.
+  const readOnly = isTenantMemberReadOnly(userInfo?.role);
+  const { updateTenantUserRole } = useUpdateTenantUserRole();
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
   const { t } = useTranslation();
   const sortedData = useMemo(() => {
@@ -148,38 +167,66 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
                   <SearchHighlight text={record.email} query={searchUser} />
                 </TableCell>
                 <TableCell className="p-4">
-                  <RoleTag role={record.role} />
+                  {readOnly || record.is_owner ? (
+                    <RoleTag role={record.role} />
+                  ) : (
+                    <Select
+                      value={record.role}
+                      onValueChange={(role) =>
+                        updateTenantUserRole({ userId: record.user_id, role })
+                      }
+                    >
+                      <SelectTrigger
+                        className="h-8 w-28"
+                        data-testid={`member-role-${record.user_id}`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={TenantRole.Admin}>
+                          {t('setting.roleAdmin')}
+                        </SelectItem>
+                        <SelectItem value={TenantRole.Normal}>
+                          {t('setting.roleMember')}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </TableCell>
                 <TableCell className="p-4">
-                  <ConfirmDeleteDialog
-                    title={t('deleteModal.delMember')}
-                    onOk={async () => {
-                      await deleteTenantUser({
-                        userId: record.user_id,
-                      });
-                      return;
-                    }}
-                    content={{
-                      node: (
-                        <ConfirmDeleteDialogNode
-                          avatar={{
-                            avatar: record.avatar,
-                            name: record.nickname,
-                            isPerson: true,
-                          }}
-                          name={record.email}
-                        ></ConfirmDeleteDialogNode>
-                      ),
-                    }}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 p-0 hover:bg-state-error-5 hover:text-state-error"
+                  {readOnly ||
+                  record.is_owner ||
+                  record.user_id === userInfo?.id ? null : (
+                    <ConfirmDeleteDialog
+                      title={t('deleteModal.delMember')}
+                      onOk={async () => {
+                        await deleteTenantUser({
+                          userId: record.user_id,
+                        });
+                        return;
+                      }}
+                      content={{
+                        node: (
+                          <ConfirmDeleteDialogNode
+                            avatar={{
+                              avatar: record.avatar,
+                              name: record.nickname,
+                              isPerson: true,
+                            }}
+                            name={record.email}
+                          ></ConfirmDeleteDialogNode>
+                        ),
+                      }}
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </ConfirmDeleteDialog>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 p-0 hover:bg-state-error-5 hover:text-state-error"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </ConfirmDeleteDialog>
+                  )}
                 </TableCell>
               </TableRow>
             ))

@@ -37,8 +37,11 @@ export default {
     `${restAPIv1}/tenants/${tenantId}/users`,
   deleteTenantUser: (tenantId: string) =>
     `${restAPIv1}/tenants/${tenantId}/users`,
+  tenantUserRole: (tenantId: string, userId: string) =>
+    `${restAPIv1}/tenants/${tenantId}/users/${userId}/role`,
   listTenant: `${restAPIv1}/tenants`,
   agreeTenant: (tenantId: string) => `${restAPIv1}/tenants/${tenantId}`,
+  activeTenant: `${restAPIv1}/users/me/tenant`,
 
   // llm model
   listAllAddedModels: `${restAPIv1}/models`,

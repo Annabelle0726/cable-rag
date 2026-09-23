@@ -101,8 +101,8 @@ export const loginWithChannel = (channel: string) =>
 export const listTenantUser = (tenantId: string) =>
   request.get(api.listTenantUser(tenantId));
 
-export const addTenantUser = (tenantId: string, email: string) =>
-  post(api.addTenantUser(tenantId), { email });
+export const addTenantUser = (tenantId: string, email: string, role?: string) =>
+  post(api.addTenantUser(tenantId), { email, role });
 
 export const deleteTenantUser = ({
   tenantId,
@@ -112,8 +112,27 @@ export const deleteTenantUser = ({
   userId: string;
 }) =>
   request.delete(api.deleteTenantUser(tenantId), {
+    // camelCase reaches the API as `user_id`: the request interceptor converts
+    // body keys before they go out.
     data: { userId },
   });
+
+export const updateTenantUserRole = ({
+  tenantId,
+  userId,
+  role,
+}: {
+  tenantId: string;
+  userId: string;
+  role: string;
+}) =>
+  // `request` is umi-request: the payload must sit under `data`, or the request
+  // goes out with no body at all and the route's `validate_request("role")`
+  // answers "required argument are missing: role".
+  request.put(api.tenantUserRole(tenantId, userId), { data: { role } });
+
+export const setActiveTenant = (tenantId: string) =>
+  request.put(api.activeTenant, { data: { tenantId } });
 
 export const listTenant = () => request.get(api.listTenant);
 

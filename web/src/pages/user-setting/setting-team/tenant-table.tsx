@@ -16,6 +16,7 @@
 
 import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { SearchHighlight } from '@/components/search-highlight';
+import RoleTag from '@/components/role-tag';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -28,6 +29,7 @@ import {
 import {
   useFetchUserInfo,
   useListTenant,
+  useSetActiveTenant,
 } from '@/hooks/use-user-setting-request';
 import { formatDate } from '@/utils/date';
 import { ArrowDown, ArrowUp, ArrowUpDown, LogOut } from 'lucide-react';
@@ -36,10 +38,20 @@ import { useTranslation } from 'react-i18next';
 import { TenantRole } from '../constants';
 import EmptyTableRow from './empty-table-row';
 import { useHandleAgreeTenant, useHandleQuitUser } from './hooks';
+
+/**
+ * Every workspace the caller belongs to, with the active one flagged and a
+ * control to switch to any other.
+ *
+ * Switching is what makes the rest of the app change workspace: the server
+ * persists the selection and the request interceptor sends it as
+ * `X-Tenant-Id` from then on.
+ */
 const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
   const { t } = useTranslation();
   const { data, loading } = useListTenant();
   const { handleAgree } = useHandleAgreeTenant();
+  const { setActiveTenant, loading: switching } = useSetActiveTenant();
   const { data: user } = useFetchUserInfo();
   const { handleQuitTenantUser } = useHandleQuitUser();
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
@@ -108,13 +120,14 @@ const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
               </div>
             </TableHead>
             <TableHead className="h-12 px-4">{t('setting.email')}</TableHead>
+            <TableHead className="h-12 px-4">{t('setting.role')}</TableHead>
             <TableHead className="h-12 px-4">{t('common.action')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody className="bg-transparent">
           {loading ? (
             <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center">
+              <TableCell colSpan={5} className="h-24 text-center">
                 <div className="flex items-center justify-center">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
                 </div>
@@ -143,6 +156,9 @@ const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
                   <SearchHighlight text={tenant.email} query={searchTerm} />
                 </TableCell>
                 <TableCell className="p-4">
+                  <RoleTag role={tenant.role} />
+                </TableCell>
+                <TableCell className="p-4">
                   {tenant.role === TenantRole.Invite ? (
                     <div className="flex gap-2">
                       <Button
@@ -160,23 +176,39 @@ const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
                         {t(`setting.refuse`)}
                       </Button>
                     </div>
-                  ) : tenant.role === TenantRole.Normal &&
-                    user.id !== tenant.tenant_id ? (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 p-0"
-                      onClick={handleQuitTenantUser(user.id, tenant.tenant_id)}
-                    >
-                      {/* {t('setting.quit')} */}
-                      <LogOut />
-                    </Button>
-                  ) : null}
+                  ) : tenant.is_active ? (
+                    <span className="text-xs text-text-secondary">
+                      {t('setting.currentWorkspace')}
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="link"
+                        className="p-0 h-auto"
+                        disabled={switching}
+                        onClick={() => setActiveTenant(tenant.tenant_id)}
+                      >
+                        {t('setting.switchWorkspace')}
+                      </Button>
+                      {/* Leaving a workspace you do not own. */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 p-0"
+                        onClick={handleQuitTenantUser(
+                          user.id,
+                          tenant.tenant_id,
+                        )}
+                      >
+                        <LogOut />
+                      </Button>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
             ))
           ) : (
-            <EmptyTableRow colSpan={4} label={t('common.noData')} />
+            <EmptyTableRow colSpan={5} label={t('common.noData')} />
           )}
         </TableBody>
       </Table>

@@ -80,6 +80,8 @@ export interface ITenantUser {
   is_anonymous: string;
   is_authenticated: string;
   is_superuser: boolean;
+  /** True for the workspace owner, whose membership cannot be removed or reassigned. */
+  is_owner?: boolean;
   nickname: string;
   role: string;
   status: string;
@@ -91,6 +93,8 @@ export interface ITenant {
   avatar: string;
   delta_seconds: number;
   email: string;
+  /** True for the workspace the caller is currently operating in. */
+  is_active?: boolean;
   nickname: string;
   role: string;
   tenant_id: string;

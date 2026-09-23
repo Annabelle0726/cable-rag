@@ -18,8 +18,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   useFetchUserInfo,
+  useListTenant,
   useListTenantUser,
 } from '@/hooks/use-user-setting-request';
+import { isTenantMemberReadOnly } from '@/utils/tenant-role';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -38,10 +40,16 @@ import UserTable from './user-table';
 
 const UserSettingTeam = () => {
   const { data: userInfo } = useFetchUserInfo();
+  const { data: tenants } = useListTenant();
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchUser, setSearchUser] = useState('');
   useListTenantUser();
+  // The workspace this page is showing, not the person reading it: a member who
+  // owns no tenant of their own still works inside the one they joined.
+  const readOnly = isTenantMemberReadOnly(userInfo?.role);
+  const activeTenant = tenants.find((tenant) => tenant.is_active);
+  const workspaceName = activeTenant?.nickname ?? userInfo?.nickname;
   const {
     addingTenantModalVisible,
     hideAddingTenantModal,
@@ -59,7 +67,9 @@ const UserSettingTeam = () => {
       header={
         <header>
           <h2 className="text-2xl font-medium text-text-primary">
-            {userInfo?.nickname + ' ' + t('setting.workspace')}
+            {workspaceName
+              ? `${workspaceName} ${t('setting.workspace')}`
+              : t('setting.workspace')}
           </h2>
         </header>
       }
@@ -80,13 +90,16 @@ const UserSettingTeam = () => {
                 value={searchUser}
                 onChange={(e) => setSearchUser(e.target.value)}
               />
-              <Button
-                className="ceramic-cta h-8 shrink-0 rounded-[2px] px-3 text-xs font-medium gap-1.5 whitespace-nowrap"
-                onClick={showAddingTenantModal}
-              >
-                <UserPlus className="size-3.5 shrink-0" />
-                {t('setting.invite')}
-              </Button>
+              {/* Only a workspace manager may change the roster. */}
+              {!readOnly && (
+                <Button
+                  className="ceramic-cta h-8 shrink-0 rounded-[2px] px-3 text-xs font-medium gap-1.5 whitespace-nowrap"
+                  onClick={showAddingTenantModal}
+                >
+                  <UserPlus className="size-3.5 shrink-0" />
+                  {t('setting.invite')}
+                </Button>
+              )}
             </section>
           </CardHeader>
 

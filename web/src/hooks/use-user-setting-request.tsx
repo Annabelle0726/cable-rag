@@ -33,7 +33,10 @@ import userService, {
   deleteTenantUser,
   listTenant,
   listTenantUser,
+  setActiveTenant,
+  updateTenantUserRole,
 } from '@/services/user-service';
+import { setActiveTenantId } from '@/utils/active-tenant';
 import { useIsGoBackend } from '@/utils/backend-variant';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
@@ -51,6 +54,8 @@ export const enum UserSettingApiAction {
   ListTenantUser = 'listTenantUser',
   AddTenantUser = 'addTenantUser',
   DeleteTenantUser = 'deleteTenantUser',
+  UpdateTenantUserRole = 'updateTenantUserRole',
+  SetActiveTenant = 'setActiveTenant',
   ListTenant = 'listTenant',
   AgreeTenant = 'agreeTenant',
   SetLangfuseConfig = 'setLangfuseConfig',
@@ -92,6 +97,9 @@ export const useFetchTenantData = (): ResponseGetType<ITenantInfo> => {
     queryFn: async () => {
       const { data: res } = await userService.getTenantInfo();
       if (res.code === 0) {
+        // Mirror the server's workspace so the next request carries it as
+        // `X-Tenant-Id` instead of waiting for a round trip to resolve.
+        setActiveTenantId(res.data?.tenant_id);
         return res.data ?? {};
       }
 
@@ -362,8 +370,8 @@ export const useAddTenantUser = () => {
     mutateAsync,
   } = useMutation({
     mutationKey: [UserSettingApiAction.AddTenantUser],
-    mutationFn: async (email: string) => {
-      const { data } = await addTenantUser(tenantInfo.tenant_id, email);
+    mutationFn: async ({ email, role }: { email: string; role?: string }) => {
+      const { data } = await addTenantUser(tenantInfo.tenant_id, email, role);
       if (data.code === 0) {
         queryClient.invalidateQueries({
           queryKey: [UserSettingApiAction.ListTenantUser],
@@ -415,17 +423,14 @@ export const useDeleteTenantUser = () => {
 };
 
 export const useListTenant = () => {
-  const { data: tenantInfo } = useFetchTenantInfo();
-  const tenantId = tenantInfo.tenant_id;
   const {
     data,
     isFetching: loading,
     refetch,
   } = useQuery<ITenant[]>({
-    queryKey: [UserSettingApiAction.ListTenant, tenantId],
+    queryKey: [UserSettingApiAction.ListTenant],
     initialData: [],
     gcTime: 0,
-    enabled: !!tenantId,
     queryFn: async () => {
       const { data } = await listTenant();
 
@@ -434,6 +439,66 @@ export const useListTenant = () => {
   });
 
   return { data, loading, refetch };
+};
+
+/**
+ * Switch the active workspace.
+ *
+ * After the server accepts the switch, every cached query belongs to the
+ * previous workspace, so the whole cache is dropped rather than invalidated
+ * query by query: the model list, the roster and the datasets are all
+ * workspace-scoped.
+ */
+export const useSetActiveTenant = () => {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  const { isPending: loading, mutateAsync } = useMutation({
+    mutationKey: [UserSettingApiAction.SetActiveTenant],
+    mutationFn: async (tenantId: string) => {
+      const { data } = await setActiveTenant(tenantId);
+      if (data.code === 0) {
+        setActiveTenantId(tenantId);
+        message.success(t('setting.switchedWorkspace'));
+        await queryClient.invalidateQueries();
+      }
+      return data;
+    },
+  });
+
+  return { loading, setActiveTenant: mutateAsync };
+};
+
+export const useUpdateTenantUserRole = () => {
+  const { data: tenantInfo } = useFetchTenantInfo();
+  const queryClient = useQueryClient();
+
+  const { isPending: loading, mutateAsync } = useMutation({
+    mutationKey: [UserSettingApiAction.UpdateTenantUserRole],
+    mutationFn: async ({
+      userId,
+      role,
+      tenantId,
+    }: {
+      userId: string;
+      role: string;
+      tenantId?: string;
+    }) => {
+      const { data } = await updateTenantUserRole({
+        tenantId: tenantId ?? tenantInfo.tenant_id,
+        userId,
+        role,
+      });
+      if (data.code === 0) {
+        queryClient.invalidateQueries({
+          queryKey: [UserSettingApiAction.ListTenantUser],
+        });
+      }
+      return data;
+    },
+  });
+
+  return { loading, updateTenantUserRole: mutateAsync };
 };
 
 export const useAgreeTenant = () => {

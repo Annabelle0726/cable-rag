@@ -2,7 +2,7 @@ import { TenantRole } from '@/pages/user-setting/constants';
 import {
   canManageTenant,
   getRoleDisplayConfig,
-  isModelSettingsReadOnly,
+  isTenantMemberReadOnly,
 } from '@/utils/tenant-role';
 
 describe('canManageTenant', () => {
@@ -32,26 +32,26 @@ describe('canManageTenant', () => {
   });
 });
 
-describe('isModelSettingsReadOnly', () => {
+describe('isTenantMemberReadOnly', () => {
   it('is read-only for a member and for a merely invited user', () => {
-    expect(isModelSettingsReadOnly(TenantRole.Normal)).toBe(true);
-    expect(isModelSettingsReadOnly(TenantRole.Invite)).toBe(true);
+    expect(isTenantMemberReadOnly(TenantRole.Normal)).toBe(true);
+    expect(isTenantMemberReadOnly(TenantRole.Invite)).toBe(true);
   });
 
   it('is editable for an owner and for an admin', () => {
-    expect(isModelSettingsReadOnly(TenantRole.Owner)).toBe(false);
-    expect(isModelSettingsReadOnly(TenantRole.Admin)).toBe(false);
+    expect(isTenantMemberReadOnly(TenantRole.Owner)).toBe(false);
+    expect(isTenantMemberReadOnly(TenantRole.Admin)).toBe(false);
   });
 
   it('stays editable when the role is unknown, so an owner is never locked out', () => {
     // A server predating the role field reports nothing; presuming "member"
     // would hide every control from the very people allowed to use them.
-    expect(isModelSettingsReadOnly(undefined)).toBe(false);
-    expect(isModelSettingsReadOnly('')).toBe(false);
+    expect(isTenantMemberReadOnly(undefined)).toBe(false);
+    expect(isTenantMemberReadOnly('')).toBe(false);
   });
 
   it('is read-only for an unrecognised role string', () => {
-    expect(isModelSettingsReadOnly('something-else')).toBe(true);
+    expect(isTenantMemberReadOnly('something-else')).toBe(true);
   });
 });
 
