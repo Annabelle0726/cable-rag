@@ -27,13 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Routes } from '@/routes';
 import { TFunction } from 'i18next';
-import {
-  LucideBox,
-  LucideLogOut,
-  LucideServer,
-  LucideUser,
-  LucideUsers,
-} from 'lucide-react';
+import { LucideBox, LucideLogOut, LucideUser, LucideUsers } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -46,11 +40,6 @@ const menuItems = (t: TFunction) => [
     label: t('setting.model'),
     key: Routes.Model,
     'data-testid': 'settings-nav-model-providers',
-  },
-  {
-    icon: <LucideServer className="size-[1em]" />,
-    label: t('setting.dataSources'),
-    key: Routes.DataSource,
   },
   {
     icon: <LucideUsers className="size-[1em]" />,
