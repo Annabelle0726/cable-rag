@@ -2,14 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
- * 国网 ECP / 工业级后台设计令牌。
- *
- * 变量名与 class 名全部沿用历史命名（组件仍然引用它们），只重写取值：
- * 主色为国网绿 #007A53，辅色为经典橙 #E6A23C，背景为政企标准灰 #F0F2F5，
- * 区域划分统一使用 1px 实线边框 #DCDFE6。所有悬浮阴影变量归零、所有渐变变量
- * 退化为纯色，圆角上限 2px。
- */
 @layer base {
   :root {
     --background: 0 0% 100%;

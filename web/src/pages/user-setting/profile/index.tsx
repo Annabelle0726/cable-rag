@@ -17,6 +17,7 @@
 // src/components/ProfilePage.tsx
 import { AvatarUpload } from '@/components/avatar-upload';
 import PasswordInput from '@/components/originui/password-input';
+import RoleTag from '@/components/role-tag';
 import { SelectWithSearch } from '@/components/originui/select-with-search';
 import { Button } from '@/components/ui/button';
 import {
@@ -246,6 +247,16 @@ const ProfilePage: FC = () => {
             <span className="text-text-secondary text-xs">
               {t('emailDescription')}
             </span>
+          </div>
+        </div>
+
+        {/* System role (read-only) */}
+        <div className="flex items-center gap-4">
+          <label className="w-[88px] text-sm font-medium">
+            {t('setting.roleLabel')}
+          </label>
+          <div className={cn('flex-1', profileFieldClass)}>
+            <RoleTag role={profile.role} />
           </div>
         </div>
 

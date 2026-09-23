@@ -19,8 +19,8 @@ import {
   ConfirmDeleteDialogNode,
 } from '@/components/confirm-delete-dialog';
 import { CardIdentityIcon } from '@/components/card-identity-icon';
+import RoleTag from '@/components/role-tag';
 import { SearchHighlight } from '@/components/search-highlight';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -32,22 +32,11 @@ import {
 } from '@/components/ui/table';
 import { useListTenantUser } from '@/hooks/use-user-setting-request';
 import { formatDate } from '@/utils/date';
-import { upperFirst } from 'lodash';
 import { ArrowDown, ArrowUp, ArrowUpDown, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { TenantRole } from '../constants';
 import EmptyTableRow from './empty-table-row';
 import { useHandleDeleteUser } from './hooks';
-
-const ColorMap: Record<string, string> = {
-  [TenantRole.Normal]:
-    'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-  [TenantRole.Invite]:
-    'bg-accent-primary-5 text-accent-primary hover:bg-accent-primary/10 rounded-sm',
-  [TenantRole.Owner]:
-    'bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-800',
-};
 
 const UserTable = ({ searchUser }: { searchUser: string }) => {
   const { data, loading } = useListTenantUser();
@@ -159,16 +148,7 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
                   <SearchHighlight text={record.email} query={searchUser} />
                 </TableCell>
                 <TableCell className="p-4">
-                  {record.role === TenantRole.Normal && (
-                    <Badge className={ColorMap[record.role]}>
-                      {upperFirst('Member')}
-                    </Badge>
-                  )}
-                  {record.role !== TenantRole.Normal && (
-                    <Badge className={ColorMap[record.role]}>
-                      {upperFirst(record.role)}
-                    </Badge>
-                  )}
+                  <RoleTag role={record.role} />
                 </TableCell>
                 <TableCell className="p-4">
                   <ConfirmDeleteDialog

@@ -32,6 +32,8 @@ interface ProfileData {
   avatar: string;
   email: string;
   confirmPasswd?: string;
+  /** Tenant role, display-only; absent on servers predating the field. */
+  role?: string;
 }
 
 export const EditType = {
@@ -82,6 +84,9 @@ export const useProfile = () => {
       avatar: userInfo.avatar || '',
       email: userInfo.email,
       currPasswd: userInfo.password,
+      // Read-only: the tenant role is granted by an administrator, not edited
+      // from this page.
+      role: userInfo.role,
     };
     setProfile(profile);
   }, [userInfo, setProfile]);

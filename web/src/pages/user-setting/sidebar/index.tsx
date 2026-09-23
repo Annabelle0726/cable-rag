@@ -36,6 +36,8 @@ import {
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import RoleTag from '@/components/role-tag';
 import { useHandleMenuClick } from './hooks';
 
 const menuItems = (t: TFunction) => [
@@ -93,9 +95,17 @@ export function SideBar() {
             data-testid="account-identity"
           />
 
-          <p className="hidden md:block text-sm text-text-primary truncate">
-            {userInfo?.email}
-          </p>
+          <div className="hidden min-w-0 flex-col items-start gap-1 md:flex">
+            <p className="text-sm text-text-primary truncate">
+              {userInfo?.email}
+            </p>
+            {/* The rail is narrow, so the role sits under the address rather
+                than beside it; the flex/gap wrapper keeps it aligned with the
+                email column. */}
+            <div className="flex items-center gap-2">
+              <RoleTag role={userInfo?.role} />
+            </div>
+          </div>
         </h1>
       </header>
 
