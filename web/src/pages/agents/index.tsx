@@ -19,7 +19,7 @@ import { useDeleteCompilationTemplateGroup } from '@/hooks/use-compilation-templ
 import { Routes } from '@/routes';
 import { pick } from 'lodash';
 import { Clipboard, ClipboardPlus, FileInput, Plus } from 'lucide-react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 import { AgentCard } from './agent-card';
@@ -81,6 +81,19 @@ export default function Agents() {
 
   const filters = useSelectFilters();
 
+  // The three ways to create an agent live in one menu, so the toolbar button and
+  // the empty state's create tile open that same menu instead of each offering
+  // their own copy of the options.
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
+
+  const handleOpenCreateMenu = useCallback(() => {
+    setCreateMenuOpen(true);
+  }, []);
+
+  const handleCreateMenuOpenChange = useCallback((open: boolean) => {
+    setCreateMenuOpen(open);
+  }, []);
+
   useEffect(() => {
     checkValue(filters);
   }, [filters, checkValue]);
@@ -141,7 +154,10 @@ export default function Agents() {
             onChange={handleFilterSubmit}
             value={filterValue}
           >
-            <DropdownMenu>
+            <DropdownMenu
+              open={createMenuOpen}
+              onOpenChange={handleCreateMenuOpenChange}
+            >
               <DropdownMenuTrigger data-testid="create-agent" asChild>
                 {/* Primary action: the same 32px ceramic CTA every other list
                     toolbar carries, label included — an icon-only one beside
@@ -214,54 +230,21 @@ export default function Agents() {
               showIcon
               isSearch
               type={EmptyCardType.Agent}
-              onClick={() => showCreatingModal()}
+              testId="agents-empty-create"
             />
           </CardContainer>
         ) : listLoading ? null : (
+          // The standard create tile every other list page ends on: the agent
+          // icon, a plus and the prompt in a card-sized slot. It opens the menu
+          // the toolbar button opens — the same three options, no second list of
+          // them inside the tile.
           <CardContainer className="page-gutter flex-1 overflow-auto">
             <EmptyAppCard
               showIcon
-              className="!cursor-default"
               type={EmptyCardType.Agent}
-              tabIndex={-1}
-              // onClick={() => showCreatingModal()}
-            >
-              <ul className="flex flex-col gap-y-5 text-text-secondary text-sm pt-5">
-                <li data-testid="agents-empty-create">
-                  <Button
-                    variant="static"
-                    size="auto"
-                    onClick={showCreatingModal}
-                  >
-                    <Clipboard className="size-[1em]" />
-                    {t('flow.createFromBlank')}
-                  </Button>
-                </li>
-
-                <li>
-                  <Button
-                    asLink
-                    variant="static"
-                    size="auto"
-                    to={Routes.AgentTemplates}
-                  >
-                    <ClipboardPlus className="size-[1em]" />
-                    {t('flow.createFromTemplate')}
-                  </Button>
-                </li>
-
-                <li>
-                  <Button
-                    variant="static"
-                    size="auto"
-                    onClick={handleImportJson}
-                  >
-                    <FileInput className="size-[1em]" />
-                    {t('flow.importJsonFile')}
-                  </Button>
-                </li>
-              </ul>
-            </EmptyAppCard>
+              onClick={handleOpenCreateMenu}
+              testId="agents-empty-create"
+            />
           </CardContainer>
         )}
       </article>
