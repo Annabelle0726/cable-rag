@@ -1,0 +1,30 @@
+# Cumulative overlay for the permission work orders (P1-02 / P1-03 / P1-05),
+# which also carries P4-01 so the resulting image is a single coherent unit.
+#
+# BASE is pinned to a dated tag, never to `latest`: this build is tagged
+# `latest`, and a self-referencing FROM would be ambiguous about which image
+# the layers stack onto. The pinned tag is also the rollback anchor.
+#
+# This is a VERIFICATION artifact, not a release path. It stacks source files
+# onto an already-built image instead of rebuilding from the Dockerfile, which
+# would need infiniflow/ragflow_deps (absent locally) plus the full uv/npm
+# toolchain. Before release, the same files must land through a normal
+# `docker compose build`.
+#
+# Build: docker build -f Dockerfile.p1-permissions -t my-wenruorag:latest .
+ARG BASE=my-wenruorag:2026-09-22-pre-p4-01
+FROM ${BASE}
+
+# ---- P4-01: provider credential masking -------------------------------------
+COPY api/utils/masking.py                          /ragflow/api/utils/masking.py
+COPY api/apps/services/provider_api_service.py     /ragflow/api/apps/services/provider_api_service.py
+
+# ---- P1-02: role hierarchy + can_manage_tenant ------------------------------
+COPY api/db/__init__.py                            /ragflow/api/db/__init__.py
+COPY api/db/services/user_service.py               /ragflow/api/db/services/user_service.py
+
+# ---- P1-03: tenant-admin route guard ----------------------------------------
+COPY api/apps/__init__.py                          /ragflow/api/apps/__init__.py
+
+# ---- P1-05: current-tenant role on /users/me --------------------------------
+COPY api/apps/restful_apis/user_api.py             /ragflow/api/apps/restful_apis/user_api.py
