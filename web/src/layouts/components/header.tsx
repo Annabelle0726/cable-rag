@@ -38,7 +38,7 @@ export function Header({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { pathname } = useLocation();
   const changeLanguage = useChangeLanguage();
 
@@ -97,9 +97,6 @@ export function Header({
               data-testid="brand-entry"
             >
               <BrandLockup />
-              <span className="hidden text-[15px] font-semibold tracking-tight text-gov-header-fg md:inline">
-                {t('header.brandShort')}
-              </span>
             </Link>
           </div>
         </div>
