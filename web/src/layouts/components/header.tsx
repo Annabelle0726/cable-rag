@@ -1,3 +1,19 @@
+/*
+ *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 import { CardIdentityIcon } from '@/components/card-identity-icon';
 import { Button } from '@/components/ui/button';
 import { useChangeLanguage } from '@/hooks/logic-hooks';
@@ -38,7 +54,7 @@ export function Header({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { pathname } = useLocation();
   const changeLanguage = useChangeLanguage();
 
@@ -52,10 +68,10 @@ export function Header({
     [tenantData],
   );
 
-  // 获取当前正在使用的语言（优先以 i18n 实例为准， fallback 到用户信息中的 language）
+  // 获取当前正在使用的语言
   const currentLangCode = i18n.resolvedLanguage || language || 'zh';
 
-  // 计算目标语言：如果当前是中文，点击切换到英文 ('en')；否则切换到中文 ('zh')
+  // 计算目标语言
   const nextLangCode = currentLangCode.startsWith('zh') ? 'en' : 'zh';
   const nextLangObj = supportedLanguages.find((x) => x.code === nextLangCode);
 
@@ -93,10 +109,13 @@ export function Header({
             <Link
               to={Routes.Root}
               aria-current={pathname === Routes.Root ? 'page' : undefined}
-              className="brand-entry flex shrink-0 items-center gap-2 px-2 py-1"
+              className="brand-entry flex shrink-0 items-center gap-2 px-1 py-1 hover:bg-transparent"
               data-testid="brand-entry"
             >
               <BrandLockup />
+              <span className="text-[15px] font-semibold tracking-tight text-white">
+                {t('header.brandShort')}
+              </span>
             </Link>
           </div>
         </div>
@@ -153,7 +172,7 @@ export function Header({
         </div>
       </header>
 
-      {/* 隐藏的测量节点（用于响应式计算），也同步更新为单按钮样式 */}
+      {/* 隐藏的测量节点（用于响应式计算） */}
       <div
         className="pointer-events-none invisible fixed -left-[9999px] top-0"
         aria-hidden
