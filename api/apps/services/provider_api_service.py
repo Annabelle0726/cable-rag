@@ -35,10 +35,10 @@ from rag.llm import ChatModel, CvModel, EmbeddingModel, ModelMeta, OcrModel, Rer
 def _read_tenant_id(tenant_id: str) -> str:
     """The model-configuration tenant `tenant_id` reads from.
 
-    See ``TenantService.resolve_config_tenant_id``: a member with no tenant of
+    See ``TenantService.resolve_active_tenant_id``: a member with no tenant of
     its own reads the tenant it joined, everyone else reads its own.
     """
-    return TenantService.resolve_config_tenant_id(tenant_id)
+    return TenantService.resolve_active_tenant_id(tenant_id)
 
 
 def _get_provider(tenant_id: str, provider_id_or_name: str):

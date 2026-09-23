@@ -18,7 +18,7 @@
 The mutating provider routes are admin-only on the caller's own tenant, so a
 member who owns no tenant has nothing of its own to read either. These tests pin
 the read side of that pairing: the provider-configuration readers resolve the
-tenant through ``TenantService.resolve_config_tenant_id`` instead of using the
+tenant through ``TenantService.resolve_active_tenant_id`` instead of using the
 caller's id directly, which is what lets a member see the shared configuration
 read-only.
 """
@@ -58,7 +58,7 @@ def _load_service(monkeypatch, *, resolution, instances):
         instance_lookups=[],
     )
 
-    def _resolve_config_tenant_id(tenant_id):
+    def _resolve_active_tenant_id(tenant_id):
         recorded.resolve_calls.append(tenant_id)
         return resolution.get(tenant_id, tenant_id)
 
@@ -67,7 +67,7 @@ def _load_service(monkeypatch, *, resolution, instances):
     _stub(
         monkeypatch,
         "api.db.services.user_service",
-        TenantService=SimpleNamespace(resolve_config_tenant_id=_resolve_config_tenant_id),
+        TenantService=SimpleNamespace(resolve_active_tenant_id=_resolve_active_tenant_id),
     )
     _stub(
         monkeypatch,

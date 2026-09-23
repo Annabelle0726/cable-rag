@@ -73,7 +73,7 @@ def _load_service(monkeypatch, discovery):
     _stub(
         monkeypatch,
         "api.db.services.user_service",
-        TenantService=SimpleNamespace(resolve_config_tenant_id=lambda tenant_id: tenant_id),
+        TenantService=SimpleNamespace(resolve_active_tenant_id=lambda tenant_id: tenant_id),
     )
     _stub(
         monkeypatch,

@@ -1122,6 +1122,10 @@ class User(DataBaseModel, AuthUser):
     login_channel = CharField(null=True, help_text="from which user login", index=True)
     status = CharField(max_length=1, null=True, help_text="is it validate(0: wasted, 1: validate)", default="1", index=True)
     is_superuser = BooleanField(null=True, help_text="is root", default=False, index=True)
+    # The workspace this user last worked in. Only a selection: it grants nothing
+    # by itself, the membership row in `user_tenant` does. See
+    # `TenantService.resolve_active_tenant_id`.
+    current_tenant_id = CharField(max_length=32, null=True, help_text="active tenant (workspace) id", index=True)
 
     def __str__(self):
         return self.email
@@ -2471,6 +2475,10 @@ def migrate_db():
     alter_db_add_column(migrator, "file_commit_item", "slug_kwd", CharField(max_length=512, null=True, index=True))
     alter_db_add_column(migrator, "file_commit_item", "page_type_kwd", CharField(max_length=32, null=True, index=True))
     alter_db_add_column(migrator, "conversation", "is_pinned", BooleanField(null=False, help_text="pin to the top of the conversation list", default=False, index=True))
+    # The workspace a request operates in. NULL means "not chosen yet": the
+    # resolver then falls back to the first tenant the user joined, so no
+    # existing row needs a backfill and no owner is affected.
+    alter_db_add_column(migrator, "user", "current_tenant_id", CharField(max_length=32, null=True, help_text="active tenant (workspace) id", index=True))
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_secret_key")
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_public_key")
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_host")

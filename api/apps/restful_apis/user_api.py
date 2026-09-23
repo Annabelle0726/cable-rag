@@ -36,6 +36,7 @@ from common.constants import RetCode
 from common.connection_utils import construct_response
 from api.utils.api_utils import (
     get_data_error_result,
+    get_error_permission_result,
     get_json_result,
     get_request_json,
     server_error_response,
@@ -44,7 +45,7 @@ from api.utils.api_utils import (
 from api.utils.nickname_validation import validate_nickname
 from api.utils.crypt import decrypt
 from rag.utils.redis_conn import REDIS_CONN
-from api.apps import login_required, current_user, login_user, logout_user
+from api.apps import login_required, current_user, login_user, logout_user, requested_tenant_id
 from api.utils.web_utils import (
     send_email_html,
     OTP_LENGTH,
@@ -414,7 +415,7 @@ async def user_profile():
     # they joined for a member who owns none. Only the role itself is exposed: a
     # derived "can manage" boolean would duplicate the server-side hierarchy
     # rule in the payload.
-    config_tenant_id = TenantService.resolve_config_tenant_id(current_user.id)
+    config_tenant_id = TenantService.resolve_active_tenant_id(current_user.id)
     profile["role"] = UserTenantService.get_role(current_user.id, config_tenant_id)
     return get_json_result(data=profile)
 
@@ -604,12 +605,46 @@ async def tenant_info():
             embd_id:
               type: string
               description: Embedding model ID.
+
+    The response describes the caller's ACTIVE workspace: the one they selected,
+    or the tenant they joined when they own none. It is not restricted to a
+    tenant the caller owns - a member has no workspace of their own, and
+    `get_info_by` (which answers "which tenant do I own") answers nothing for
+    them, which is what used to surface as `102 Tenant not found!`.
     """
     try:
-        tenants = TenantService.get_info_by(current_user.id)
-        if not tenants:
+        active_tenant_id = TenantService.resolve_active_tenant_id(current_user.id, requested_tenant_id())
+        found, tenant = TenantService.get_by_id(active_tenant_id)
+        if not found:
             return get_data_error_result(message="Tenant not found!")
-        return get_json_result(data=tenants[0])
+        info = tenant.to_dict()
+        # The frontend keys everything off `tenant_id`; the model's primary key
+        # is `id`, and `get_info_by` exposed it under this alias.
+        info["tenant_id"] = tenant.id
+        info["role"] = UserTenantService.get_role(current_user.id, active_tenant_id)
+        return get_json_result(data=info)
+    except Exception as e:
+        return server_error_response(e)
+
+
+@manager.route("/users/me/tenant", methods=["PUT"])  # noqa: F821
+@login_required
+@validate_request("tenant_id")
+async def set_active_tenant():
+    """Switch the caller's active workspace.
+
+    The target can be any tenant the caller belongs to, and the choice is
+    persisted so subsequent requests without an ``X-Tenant-Id`` header resolve to
+    the same workspace. A tenant the caller does not belong to is refused here
+    rather than silently ignored, so the switcher can report a real error.
+    """
+    req = await get_request_json()
+    tenant_id = req["tenant_id"]
+    try:
+        TenantService.set_active_tenant_id(current_user.id, tenant_id)
+        return get_json_result(data={"tenant_id": tenant_id})
+    except ValueError as e:
+        return get_error_permission_result(str(e))
     except Exception as e:
         return server_error_response(e)
 

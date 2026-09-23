@@ -280,6 +280,21 @@ def login_required(func: Callable[P, Awaitable[T]] = None, auth_types=None) -> C
     return decorator(func)
 
 
+def requested_tenant_id() -> str | None:
+    """The workspace the client asked for via ``X-Tenant-Id``, if any.
+
+    This carries a request, never a grant: ``TenantService.resolve_active_tenant_id``
+    only honours it when the caller holds a membership on that tenant.
+    """
+    try:
+        value = request.headers.get("X-Tenant-Id")
+    except RuntimeError:
+        # No request context (worker/CLI call path).
+        return None
+    value = (value or "").strip()
+    return value or None
+
+
 def require_tenant_admin(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
     """Restrict a route to a user who may administer the target tenant.
 
@@ -292,23 +307,22 @@ def require_tenant_admin(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitab
     role logic would put every route at risk. Role checks are applied per route
     instead.
 
-    The tenant under test comes from ``kwargs["tenant_id"]``, falling back to
-    the caller's own id. On routes that use ``add_tenant_id_to_kwargs`` the
-    injected value is already ``current_user.id``, so keep that decorator
-    OUTSIDE this one (listed above it) — the check then reads a value that is
-    present rather than relying on the fallback.
+    The tenant under test comes from ``kwargs["tenant_id"]``, which
+    ``add_tenant_id_to_kwargs`` fills with the caller's ACTIVE workspace. When it
+    is absent the active workspace is resolved directly, never assumed to be the
+    caller's own id.
     """
 
     @wraps(func)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        from api.db.services.user_service import UserTenantService
+        from api.db.services.user_service import TenantService, UserTenantService
         from api.utils.api_utils import get_error_permission_result
 
         user = current_user
         if not user:
             raise QuartAuthUnauthorized()
 
-        tenant_id = kwargs.get("tenant_id") or user.id
+        tenant_id = kwargs.get("tenant_id") or TenantService.resolve_active_tenant_id(user.id, requested_tenant_id())
         if not UserTenantService.can_manage_tenant(user.id, tenant_id):
             return get_error_permission_result("admin role required for this tenant")
 

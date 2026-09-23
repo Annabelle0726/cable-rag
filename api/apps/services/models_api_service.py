@@ -199,14 +199,14 @@ def list_tenant_default_models(tenant_id: str):
     reads the composite model ID string from the Tenant record and resolves
     it into provider/instance/name components.
 
-    The read is resolved through ``TenantService.resolve_config_tenant_id``, so
+    The read is resolved through ``TenantService.resolve_active_tenant_id``, so
     a member with no tenant of its own sees the defaults of the tenant it
     joined instead of an empty list.
 
     :param tenant_id: tenant ID
     :return: (success, result_or_error_message)
     """
-    tenant_id = TenantService.resolve_config_tenant_id(tenant_id)
+    tenant_id = TenantService.resolve_active_tenant_id(tenant_id)
     e, tenant = TenantService.get_by_id(tenant_id)
     if not e:
         return False, "Tenant not found"
@@ -300,14 +300,14 @@ def list_tenant_added_models(tenant_id: str, model_type_filter: str = None):
     List all added models for a tenant.
 
     Like the default-model listing, the read is resolved through
-    ``TenantService.resolve_config_tenant_id`` so a member with no tenant of its
+    ``TenantService.resolve_active_tenant_id`` so a member with no tenant of its
     own sees the models of the tenant it joined.
 
     :param tenant_id: tenant ID
     :param model_type_filter: model type filter (chat, embedding, rerank, asr, vision, tts, ocr)
     :return: (success, result_or_error_message)
     """
-    tenant_id = TenantService.resolve_config_tenant_id(tenant_id)
+    tenant_id = TenantService.resolve_active_tenant_id(tenant_id)
     e, tenant = TenantService.get_by_id(tenant_id)
     if not e:
         return False, "Tenant not found"

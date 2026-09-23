@@ -223,23 +223,52 @@ class TenantService(CommonService):
 
     @classmethod
     @DB.connection_context()
-    def resolve_config_tenant_id(cls, user_id):
-        """Tenant whose model configuration `user_id` reads.
+    def resolve_active_tenant_id(cls, user_id, requested_tenant_id=None):
+        """The workspace `user_id` is operating in.
 
-        A member that owns no tenant of its own owns no model configuration
-        either: the credentials live in the tenant it joined, which that
-        tenant's owner administers. Such a caller therefore reads the shared
-        tenant, while a caller with any membership on its own id keeps reading
-        its own tenant - so an owner and an admin are unaffected.
+        Resolution order:
 
-        This resolves READS only. Writes keep targeting the caller's own tenant
-        through ``add_tenant_id_to_kwargs``, which is what
-        ``@require_tenant_admin`` refuses for a member.
+        1. `requested_tenant_id` (the client's ``X-Tenant-Id``), when the caller
+           actually holds a membership on it — a request must never be able to
+           name a workspace the caller does not belong to;
+        2. the selection stored on the user row (``user.current_tenant_id``);
+        3. the first tenant the caller joined as NORMAL or ADMIN;
+        4. the caller's own id, which is their workspace only when they hold a
+           membership on it (the convention for an owner, see
+           `get_info_by`).
+
+        This replaces the previous assumption that ``user.id`` IS the tenant id.
+        A member with no tenant of their own therefore resolves to the shared
+        tenant it joined, while an owner and an admin keep resolving to their
+        own — so no existing caller changes behaviour.
         """
+        if requested_tenant_id:
+            membership = UserTenantService.get_role(user_id, requested_tenant_id)
+            if membership:
+                return requested_tenant_id
+
+        _, user = UserService.get_by_id(user_id)
+        if user and user.current_tenant_id and UserTenantService.get_role(user_id, user.current_tenant_id):
+            return user.current_tenant_id
+
         if UserTenantService.get_role(user_id, user_id):
             return user_id
+
         joined = cls.get_joined_tenants_by_user_id(user_id)
         return joined[0]["tenant_id"] if joined else user_id
+
+    @classmethod
+    @DB.connection_context()
+    def set_active_tenant_id(cls, user_id, tenant_id):
+        """Persist the caller's workspace selection.
+
+        Raises ``ValueError`` when the caller holds no membership on the tenant,
+        so a client cannot switch itself into a workspace it does not belong to.
+        """
+        if not UserTenantService.get_role(user_id, tenant_id):
+            raise ValueError(f"user {user_id} is not a member of tenant {tenant_id}")
+        UserService.update_by_id(user_id, {"current_tenant_id": tenant_id})
+        return tenant_id
 
     @classmethod
     @DB.connection_context()
@@ -300,6 +329,11 @@ class UserTenantService(CommonService):
     @classmethod
     @DB.connection_context()
     def get_by_tenant_id(cls, tenant_id):
+        """The workspace roster, owner included.
+
+        The owner is a member like any other and the team page must show them,
+        so unlike the pre-existing roster this does not filter OWNER out.
+        """
         fields = [
             cls.model.id,
             cls.model.user_id,
@@ -315,12 +349,7 @@ class UserTenantService(CommonService):
             User.update_date,
             User.is_superuser,
         ]
-        return list(
-            cls.model.select(*fields)
-            .join(User, on=((cls.model.user_id == User.id) & (cls.model.status == StatusEnum.VALID.value) & (cls.model.role != UserTenantRole.OWNER)))
-            .where(cls.model.tenant_id == tenant_id)
-            .dicts()
-        )
+        return list(cls.model.select(*fields).join(User, on=((cls.model.user_id == User.id) & (cls.model.status == StatusEnum.VALID.value))).where(cls.model.tenant_id == tenant_id).dicts())
 
     @classmethod
     @DB.connection_context()
