@@ -17,7 +17,7 @@ import logging
 
 from quart import request
 
-from api.apps import login_required
+from api.apps import login_required, require_tenant_admin
 from api.apps.services import models_api_service
 from api.db.services.user_service import TenantService
 from api.utils.api_utils import (
@@ -162,6 +162,7 @@ def get_default_models(tenant_id: str):
 @manager.route("/models/default", methods=["PATCH"])  # noqa: F821
 @login_required
 @add_tenant_id_to_kwargs
+@require_tenant_admin
 async def set_default_models(tenant_id: str):
     """
     Set or clear a tenant default model.

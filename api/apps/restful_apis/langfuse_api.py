@@ -15,7 +15,7 @@
 #
 
 
-from api.apps import current_user, login_required
+from api.apps import current_user, login_required, require_tenant_admin
 from langfuse import Langfuse
 
 from api.db.db_models import DB
@@ -26,6 +26,7 @@ from api.utils.api_utils import get_error_data_result, get_json_result, get_requ
 @manager.route("/langfuse/api-key", methods=["POST", "PUT"])  # noqa: F821
 @login_required
 @validate_request("secret_key", "public_key", "host")
+@require_tenant_admin
 async def set_api_key():
     req = await get_request_json()
     secret_key = req.get("secret_key", "")
@@ -61,6 +62,7 @@ async def set_api_key():
 @manager.route("/langfuse/api-key", methods=["GET"])  # noqa: F821
 @login_required
 @validate_request()
+@require_tenant_admin
 def get_api_key():
     current_user_id = current_user.id
     langfuse_entry = TenantLangfuseService.filter_by_tenant_with_info(tenant_id=current_user_id)
@@ -85,6 +87,7 @@ def get_api_key():
 @manager.route("/langfuse/api-key", methods=["DELETE"])  # noqa: F821
 @login_required
 @validate_request()
+@require_tenant_admin
 def delete_api_key():
     current_user_id = current_user.id
     langfuse_entry = TenantLangfuseService.filter_by_tenant(tenant_id=current_user_id)
