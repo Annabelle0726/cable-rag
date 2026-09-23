@@ -20,6 +20,7 @@ import { IToken } from '@/interfaces/database/chat';
 import { ITenantInfo } from '@/interfaces/database/dataset';
 import { ILangfuseConfig } from '@/interfaces/database/system';
 import {
+  IDepartment,
   ITenant,
   ITenantUser,
   IUserInfo,
@@ -30,10 +31,15 @@ import kbService from '@/services/knowledge-service';
 import userService, {
   addTenantUser,
   agreeTenant,
+  createDepartment,
+  deleteDepartment,
   deleteTenantUser,
+  listDepartments,
   listTenant,
   listTenantUser,
+  renameDepartment,
   setActiveTenant,
+  updateTenantUserProfile,
   updateTenantUserRole,
 } from '@/services/user-service';
 import { setActiveTenantId } from '@/utils/active-tenant';
@@ -55,6 +61,8 @@ export const enum UserSettingApiAction {
   AddTenantUser = 'addTenantUser',
   DeleteTenantUser = 'deleteTenantUser',
   UpdateTenantUserRole = 'updateTenantUserRole',
+  UpdateTenantUserProfile = 'updateTenantUserProfile',
+  ListDepartments = 'listDepartments',
   SetActiveTenant = 'setActiveTenant',
   ListTenant = 'listTenant',
   AgreeTenant = 'agreeTenant',
@@ -467,6 +475,129 @@ export const useSetActiveTenant = () => {
   });
 
   return { loading, setActiveTenant: mutateAsync };
+};
+
+/**
+ * The workspace's departments, flat.
+ *
+ * `parent_id` is in the payload so a tree can be rendered later; nothing here
+ * assumes one.
+ */
+export const useListDepartments = () => {
+  const { data: tenantInfo } = useFetchTenantInfo();
+  const tenantId = tenantInfo.tenant_id;
+  const {
+    data,
+    isFetching: loading,
+    refetch,
+  } = useQuery<IDepartment[]>({
+    queryKey: [UserSettingApiAction.ListDepartments, tenantId],
+    initialData: [],
+    gcTime: 0,
+    enabled: !!tenantId,
+    queryFn: async () => {
+      const { data } = await listDepartments(tenantId);
+      return data?.data ?? [];
+    },
+  });
+
+  return { data, loading, refetch };
+};
+
+/** Create, rename and delete departments. Manager-only on the server. */
+export const useDepartmentMutations = () => {
+  const { data: tenantInfo } = useFetchTenantInfo();
+  const queryClient = useQueryClient();
+  const invalidate = () =>
+    queryClient.invalidateQueries({
+      queryKey: [UserSettingApiAction.ListDepartments],
+    });
+
+  const { isPending: creating, mutateAsync: create } = useMutation({
+    mutationKey: [UserSettingApiAction.ListDepartments, 'create'],
+    mutationFn: async (name: string) => {
+      const { data } = await createDepartment(tenantInfo.tenant_id, name);
+      if (data.code === 0) {
+        await invalidate();
+      }
+      return data;
+    },
+  });
+
+  const { isPending: renaming, mutateAsync: rename } = useMutation({
+    mutationKey: [UserSettingApiAction.ListDepartments, 'rename'],
+    mutationFn: async ({
+      departmentId,
+      name,
+    }: {
+      departmentId: string;
+      name: string;
+    }) => {
+      const { data } = await renameDepartment(
+        tenantInfo.tenant_id,
+        departmentId,
+        name,
+      );
+      if (data.code === 0) {
+        await invalidate();
+      }
+      return data;
+    },
+  });
+
+  const { isPending: removing, mutateAsync: remove } = useMutation({
+    mutationKey: [UserSettingApiAction.ListDepartments, 'delete'],
+    mutationFn: async (departmentId: string) => {
+      const { data } = await deleteDepartment(
+        tenantInfo.tenant_id,
+        departmentId,
+      );
+      if (data.code === 0) {
+        await invalidate();
+        // The roster rows carry the department name, so they are stale now.
+        await queryClient.invalidateQueries({
+          queryKey: [UserSettingApiAction.ListTenantUser],
+        });
+      }
+      return data;
+    },
+  });
+
+  return { creating, renaming, removing, create, rename, remove };
+};
+
+/** Move a member between departments, or retitle them. */
+export const useUpdateTenantUserProfile = () => {
+  const { data: tenantInfo } = useFetchTenantInfo();
+  const queryClient = useQueryClient();
+
+  const { isPending: loading, mutateAsync } = useMutation({
+    mutationKey: [UserSettingApiAction.UpdateTenantUserProfile],
+    mutationFn: async ({
+      userId,
+      departmentId,
+      title,
+    }: {
+      userId: string;
+      departmentId?: string | null;
+      title?: string | null;
+    }) => {
+      const { data } = await updateTenantUserProfile({
+        tenantId: tenantInfo.tenant_id,
+        userId,
+        departmentId,
+        title,
+      });
+      if (data.code === 0) {
+        queryClient.invalidateQueries({
+          queryKey: [UserSettingApiAction.ListTenantUser],
+        });
+      }
+      return data;
+    },
+  });
+
+  return { loading, updateTenantUserProfile: mutateAsync };
 };
 
 export const useUpdateTenantUserRole = () => {

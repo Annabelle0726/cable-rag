@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { IModalProps } from '@/interfaces/common';
+import { useListDepartments } from '@/hooks/use-user-setting-request';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -72,8 +73,14 @@ const AddingUserModal = ({
   hideModal,
   loading,
   onOk,
-}: IModalProps<{ email: string; role?: string }>) => {
+}: IModalProps<{
+  email: string;
+  role?: string;
+  departmentId?: string | null;
+  title?: string | null;
+}>) => {
   const { t } = useTranslation();
+  const { data: departments } = useListDepartments();
 
   const formSchema = z.object({
     email: z
@@ -81,6 +88,9 @@ const AddingUserModal = ({
       .email()
       .min(1, { message: t('common.required') }),
     role: z.string().default('normal'),
+    // An empty string is the "no department" choice: a Select cannot hold null.
+    departmentId: z.string().default(''),
+    title: z.string().default(''),
   });
 
   type FormData = z.infer<typeof formSchema>;
@@ -90,11 +100,18 @@ const AddingUserModal = ({
     defaultValues: {
       email: '',
       role: TenantRole.Normal,
+      departmentId: '',
+      title: '',
     },
   });
 
   const handleOk = async (data: FormData) => {
-    return onOk?.({ email: data.email, role: data.role });
+    return onOk?.({
+      email: data.email,
+      role: data.role,
+      departmentId: data.departmentId || null,
+      title: data.title || null,
+    });
   };
 
   return (
@@ -156,6 +173,56 @@ const AddingUserModal = ({
                 <FormDescription className="text-xs">
                   {t('setting.inviteRoleTip')}
                 </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="departmentId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('setting.department')}</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger
+                      className="ceramic-field h-11"
+                      data-testid="invite-department"
+                    >
+                      <SelectValue placeholder={t('setting.noDepartment')} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="">
+                      {t('setting.noDepartment')}
+                    </SelectItem>
+                    {departments.map((department) => (
+                      <SelectItem key={department.id} value={department.id}>
+                        {department.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription className="text-xs">
+                  {t('setting.departmentTip')}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('setting.title')}</FormLabel>
+                <FormControl>
+                  <Input
+                    className="ceramic-field h-11"
+                    placeholder={t('setting.titlePlaceholder')}
+                    {...field}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

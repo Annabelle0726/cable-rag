@@ -34,6 +34,7 @@ import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { ProfileSettingWrapperCard } from '../components/user-setting-header';
 import AddingUserModal from './add-user-modal';
+import DepartmentTable from './department-table';
 import { useAddUser } from './hooks';
 import TenantTable from './tenant-table';
 import UserTable from './user-table';
@@ -110,7 +111,17 @@ const UserSettingTeam = () => {
 
         <Card className="bg-transparent border-none mt-8 rounded-none shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
-            {/* <Users className="mr-2 h-5 w-5 text-[#1677ff]" /> */}
+            <CardTitle className="text-base w-fit">
+              {t('setting.departments')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <DepartmentTable readOnly={readOnly} />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-transparent border-none mt-8 rounded-none shadow-none">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
             <CardTitle className="text-base w-fit">
               {t('setting.joinedTeams')}
             </CardTitle>

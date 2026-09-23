@@ -39,6 +39,12 @@ export default {
     `${restAPIv1}/tenants/${tenantId}/users`,
   tenantUserRole: (tenantId: string, userId: string) =>
     `${restAPIv1}/tenants/${tenantId}/users/${userId}/role`,
+  tenantUserProfile: (tenantId: string, userId: string) =>
+    `${restAPIv1}/tenants/${tenantId}/users/${userId}/profile`,
+  tenantDepartments: (tenantId: string) =>
+    `${restAPIv1}/tenants/${tenantId}/departments`,
+  tenantDepartment: (tenantId: string, departmentId: string) =>
+    `${restAPIv1}/tenants/${tenantId}/departments/${departmentId}`,
   listTenant: `${restAPIv1}/tenants`,
   agreeTenant: (tenantId: string) => `${restAPIv1}/tenants/${tenantId}`,
   activeTenant: `${restAPIv1}/users/me/tenant`,

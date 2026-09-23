@@ -33,7 +33,12 @@ export const useAddUser = () => {
   } = useSetModalState();
 
   const handleAddUserOk = useCallback(
-    async (values: { email: string; role?: string }) => {
+    async (values: {
+      email: string;
+      role?: string;
+      departmentId?: string | null;
+      title?: string | null;
+    }) => {
       const code = await addTenantUser(values);
       if (code === 0) {
         hideAddingTenantModal();

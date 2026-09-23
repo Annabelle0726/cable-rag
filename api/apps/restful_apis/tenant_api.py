@@ -255,6 +255,11 @@ async def create(tenant_id):
     if role not in ASSIGNABLE_ROLES:
         return get_data_error_result(message=f"role '{role}' cannot be assigned")
 
+    department_id = req.get("department_id") or None
+    if department_id and not DepartmentService.get_by_tenant_and_id(tenant_id, department_id):
+        return get_data_error_result(message="This department does not exist in this workspace.")
+    title = (req.get("title") or "").strip() or None
+
     invite_users = UserService.query(email=invite_user_email)
     if not invite_users:
         return get_data_error_result(message="User not found.")
@@ -273,6 +278,10 @@ async def create(tenant_id):
         # Re-inviting an existing member (including one who never accepted) is a
         # role change, which is what the caller asked for.
         UserTenantService.set_role(user_id_to_invite, tenant_id, role)
+        UserTenantService.filter_update(
+            [UserTenant.tenant_id == tenant_id, UserTenant.user_id == user_id_to_invite],
+            {"department_id": department_id, "title": title},
+        )
     else:
         UserTenantService.save(
             id=get_uuid(),
@@ -280,6 +289,8 @@ async def create(tenant_id):
             tenant_id=tenant_id,
             invited_by=current_user.id,
             role=role,
+            department_id=department_id,
+            title=title,
             status=StatusEnum.VALID.value,
         )
 

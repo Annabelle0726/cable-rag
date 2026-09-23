@@ -31,8 +31,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  useListDepartments,
   useListTenantUser,
   useFetchUserInfo,
+  useUpdateTenantUserProfile,
   useUpdateTenantUserRole,
 } from '@/hooks/use-user-setting-request';
 import {
@@ -51,6 +53,11 @@ import { TenantRole } from '../constants';
 import EmptyTableRow from './empty-table-row';
 import { useHandleDeleteUser } from './hooks';
 
+/** Sentinel for "no filter": a Select value cannot be an empty string. */
+const ALL_DEPARTMENTS = '__all__';
+/** Sentinel for "no department", which the API takes as null. */
+const NO_DEPARTMENT = '__none__';
+
 const UserTable = ({ searchUser }: { searchUser: string }) => {
   const { data, loading } = useListTenantUser();
   const { data: userInfo } = useFetchUserInfo();
@@ -60,11 +67,19 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
   // server refuses with 108.
   const readOnly = isTenantMemberReadOnly(userInfo?.role);
   const { updateTenantUserRole } = useUpdateTenantUserRole();
+  const { updateTenantUserProfile } = useUpdateTenantUserProfile();
+  const { data: departments } = useListDepartments();
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [departmentFilter, setDepartmentFilter] = useState('');
   const { t } = useTranslation();
   const sortedData = useMemo(() => {
     if (!data || data.length === 0) return data;
     let filtered = data;
+    if (departmentFilter) {
+      filtered = filtered.filter(
+        (member) => member.department_id === departmentFilter,
+      );
+    }
     if (searchUser) {
       filtered = filtered.filter(
         (tenant) =>
@@ -86,7 +101,7 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
     }
 
     return filtered;
-  }, [data, sortOrder, searchUser]);
+  }, [data, sortOrder, searchUser, departmentFilter]);
   const toggleSortOrder = () => {
     if (sortOrder === 'asc') {
       setSortOrder('desc');
@@ -108,6 +123,34 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
   };
   return (
     <div className="glass-panel rounded-2xl border-cable-hairline">
+      <div className="flex items-center gap-2 px-4 pt-4">
+        <span className="text-sm text-text-secondary">
+          {t('setting.department')}
+        </span>
+        <Select
+          value={departmentFilter || undefined}
+          onValueChange={(value) =>
+            setDepartmentFilter(value === ALL_DEPARTMENTS ? '' : value)
+          }
+        >
+          <SelectTrigger
+            className="ceramic-field h-8 w-40"
+            data-testid="department-filter"
+          >
+            <SelectValue placeholder={t('setting.allDepartments')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_DEPARTMENTS}>
+              {t('setting.allDepartments')}
+            </SelectItem>
+            {departments.map((department) => (
+              <SelectItem key={department.id} value={department.id}>
+                {department.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <Table rootClassName="bg-transparent">
         <TableHeader className="bg-table-header">
           <TableRow className="border-cable-hairline hover:bg-transparent">
@@ -125,6 +168,10 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
               </div>
             </TableHead>
             <TableHead className="h-12 px-4">{t('setting.email')}</TableHead>
+            <TableHead className="h-12 px-4">
+              {t('setting.department')}
+            </TableHead>
+            <TableHead className="h-12 px-4">{t('setting.title')}</TableHead>
             <TableHead className="h-12 px-4">{t('setting.role')}</TableHead>
             <TableHead className="h-12 px-4">{t('common.action')}</TableHead>
           </TableRow>
@@ -132,7 +179,7 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
         <TableBody className="bg-transparent">
           {loading ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
+              <TableCell colSpan={7} className="h-24 text-center">
                 <div className="flex items-center justify-center">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
                 </div>
@@ -165,6 +212,48 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
                 </TableCell>
                 <TableCell className="p-4">
                   <SearchHighlight text={record.email} query={searchUser} />
+                </TableCell>
+                <TableCell className="p-4">
+                  {readOnly || record.is_owner ? (
+                    <span className="text-sm text-text-secondary">
+                      {record.department_name ?? '-'}
+                    </span>
+                  ) : (
+                    <Select
+                      value={record.department_id ?? NO_DEPARTMENT}
+                      onValueChange={(departmentId) =>
+                        updateTenantUserProfile({
+                          userId: record.user_id,
+                          departmentId:
+                            departmentId === NO_DEPARTMENT
+                              ? null
+                              : departmentId,
+                        })
+                      }
+                    >
+                      <SelectTrigger
+                        className="h-8 w-36"
+                        data-testid={`member-department-${record.user_id}`}
+                      >
+                        <SelectValue placeholder={t('setting.noDepartment')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_DEPARTMENT}>
+                          {t('setting.noDepartment')}
+                        </SelectItem>
+                        {departments.map((department) => (
+                          <SelectItem key={department.id} value={department.id}>
+                            {department.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </TableCell>
+                <TableCell className="p-4">
+                  <span className="text-sm text-text-secondary">
+                    {record.title ?? '-'}
+                  </span>
                 </TableCell>
                 <TableCell className="p-4">
                   {readOnly || record.is_owner ? (

@@ -75,6 +75,9 @@ export interface ITenantUser {
   id: string;
   avatar: string;
   delta_seconds: number;
+  /** The member's department in this workspace; absent when they have none. */
+  department_id?: string | null;
+  department_name?: string | null;
   email: string;
   is_active: string;
   is_anonymous: string;
@@ -85,8 +88,18 @@ export interface ITenantUser {
   nickname: string;
   role: string;
   status: string;
+  /** Free-text job title, decided by the org chart rather than this system. */
+  title?: string | null;
   update_date: string;
   user_id: string;
+}
+
+export interface IDepartment {
+  id: string;
+  name: string;
+  parent_id?: string | null;
+  status?: string;
+  tenant_id?: string;
 }
 
 export interface ITenant {

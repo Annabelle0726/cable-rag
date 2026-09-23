@@ -101,8 +101,50 @@ export const loginWithChannel = (channel: string) =>
 export const listTenantUser = (tenantId: string) =>
   request.get(api.listTenantUser(tenantId));
 
-export const addTenantUser = (tenantId: string, email: string, role?: string) =>
-  post(api.addTenantUser(tenantId), { email, role });
+export const addTenantUser = (
+  tenantId: string,
+  email: string,
+  role?: string,
+  profile?: { departmentId?: string | null; title?: string | null },
+) =>
+  post(api.addTenantUser(tenantId), {
+    email,
+    role,
+    departmentId: profile?.departmentId ?? null,
+    title: profile?.title ?? null,
+  });
+
+export const updateTenantUserProfile = ({
+  tenantId,
+  userId,
+  departmentId,
+  title,
+}: {
+  tenantId: string;
+  userId: string;
+  departmentId?: string | null;
+  title?: string | null;
+}) =>
+  // umi-request again: the payload belongs under `data`.
+  request.put(api.tenantUserProfile(tenantId, userId), {
+    data: { departmentId, title },
+  });
+
+export const listDepartments = (tenantId: string) =>
+  request.get(api.tenantDepartments(tenantId));
+
+export const createDepartment = (tenantId: string, name: string) =>
+  post(api.tenantDepartments(tenantId), { name });
+
+export const renameDepartment = (
+  tenantId: string,
+  departmentId: string,
+  name: string,
+) =>
+  request.put(api.tenantDepartment(tenantId, departmentId), { data: { name } });
+
+export const deleteDepartment = (tenantId: string, departmentId: string) =>
+  request.delete(api.tenantDepartment(tenantId, departmentId));
 
 export const deleteTenantUser = ({
   tenantId,
