@@ -86,6 +86,9 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
       cropSize: 200,
     });
 
+    // 性能优化：用于拖拽时的帧率同步句柄
+    const rafIdRef = useRef<number | null>(null);
+
     const [imageScale, setImageScale] = useState(1);
     const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
 
@@ -98,7 +101,8 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
             ev.target.value = '';
             return;
           }
-          const str = await transformFile2Base64(file!, 1000);
+          // 此处可调小边长限制（如 800）来进一步提升大图剪裁效率
+          const str = await transformFile2Base64(file!, 800);
           setImageToCrop(str);
           setIsCropModalOpen(true);
         }
@@ -205,55 +209,86 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
       });
     }, []);
 
-    // 鼠标移动核心逻辑（处理移动 + 四角拉伸）
+    // 鼠标移动核心逻辑（增加 requestAnimationFrame 渲染防抖）
     const handleMouseMove = useCallback(
       (e: MouseEvent) => {
         if (!isDraggingRef.current || !imageRef.current) return;
 
-        const image = imageRef.current;
-        const mode = dragModeRef.current;
-        const { mouseX, mouseY, cropX, cropY, cropSize } = dragStartRef.current;
-
-        const deltaX = (e.clientX - mouseX) / imageScale;
-        const deltaY = (e.clientY - mouseY) / imageScale;
-
-        if (mode === 'move') {
-          let newX = cropX + deltaX;
-          let newY = cropY + deltaY;
-
-          newX = Math.max(0, Math.min(newX, image.width - cropSize));
-          newY = Math.max(0, Math.min(newY, image.height - cropSize));
-
-          setCropArea({ x: newX, y: newY, size: cropSize });
-        } else {
-          let newSize = cropSize;
-          let newX = cropX;
-          let newY = cropY;
-
-          if (mode === 'se') {
-            const delta = Math.max(deltaX, deltaY);
-            newSize = Math.max(30, cropSize + delta);
-            newSize = Math.min(newSize, image.width - cropX, image.height - cropY);
-          } else if (mode === 'nw') {
-            const delta = Math.min(deltaX, deltaY);
-            newSize = Math.max(30, cropSize - delta);
-            newSize = Math.min(newSize, cropX + cropSize, cropY + cropSize);
-            newX = cropX + (cropSize - newSize);
-            newY = cropY + (cropSize - newSize);
-          } else if (mode === 'ne') {
-            const delta = Math.max(deltaX, -deltaY);
-            newSize = Math.max(30, cropSize + delta);
-            newSize = Math.min(newSize, image.width - cropX, cropY + cropSize);
-            newY = cropY + (cropSize - newSize);
-          } else if (mode === 'sw') {
-            const delta = Math.max(-deltaX, deltaY);
-            newSize = Math.max(30, cropSize + delta);
-            newSize = Math.min(newSize, cropX + cropSize, image.height - cropY);
-            newX = cropX + (cropSize - newSize);
-          }
-
-          setCropArea({ x: newX, y: newY, size: newSize });
+        if (rafIdRef.current) {
+          cancelAnimationFrame(rafIdRef.current);
         }
+
+        const clientX = e.clientX;
+        const clientY = e.clientY;
+
+        rafIdRef.current = requestAnimationFrame(() => {
+          if (!imageRef.current) return;
+          const image = imageRef.current;
+          const mode = dragModeRef.current;
+          const { mouseX, mouseY, cropX, cropY, cropSize } = dragStartRef.current;
+
+          const deltaX = (clientX - mouseX) / imageScale;
+          const deltaY = (clientY - mouseY) / imageScale;
+
+          if (mode === 'move') {
+            let newX = cropX + deltaX;
+            let newY = cropY + deltaY;
+
+            newX = Math.max(0, Math.min(newX, image.width - cropSize));
+            newY = Math.max(0, Math.min(newY, image.height - cropSize));
+
+            setCropArea({ x: newX, y: newY, size: cropSize });
+          } else {
+            const currentMouseX = cropX + deltaX;
+            const currentMouseY = cropY + deltaY;
+
+            let newX = cropX;
+            let newY = cropY;
+            let newSize = cropSize;
+
+            if (mode === 'se') {
+              const dx = currentMouseX - cropX;
+              const dy = currentMouseY - cropY;
+              const rawSize = Math.max(dx, dy);
+              const maxAllowed = Math.min(image.width - cropX, image.height - cropY);
+              newSize = Math.max(30, Math.min(rawSize, maxAllowed));
+              newX = cropX;
+              newY = cropY;
+            } else if (mode === 'nw') {
+              const anchorX = cropX + cropSize;
+              const anchorY = cropY + cropSize;
+              const dx = anchorX - currentMouseX;
+              const dy = anchorY - currentMouseY;
+              const rawSize = Math.max(dx, dy);
+              const maxAllowed = Math.min(anchorX, anchorY);
+              newSize = Math.max(30, Math.min(rawSize, maxAllowed));
+              newX = anchorX - newSize;
+              newY = anchorY - newSize;
+            } else if (mode === 'ne') {
+              const anchorX = cropX;
+              const anchorY = cropY + cropSize;
+              const dx = currentMouseX - anchorX;
+              const dy = anchorY - currentMouseY;
+              const rawSize = Math.max(dx, dy);
+              const maxAllowed = Math.min(image.width - anchorX, anchorY);
+              newSize = Math.max(30, Math.min(rawSize, maxAllowed));
+              newX = anchorX;
+              newY = anchorY - newSize;
+            } else if (mode === 'sw') {
+              const anchorX = cropX + cropSize;
+              const anchorY = cropY;
+              const dx = anchorX - currentMouseX;
+              const dy = currentMouseY - anchorY;
+              const rawSize = Math.max(dx, dy);
+              const maxAllowed = Math.min(anchorX, image.height - anchorY);
+              newSize = Math.max(30, Math.min(rawSize, maxAllowed));
+              newX = anchorX - newSize;
+              newY = anchorY;
+            }
+
+            setCropArea({ x: newX, y: newY, size: newSize });
+          }
+        });
       },
       [imageScale],
     );
@@ -261,6 +296,10 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
     const handleMouseUp = useCallback(() => {
       isDraggingRef.current = false;
       dragModeRef.current = null;
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     }, [handleMouseMove]);
@@ -448,25 +487,27 @@ export const AvatarUpload = forwardRef<HTMLInputElement, AvatarUploadProps>(
                         top: `${imageOffset.y + cropArea.y * imageScale}px`,
                         width: `${cropArea.size * imageScale}px`,
                         height: `${cropArea.size * imageScale}px`,
-                        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+                        // 用高效的 outline 替代极其吃 GPU 性能的 boxShadow 9999px
+                        outline: '9999px solid rgba(0, 0, 0, 0.5)',
+                        willChange: 'left, top, width, height',
                       }}
                       onMouseDown={(e) => handleMouseDown(e, 'move')}
                     >
-                      {/* 四角拉伸手柄 (蓝色圆点) */}
+                      {/* 四角拉伸手柄 */}
                       <div
-                        className="absolute -top-1.5 -left-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:scale-125 transition-transform"
+                        className="absolute -top-1.5 -left-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nwse-resize z-20"
                         onMouseDown={(e) => handleMouseDown(e, 'nw')}
                       />
                       <div
-                        className="absolute -top-1.5 -right-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nesw-resize z-20 hover:scale-125 transition-transform"
+                        className="absolute -top-1.5 -right-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nesw-resize z-20"
                         onMouseDown={(e) => handleMouseDown(e, 'ne')}
                       />
                       <div
-                        className="absolute -bottom-1.5 -left-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nesw-resize z-20 hover:scale-125 transition-transform"
+                        className="absolute -bottom-1.5 -left-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nesw-resize z-20"
                         onMouseDown={(e) => handleMouseDown(e, 'sw')}
                       />
                       <div
-                        className="absolute -bottom-1.5 -right-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:scale-125 transition-transform"
+                        className="absolute -bottom-1.5 -right-1.5 size-3 bg-blue-500 border-2 border-white rounded-full cursor-nwse-resize z-20"
                         onMouseDown={(e) => handleMouseDown(e, 'se')}
                       />
                     </div>
