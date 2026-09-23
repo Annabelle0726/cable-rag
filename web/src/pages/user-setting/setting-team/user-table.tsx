@@ -50,13 +50,12 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TenantRole } from '../constants';
+import DepartmentSelect from './department-select';
 import EmptyTableRow from './empty-table-row';
 import { useHandleDeleteUser } from './hooks';
 
 /** Sentinel for "no filter": a Select value cannot be an empty string. */
 const ALL_DEPARTMENTS = '__all__';
-/** Sentinel for "no department", which the API takes as null. */
-const NO_DEPARTMENT = '__none__';
 
 const UserTable = ({ searchUser }: { searchUser: string }) => {
   const { data, loading } = useListTenantUser();
@@ -219,35 +218,18 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
                       {record.department_name ?? '-'}
                     </span>
                   ) : (
-                    <Select
-                      value={record.department_id ?? NO_DEPARTMENT}
-                      onValueChange={(departmentId) =>
-                        updateTenantUserProfile({
-                          userId: record.user_id,
-                          departmentId:
-                            departmentId === NO_DEPARTMENT
-                              ? null
-                              : departmentId,
-                        })
-                      }
-                    >
-                      <SelectTrigger
-                        className="h-8 w-36"
-                        data-testid={`member-department-${record.user_id}`}
-                      >
-                        <SelectValue placeholder={t('setting.noDepartment')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NO_DEPARTMENT}>
-                          {t('setting.noDepartment')}
-                        </SelectItem>
-                        {departments.map((department) => (
-                          <SelectItem key={department.id} value={department.id}>
-                            {department.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="w-36">
+                      <DepartmentSelect
+                        value={record.department_id}
+                        testId={`member-department-${record.user_id}`}
+                        onChange={(departmentId) =>
+                          updateTenantUserProfile({
+                            userId: record.user_id,
+                            departmentId,
+                          })
+                        }
+                      />
+                    </div>
                   )}
                 </TableCell>
                 <TableCell className="p-4">

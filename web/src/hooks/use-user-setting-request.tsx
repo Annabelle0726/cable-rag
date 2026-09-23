@@ -512,6 +512,12 @@ export const useDepartmentMutations = () => {
     queryClient.invalidateQueries({
       queryKey: [UserSettingApiAction.ListDepartments],
     });
+  // The roster rows carry `department_name`, so a rename or a delete leaves them
+  // showing a name that no longer exists until they are refetched too.
+  const invalidateRoster = () =>
+    queryClient.invalidateQueries({
+      queryKey: [UserSettingApiAction.ListTenantUser],
+    });
 
   const { isPending: creating, mutateAsync: create } = useMutation({
     mutationKey: [UserSettingApiAction.ListDepartments, 'create'],
@@ -540,6 +546,7 @@ export const useDepartmentMutations = () => {
       );
       if (data.code === 0) {
         await invalidate();
+        await invalidateRoster();
       }
       return data;
     },
@@ -555,9 +562,7 @@ export const useDepartmentMutations = () => {
       if (data.code === 0) {
         await invalidate();
         // The roster rows carry the department name, so they are stale now.
-        await queryClient.invalidateQueries({
-          queryKey: [UserSettingApiAction.ListTenantUser],
-        });
+        await invalidateRoster();
       }
       return data;
     },

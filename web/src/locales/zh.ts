@@ -1903,6 +1903,7 @@ export default {
       renameDepartment: '重命名部门',
       deleteDepartment: '删除部门',
       departmentNamePlaceholder: '部门名称',
+      departmentEmptyHint: '暂无部门，请先在下方「部门管理」中创建部门。',
       departmentTip: '新加入该部门的成员会自动继承其知识库授权。',
       title: '职务',
       titlePlaceholder: '如：销售经理',

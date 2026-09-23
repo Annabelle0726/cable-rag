@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { IModalProps } from '@/interfaces/common';
-import { useListDepartments } from '@/hooks/use-user-setting-request';
+import DepartmentSelect from './department-select';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -80,7 +80,6 @@ const AddingUserModal = ({
   title?: string | null;
 }>) => {
   const { t } = useTranslation();
-  const { data: departments } = useListDepartments();
 
   const formSchema = z.object({
     email: z
@@ -183,26 +182,15 @@ const AddingUserModal = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t('setting.department')}</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger
-                      className="ceramic-field h-11"
-                      data-testid="invite-department"
-                    >
-                      <SelectValue placeholder={t('setting.noDepartment')} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="">
-                      {t('setting.noDepartment')}
-                    </SelectItem>
-                    {departments.map((department) => (
-                      <SelectItem key={department.id} value={department.id}>
-                        {department.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <DepartmentSelect
+                    value={field.value}
+                    onChange={(departmentId) =>
+                      field.onChange(departmentId ?? '')
+                    }
+                    testId="invite-department"
+                  />
+                </FormControl>
                 <FormDescription className="text-xs">
                   {t('setting.departmentTip')}
                 </FormDescription>

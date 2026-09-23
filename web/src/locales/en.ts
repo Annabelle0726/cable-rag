@@ -2282,8 +2282,10 @@ export default {
       updateDate: 'Date',
       role: 'State',
       invite: 'Invite member',
-      inviteTip: 'Only registered users can be invited. Please register the account before sending an invitation.',
-      inviteRoleTip: 'The role takes effect immediately. Admins can manage members and model configuration.',
+      inviteTip:
+        'Only registered users can be invited. Please register the account before sending an invitation.',
+      inviteRoleTip:
+        'The role takes effect immediately. Admins can manage members and model configuration.',
       department: 'Department',
       departments: 'Departments',
       noDepartment: 'No department',
@@ -2292,7 +2294,10 @@ export default {
       renameDepartment: 'Rename department',
       deleteDepartment: 'Delete department',
       departmentNamePlaceholder: 'Department name',
-      departmentTip: 'New members of this department inherit its dataset authorizations.',
+      departmentEmptyHint:
+        'There is no department yet. Create one under Department management below first.',
+      departmentTip:
+        'New members of this department inherit its dataset authorizations.',
       title: 'Title',
       titlePlaceholder: 'e.g. Sales manager',
       switchWorkspace: 'Switch',
@@ -3779,7 +3784,8 @@ export default {
       welcomeBack: 'Welcome back',
       searchSettings: 'Search settings',
       advancedSettings: 'Advanced settings (algorithm parameters)',
-      embeddingUnavailable: 'Search is unavailable while the vector service is restricted',
+      embeddingUnavailable:
+        'Search is unavailable while the vector service is restricted',
       referenceSlices: 'Reference passages',
       expandSlices: 'Show {{count}} more',
       collapseSlices: 'Show fewer',
