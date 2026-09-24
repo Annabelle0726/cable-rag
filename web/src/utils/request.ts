@@ -18,7 +18,7 @@
  */
 
 import message from '@/components/ui/message';
-import { Authorization } from '@/constants/authorization';
+import { ActiveTenantHeader, Authorization } from '@/constants/authorization';
 import { ResponseType } from '@/interfaces/database/base';
 import i18n from '@/locales/config';
 import authorizationUtil, {
@@ -27,6 +27,7 @@ import authorizationUtil, {
 } from '@/utils/authorization-util';
 import notification from '@/utils/notification';
 import { RequestMethod, extend } from 'umi-request';
+import { getActiveTenantId } from './active-tenant';
 import { reportApiError } from './api-error';
 import { convertTheKeysOfTheObjectToSnake, isFormData } from './common-util';
 import { setCachedLlmList } from './llm-cache';
@@ -112,6 +113,13 @@ request.interceptors.request.use((url: string, options: any) => {
     ? data
     : addTenantParams(data, url);
 
+  // Tell the server which workspace this request is for, exactly as
+  // `next-request` does. Without it the team page's umi-request calls could
+  // only ever act on the workspace the server had stored, so a switch made in
+  // the UI took effect a page reload later. The header carries a request, never
+  // a grant: the resolver only honours a workspace the caller belongs to.
+  const activeTenantId = getActiveTenantId();
+
   return {
     url,
     options: {
@@ -122,6 +130,9 @@ request.interceptors.request.use((url: string, options: any) => {
         ...(options.skipToken
           ? undefined
           : { [Authorization]: getAuthorization() }),
+        ...(activeTenantId
+          ? { [ActiveTenantHeader]: activeTenantId }
+          : undefined),
         ...options.headers,
       },
       interceptors: true,
@@ -185,7 +196,9 @@ request.interceptors.response.use(async (response: Response, options) => {
     authorizationUtil.removeAll();
     redirectToLogin();
   } else {
-    reportApiError(data, { skip: (options as any)?.skipGlobalErrorNotification });
+    reportApiError(data, {
+      skip: (options as any)?.skipGlobalErrorNotification,
+    });
   }
   return response;
 });

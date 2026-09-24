@@ -28,6 +28,31 @@ export const canManageTenant = (role?: string): boolean =>
 export const isTenantMemberReadOnly = (role?: string): boolean =>
   Boolean(role) && !canManageTenant(role);
 
+/**
+ * Whether a management control may be RENDERED for this role.
+ *
+ * `isTenantMemberReadOnly` answers "must this surface be read-only", and its
+ * `false` for an unreported role is deliberate — an unknown role must not lock an
+ * owner out of their own workspace. That same answer is wrong as a render gate:
+ * `GET /users/me` starts empty, so a NORMAL member would be shown the invite
+ * button, the role pickers and the remove buttons for as long as it is in flight,
+ * and every one of them is a request the server refuses. A control therefore
+ * waits for a reported role; the server stays the authority either way.
+ */
+export const canRenderTenantControls = (role?: string): boolean =>
+  Boolean(role) && !isTenantMemberReadOnly(role);
+
+/**
+ * Whether a role can be handed out by the role endpoint.
+ *
+ * Mirrors the server's `ASSIGNABLE_ROLES`: an owner is reached by creating a
+ * workspace rather than by promotion, and `invite` belongs to the invitation
+ * flow. A role outside this set has no entry in the role picker, so a control
+ * bound to such a row would render blank.
+ */
+export const isAssignableTenantRole = (role?: string): boolean =>
+  role === TenantRole.Admin || role === TenantRole.Normal;
+
 export interface IRoleDisplayConfig {
   /**
    * Translation key, resolved by the caller with `t()`. Kept as a key rather

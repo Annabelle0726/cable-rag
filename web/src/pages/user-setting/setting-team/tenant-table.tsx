@@ -61,6 +61,7 @@ const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
     if (searchTerm) {
       filtered = data.filter(
         (tenant) =>
+          (tenant.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           tenant.nickname.toLowerCase().includes(searchTerm.toLowerCase()) ||
           tenant.email.toLowerCase().includes(searchTerm.toLowerCase()),
       );
@@ -140,14 +141,19 @@ const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
                 className="ceramic-list-row border-cable-hairline"
               >
                 <TableCell className="p-4 flex gap-1 items-center">
-                  {/* A person's mark, never the first letter of the nickname. */}
+                  {/* The workspace's own name, and the owner's mark beside it:
+                      the row names a TEAM, so the owner's nickname is only the
+                      fallback for a payload that carries no name. */}
                   <CardIdentityIcon
                     kind="user"
                     avatar={tenant.avatar}
                     className="size-4"
                     iconClassName="size-3"
                   />
-                  <SearchHighlight text={tenant.nickname} query={searchTerm} />
+                  <SearchHighlight
+                    text={tenant.name || tenant.nickname}
+                    query={searchTerm}
+                  />
                 </TableCell>
                 <TableCell className="p-4">
                   {formatDate(tenant.update_date)}
@@ -176,32 +182,43 @@ const TenantTable = ({ searchTerm }: { searchTerm: string }) => {
                         {t(`setting.refuse`)}
                       </Button>
                     </div>
-                  ) : tenant.is_active ? (
-                    <span className="text-xs text-text-secondary">
-                      {t('setting.currentWorkspace')}
-                    </span>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="link"
-                        className="p-0 h-auto"
-                        disabled={switching}
-                        onClick={() => setActiveTenant(tenant.tenant_id)}
-                      >
-                        {t('setting.switchWorkspace')}
-                      </Button>
-                      {/* Leaving a workspace you do not own. */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 p-0"
-                        onClick={handleQuitTenantUser(
-                          user.id,
-                          tenant.tenant_id,
-                        )}
-                      >
-                        <LogOut />
-                      </Button>
+                      {tenant.is_active ? (
+                        <span className="text-xs text-text-secondary">
+                          {t('setting.currentWorkspace')}
+                        </span>
+                      ) : (
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto"
+                          disabled={switching}
+                          onClick={() => setActiveTenant(tenant.tenant_id)}
+                        >
+                          {t('setting.switchWorkspace')}
+                        </Button>
+                      )}
+                      {/*
+                        Leaving is offered on the workspace you are in as well as
+                        on the others - otherwise a member could never quit the
+                        one they are stuck in - but never on a workspace the
+                        caller owns, which the server refuses to remove.
+                      */}
+                      {tenant.role === TenantRole.Owner ? null : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 p-0"
+                          aria-label={t('setting.quit')}
+                          disabled={!user?.id}
+                          onClick={handleQuitTenantUser(
+                            user?.id,
+                            tenant.tenant_id,
+                          )}
+                        >
+                          <LogOut />
+                        </Button>
+                      )}
                     </div>
                   )}
                 </TableCell>

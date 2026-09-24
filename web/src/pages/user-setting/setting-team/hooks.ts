@@ -57,22 +57,8 @@ export const useAddUser = () => {
 
 export const useHandleDeleteUser = () => {
   const { deleteTenantUser, loading } = useDeleteTenantUser();
-  const showDeleteConfirm = useShowDeleteConfirm();
-  const { t } = useTranslation();
 
-  const handleDeleteTenantUser = (userId: string) => () => {
-    showDeleteConfirm({
-      title: t('setting.sureDelete'),
-      onOk: async () => {
-        const code = await deleteTenantUser({ userId });
-        if (code === 0) {
-        }
-        return;
-      },
-    });
-  };
-
-  return { handleDeleteTenantUser, deleteTenantUser, loading };
+  return { deleteTenantUser, loading };
 };
 
 export const useHandleAgreeTenant = () => {

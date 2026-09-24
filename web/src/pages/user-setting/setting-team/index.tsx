@@ -17,11 +17,10 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  useFetchTenantInfo,
   useFetchUserInfo,
-  useListTenant,
-  useListTenantUser,
 } from '@/hooks/use-user-setting-request';
-import { isTenantMemberReadOnly } from '@/utils/tenant-role';
+import { canRenderTenantControls } from '@/utils/tenant-role';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -41,16 +40,26 @@ import UserTable from './user-table';
 
 const UserSettingTeam = () => {
   const { data: userInfo } = useFetchUserInfo();
-  const { data: tenants } = useListTenant();
+  // The active workspace's own record: `name` lives on the tenant, which is the
+  // only place the workspace's name is reported (`GET /tenants` answers each
+  // row with the OWNER's user row, so its `nickname` is a person, not a
+  // workspace).
+  const { data: tenantInfo } = useFetchTenantInfo();
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchUser, setSearchUser] = useState('');
-  useListTenantUser();
   // The workspace this page is showing, not the person reading it: a member who
-  // owns no tenant of their own still works inside the one they joined.
-  const readOnly = isTenantMemberReadOnly(userInfo?.role);
-  const activeTenant = tenants.find((tenant) => tenant.is_active);
-  const workspaceName = activeTenant?.nickname ?? userInfo?.nickname;
+  // owns no tenant of their own still works inside the one they joined. Controls
+  // wait for the role to be reported, so a NORMAL member is never briefly offered
+  // the invite button while `/users/me` is in flight.
+  const readOnly = !canRenderTenantControls(userInfo?.role);
+  /**
+   * The header names the workspace. It must never fall back to the caller's own
+   * nickname: a NORMAL member would then be told their personal space is this
+   * page's subject while the workspace record is still in flight. An unknown
+   * name renders the section label alone.
+   */
+  const workspaceName = tenantInfo?.name;
   const {
     addingTenantModalVisible,
     hideAddingTenantModal,

@@ -101,18 +101,34 @@ export const loginWithChannel = (channel: string) =>
 export const listTenantUser = (tenantId: string) =>
   request.get(api.listTenantUser(tenantId));
 
+/** The invitation's optional organisational attributes. */
+export interface ITenantUserProfileInput {
+  departmentId?: string | null;
+  title?: string | null;
+}
+
 export const addTenantUser = (
   tenantId: string,
   email: string,
   role?: string,
-  profile?: { departmentId?: string | null; title?: string | null },
-) =>
-  post(api.addTenantUser(tenantId), {
-    email,
-    role,
-    departmentId: profile?.departmentId ?? null,
-    title: profile?.title ?? null,
-  });
+  profile?: ITenantUserProfileInput,
+) => {
+  const body: Record<string, unknown> = { email, role };
+
+  // `department_id` and `title` are optional in the API contract, so a caller
+  // that supplies no profile must not send them at all: they used to go out
+  // unconditionally as `null`, which is not the payload the contract describes.
+  // An explicit `null` (the invite dialog's "no department" / "no title"
+  // choice) still travels, because that is a deliberate value.
+  if (profile?.departmentId !== undefined) {
+    body.departmentId = profile.departmentId;
+  }
+  if (profile?.title !== undefined) {
+    body.title = profile.title;
+  }
+
+  return post(api.addTenantUser(tenantId), body);
+};
 
 export const updateTenantUserProfile = ({
   tenantId,

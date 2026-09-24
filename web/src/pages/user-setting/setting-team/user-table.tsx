@@ -44,7 +44,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { isTenantMemberReadOnly } from '@/utils/tenant-role';
+import {
+  canRenderTenantControls,
+  isAssignableTenantRole,
+} from '@/utils/tenant-role';
 import { formatDate } from '@/utils/date';
 import { ArrowDown, ArrowUp, ArrowUpDown, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -63,8 +66,9 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
   const { deleteTenantUser } = useHandleDeleteUser();
   // Only a workspace manager may change the roster, and the owner is never
   // removable. Showing the control to anyone else invites a click that the
-  // server refuses with 108.
-  const readOnly = isTenantMemberReadOnly(userInfo?.role);
+  // server refuses with 108 — including the window before `/users/me` reports the
+  // caller's role, which is why the controls wait for a known one.
+  const readOnly = !canRenderTenantControls(userInfo?.role);
   const { updateTenantUserRole } = useUpdateTenantUserRole();
   const { updateTenantUserProfile } = useUpdateTenantUserProfile();
   const { data: departments } = useListDepartments();
@@ -238,7 +242,17 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
                   </span>
                 </TableCell>
                 <TableCell className="p-4">
-                  {readOnly || record.is_owner ? (
+                  {/*
+                    The role picker belongs to rows the server will actually
+                    reassign: never the caller's own row (`PUT .../role` refuses
+                    `user_id == current_user.id`), never the owner's, never a
+                    role the picker has no entry for - an `invite` row would
+                    otherwise render a blank, unselectable control.
+                  */}
+                  {readOnly ||
+                  record.is_owner ||
+                  record.user_id === userInfo?.id ||
+                  !isAssignableTenantRole(record.role) ? (
                     <RoleTag role={record.role} />
                   ) : (
                     <Select
@@ -302,7 +316,7 @@ const UserTable = ({ searchUser }: { searchUser: string }) => {
               </TableRow>
             ))
           ) : (
-            <EmptyTableRow colSpan={5} label={t('common.noData')} />
+            <EmptyTableRow colSpan={7} label={t('common.noData')} />
           )}
         </TableBody>
       </Table>

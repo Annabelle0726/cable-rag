@@ -42,7 +42,7 @@ import userService, {
   updateTenantUserProfile,
   updateTenantUserRole,
 } from '@/services/user-service';
-import { setActiveTenantId } from '@/utils/active-tenant';
+import { getActiveTenantId, setActiveTenantId } from '@/utils/active-tenant';
 import { useIsGoBackend } from '@/utils/backend-variant';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
@@ -72,9 +72,35 @@ export const enum UserSettingApiAction {
   FetchLangfuseConfig = 'fetchLangfuseConfig',
 }
 
+/**
+ * Every query key this domain owns.
+ *
+ * Reads and invalidations must reach the cache through this factory: they used
+ * to be hand-written arrays on both sides, which is how a mutation ends up
+ * invalidating a key nothing is cached under. The workspace-scoped keys carry
+ * the workspace id, so switching workspace re-keys them rather than overwriting
+ * one workspace's data with another's.
+ */
+export const UserSettingKeys = {
+  userInfo: () => [UserSettingApiAction.UserInfo] as const,
+  tenantInfo: () => [UserSettingApiAction.TenantInfo] as const,
+  pipelineList: () => [UserSettingApiAction.ListPipelines] as const,
+  systemTokenList: () => [UserSettingApiAction.FetchSystemTokenList] as const,
+  /** Prefix form: the roster of every workspace. */
+  tenantRoster: () => [UserSettingApiAction.ListTenantUser] as const,
+  tenantRosterOf: (tenantId?: string) =>
+    [UserSettingApiAction.ListTenantUser, tenantId] as const,
+  joinedTenants: () => [UserSettingApiAction.ListTenant] as const,
+  /** Prefix form: the departments of every workspace. */
+  departments: () => [UserSettingApiAction.ListDepartments] as const,
+  departmentsOf: (tenantId?: string) =>
+    [UserSettingApiAction.ListDepartments, tenantId] as const,
+  langfuseConfig: () => [UserSettingApiAction.FetchLangfuseConfig] as const,
+};
+
 export const useFetchUserInfo = (): ResponseGetType<IUserInfo> => {
   const { data, isFetching: loading } = useQuery({
-    queryKey: [UserSettingApiAction.UserInfo],
+    queryKey: UserSettingKeys.userInfo(),
     initialData: {},
     gcTime: 0,
     queryFn: async () => {
@@ -99,7 +125,7 @@ export const useFetchUserInfo = (): ResponseGetType<IUserInfo> => {
 
 export const useFetchTenantData = (): ResponseGetType<ITenantInfo> => {
   const { data, isFetching: loading } = useQuery({
-    queryKey: [UserSettingApiAction.TenantInfo],
+    queryKey: UserSettingKeys.tenantInfo(),
     initialData: {},
     gcTime: 0,
     queryFn: async () => {
@@ -132,7 +158,7 @@ export const useSelectParserList = (): Array<{
 
   // Go backend: fetch pipeline catalog dynamically.
   const { data: pipelineListData } = useQuery({
-    queryKey: [UserSettingApiAction.ListPipelines],
+    queryKey: UserSettingKeys.pipelineList(),
     queryFn: async () => {
       const { data } = await kbService.listPipelines();
       return data;
@@ -233,7 +259,7 @@ export const useSaveSetting = (silent = false) => {
         if (!silent) {
           message.success(t('message.modified'));
         }
-        queryClient.invalidateQueries({ queryKey: ['userInfo'] });
+        queryClient.invalidateQueries({ queryKey: UserSettingKeys.userInfo() });
       }
       return data?.code;
     },
@@ -286,7 +312,7 @@ export const useFetchSystemTokenList = () => {
     isFetching: loading,
     refetch,
   } = useQuery<IToken[]>({
-    queryKey: [UserSettingApiAction.FetchSystemTokenList],
+    queryKey: UserSettingKeys.systemTokenList(),
     initialData: [],
     gcTime: 0,
     queryFn: async () => {
@@ -314,7 +340,7 @@ export const useRemoveSystemToken = () => {
       if (data.code === 0) {
         message.success(t('message.deleted'));
         queryClient.invalidateQueries({
-          queryKey: [UserSettingApiAction.FetchSystemTokenList],
+          queryKey: UserSettingKeys.systemTokenList(),
         });
       }
       return data?.data ?? [];
@@ -337,7 +363,7 @@ export const useCreateSystemToken = () => {
       const { data } = await userService.createToken(params);
       if (data.code === 0) {
         queryClient.invalidateQueries({
-          queryKey: [UserSettingApiAction.FetchSystemTokenList],
+          queryKey: UserSettingKeys.systemTokenList(),
         });
       }
       return data?.data ?? [];
@@ -355,7 +381,7 @@ export const useListTenantUser = () => {
     isFetching: loading,
     refetch,
   } = useQuery<ITenantUser[]>({
-    queryKey: [UserSettingApiAction.ListTenantUser, tenantId],
+    queryKey: UserSettingKeys.tenantRosterOf(tenantId),
     initialData: [],
     gcTime: 0,
     enabled: !!tenantId,
@@ -378,11 +404,26 @@ export const useAddTenantUser = () => {
     mutateAsync,
   } = useMutation({
     mutationKey: [UserSettingApiAction.AddTenantUser],
-    mutationFn: async ({ email, role }: { email: string; role?: string }) => {
-      const { data } = await addTenantUser(tenantInfo.tenant_id, email, role);
+    // The invite dialog collects a department and a title as well; both belong
+    // to the invitation, so they are forwarded instead of being dropped here.
+    mutationFn: async ({
+      email,
+      role,
+      departmentId,
+      title,
+    }: {
+      email: string;
+      role?: string;
+      departmentId?: string | null;
+      title?: string | null;
+    }) => {
+      const { data } = await addTenantUser(tenantInfo.tenant_id, email, role, {
+        departmentId,
+        title,
+      });
       if (data.code === 0) {
         queryClient.invalidateQueries({
-          queryKey: [UserSettingApiAction.ListTenantUser],
+          queryKey: UserSettingKeys.tenantRoster(),
         });
       }
       return data?.code;
@@ -394,6 +435,7 @@ export const useAddTenantUser = () => {
 
 export const useDeleteTenantUser = () => {
   const { data: tenantInfo } = useFetchTenantInfo();
+  const { data: userInfo } = useFetchUserInfo();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
@@ -410,18 +452,32 @@ export const useDeleteTenantUser = () => {
       userId: string;
       tenantId?: string;
     }) => {
+      const targetTenantId = tenantId ?? tenantInfo.tenant_id;
+      // Removing someone else is a roster edit; removing the caller is leaving
+      // a workspace. Leaving the one they are operating in is a workspace
+      // change: the server drops the stored selection with the membership, so
+      // the client's header value has to follow.
+      const leavingActiveWorkspace =
+        userId === userInfo?.id && targetTenantId === getActiveTenantId();
+
       const { data } = await deleteTenantUser({
-        tenantId: tenantId ?? tenantInfo.tenant_id,
+        tenantId: targetTenantId,
         userId,
       });
       if (data.code === 0) {
         message.success(t('message.deleted'));
         queryClient.invalidateQueries({
-          queryKey: [UserSettingApiAction.ListTenantUser],
+          queryKey: UserSettingKeys.tenantRoster(),
         });
         queryClient.invalidateQueries({
-          queryKey: [UserSettingApiAction.ListTenant],
+          queryKey: UserSettingKeys.joinedTenants(),
         });
+        if (leavingActiveWorkspace) {
+          setActiveTenantId(null);
+          queryClient.invalidateQueries({
+            queryKey: UserSettingKeys.tenantInfo(),
+          });
+        }
       }
       return data?.data ?? [];
     },
@@ -436,7 +492,7 @@ export const useListTenant = () => {
     isFetching: loading,
     refetch,
   } = useQuery<ITenant[]>({
-    queryKey: [UserSettingApiAction.ListTenant],
+    queryKey: UserSettingKeys.joinedTenants(),
     initialData: [],
     gcTime: 0,
     queryFn: async () => {
@@ -491,7 +547,7 @@ export const useListDepartments = () => {
     isFetching: loading,
     refetch,
   } = useQuery<IDepartment[]>({
-    queryKey: [UserSettingApiAction.ListDepartments, tenantId],
+    queryKey: UserSettingKeys.departmentsOf(tenantId),
     initialData: [],
     gcTime: 0,
     enabled: !!tenantId,
@@ -510,13 +566,13 @@ export const useDepartmentMutations = () => {
   const queryClient = useQueryClient();
   const invalidate = () =>
     queryClient.invalidateQueries({
-      queryKey: [UserSettingApiAction.ListDepartments],
+      queryKey: UserSettingKeys.departments(),
     });
   // The roster rows carry `department_name`, so a rename or a delete leaves them
   // showing a name that no longer exists until they are refetched too.
   const invalidateRoster = () =>
     queryClient.invalidateQueries({
-      queryKey: [UserSettingApiAction.ListTenantUser],
+      queryKey: UserSettingKeys.tenantRoster(),
     });
 
   const { isPending: creating, mutateAsync: create } = useMutation({
@@ -595,7 +651,7 @@ export const useUpdateTenantUserProfile = () => {
       });
       if (data.code === 0) {
         queryClient.invalidateQueries({
-          queryKey: [UserSettingApiAction.ListTenantUser],
+          queryKey: UserSettingKeys.tenantRoster(),
         });
       }
       return data;
@@ -627,7 +683,12 @@ export const useUpdateTenantUserRole = () => {
       });
       if (data.code === 0) {
         queryClient.invalidateQueries({
-          queryKey: [UserSettingApiAction.ListTenantUser],
+          queryKey: UserSettingKeys.tenantRoster(),
+        });
+        // A promotion can change who may manage the workspace, which is what
+        // the joined-workspace list reports per row.
+        queryClient.invalidateQueries({
+          queryKey: UserSettingKeys.joinedTenants(),
         });
       }
       return data;
@@ -637,6 +698,16 @@ export const useUpdateTenantUserRole = () => {
   return { loading, updateTenantUserRole: mutateAsync };
 };
 
+/**
+ * Accept a pending invitation.
+ *
+ * Accepting is also a workspace switch - the server makes the invited workspace
+ * the caller's active one - so the client has to follow. The stored
+ * `X-Tenant-Id` is what makes the switch take effect on the next request, and
+ * the tenant-info key is what the roster is keyed off: without refetching it,
+ * the roster keeps its previous workspace's key and the page goes on showing
+ * the workspace the caller just left.
+ */
 export const useAgreeTenant = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -651,8 +722,15 @@ export const useAgreeTenant = () => {
       const { data } = await agreeTenant(tenantId);
       if (data.code === 0) {
         message.success(t('message.operated'));
+        setActiveTenantId(tenantId);
         queryClient.invalidateQueries({
-          queryKey: [UserSettingApiAction.ListTenant],
+          queryKey: UserSettingKeys.tenantInfo(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: UserSettingKeys.joinedTenants(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: UserSettingKeys.tenantRoster(),
         });
       }
       return data?.data ?? [];
@@ -708,7 +786,7 @@ export const useDeleteLangfuseConfig = () => {
 
 export const useFetchLangfuseConfig = () => {
   const { data, isFetching: loading } = useQuery<ILangfuseConfig>({
-    queryKey: [UserSettingApiAction.FetchLangfuseConfig],
+    queryKey: UserSettingKeys.langfuseConfig(),
     gcTime: 0,
     queryFn: async () => {
       const { data } = await userService.getLangfuseConfig();

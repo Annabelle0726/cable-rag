@@ -1,7 +1,9 @@
 import { TenantRole } from '@/pages/user-setting/constants';
 import {
   canManageTenant,
+  canRenderTenantControls,
   getRoleDisplayConfig,
+  isAssignableTenantRole,
   isTenantMemberReadOnly,
 } from '@/utils/tenant-role';
 
@@ -52,6 +54,49 @@ describe('isTenantMemberReadOnly', () => {
 
   it('is read-only for an unrecognised role string', () => {
     expect(isTenantMemberReadOnly('something-else')).toBe(true);
+  });
+});
+
+describe('isAssignableTenantRole', () => {
+  it('admits the two roles the role endpoint can assign', () => {
+    expect(isAssignableTenantRole(TenantRole.Admin)).toBe(true);
+    expect(isAssignableTenantRole(TenantRole.Normal)).toBe(true);
+  });
+
+  it('rejects the owner, whose role is never assignable', () => {
+    expect(isAssignableTenantRole(TenantRole.Owner)).toBe(false);
+  });
+
+  it('rejects a merely invited role, which the picker has no entry for', () => {
+    // A select bound to `invite` would render blank instead of showing it.
+    expect(isAssignableTenantRole(TenantRole.Invite)).toBe(false);
+    expect(isAssignableTenantRole(undefined)).toBe(false);
+    expect(isAssignableTenantRole('something-else')).toBe(false);
+  });
+});
+
+describe('canRenderTenantControls', () => {
+  it('renders the controls for an owner and for an admin', () => {
+    expect(canRenderTenantControls(TenantRole.Owner)).toBe(true);
+    expect(canRenderTenantControls(TenantRole.Admin)).toBe(true);
+  });
+
+  it('withholds them from a member and from a merely invited user', () => {
+    expect(canRenderTenantControls(TenantRole.Normal)).toBe(false);
+    expect(canRenderTenantControls(TenantRole.Invite)).toBe(false);
+  });
+
+  it('withholds them while the role is still unknown', () => {
+    // `GET /users/me` starts empty, and `isTenantMemberReadOnly(undefined)` is
+    // deliberately false so an unreported role cannot lock an owner out. As a
+    // render gate that would flash the invite button and the roster controls at a
+    // NORMAL member until the request lands, so a control waits for the role.
+    expect(canRenderTenantControls(undefined)).toBe(false);
+    expect(canRenderTenantControls('')).toBe(false);
+  });
+
+  it('withholds them for an unrecognised role', () => {
+    expect(canRenderTenantControls('something-else')).toBe(false);
   });
 });
 

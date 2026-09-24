@@ -108,6 +108,11 @@ export interface ITenant {
   email: string;
   /** True for the workspace the caller is currently operating in. */
   is_active?: boolean;
+  /**
+   * The workspace's own name. The row's identity is the workspace, while
+   * `nickname`/`email`/`avatar` belong to its owner.
+   */
+  name?: string | null;
   nickname: string;
   role: string;
   tenant_id: string;
