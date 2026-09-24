@@ -72,3 +72,16 @@ export interface IUpdateArtifactPageRequestParams {
   slug: string;
   body: IUpdateArtifactPageRequestBody;
 }
+
+/**
+ * The body of `PUT /datasets/<id>/authorization`.
+ *
+ * The subject lists are sent for every mode; the server stores them only for
+ * `custom` and clears them otherwise, so switching away from `custom` cannot
+ * leave grants behind.
+ */
+export interface IUpdateDatasetAuthorizationRequestBody {
+  permission: string;
+  department_ids: string[];
+  user_ids: string[];
+}

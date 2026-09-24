@@ -39,6 +39,8 @@ export type DatasetTableProps = {
   datasets: IDataset[];
   loading?: boolean;
   className?: string;
+  /** Ids the viewer has hidden; shown as a quiet marker in reveal mode. */
+  hiddenDatasetIds?: string[];
 } & Pick<ReturnType<typeof useRenameDataset>, 'showDatasetRenameModal'>;
 
 /**
@@ -52,10 +54,12 @@ export function DatasetTable({
   datasets,
   loading = false,
   className,
+  hiddenDatasetIds = [],
   showDatasetRenameModal,
 }: DatasetTableProps) {
   const { t } = useTranslation();
   const { navigateToDataset } = useNavigatePage();
+  const hiddenIds = new Set(hiddenDatasetIds);
 
   return (
     <Table
@@ -118,6 +122,14 @@ export function DatasetTable({
                   <span className="shrink-0">
                     <SharedBadge>{dataset.nickname}</SharedBadge>
                   </span>
+                  {hiddenIds.has(dataset.id) && (
+                    <span
+                      className="shrink-0 border border-border-button px-1.5 py-0.5 text-xs leading-none text-text-disabled"
+                      data-testid="dataset-hidden-badge"
+                    >
+                      {t('common.hiddenBadge')}
+                    </span>
+                  )}
                 </div>
               </TableCell>
 

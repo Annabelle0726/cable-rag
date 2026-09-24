@@ -58,6 +58,18 @@ export interface IDataset {
   connectors: IConnector[];
 }
 
+/**
+ * Who may read a dataset: the mode plus, for `custom`, the granted subjects.
+ *
+ * `me` is the creator and the workspace's managers, `team` is every member of the
+ * workspace, and `custom` is exactly the departments and individuals listed here.
+ */
+export type IDatasetAuthorization = {
+  permission: string;
+  department_ids: string[];
+  user_ids: string[];
+};
+
 export type IDatasetFilter = {
   owner: Array<{
     id: string;

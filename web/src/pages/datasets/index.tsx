@@ -6,14 +6,16 @@ import { RenameDialog } from '@/components/rename-dialog';
 import { Button } from '@/components/ui/button';
 import { RAGFlowPagination } from '@/components/ui/ragflow-pagination';
 import { ListDeletionKey } from '@/constants/list-deletion';
+import { useDatasetPreferences } from '@/hooks/use-dataset-preferences';
 import { useGoToPreviousPageOnEmpty } from '@/hooks/logic-hooks';
 import { useFetchNextKnowledgeListByPage } from '@/hooks/use-knowledge-request';
 import { useQueryClient } from '@tanstack/react-query';
 import { pick } from 'lodash';
-import { Plus } from 'lucide-react';
+import { Eye, EyeOff, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
+import { arrangeDatasets } from './arrange-datasets';
 import { DatasetTable } from './dataset-table';
 import { DatasetCreatingDialog } from './dataset-creating-dialog';
 import { useSaveKnowledge } from './hooks';
@@ -66,7 +68,27 @@ export default function Datasets() {
     filter,
   } = useDatasetQuery();
 
-  const datasets = useMemo(() => filter(kbs ?? []), [filter, kbs]);
+  const { pinnedIds, hiddenIds, showHidden, setShowHidden } =
+    useDatasetPreferences();
+
+  const filteredDatasets = useMemo(() => filter(kbs ?? []), [filter, kbs]);
+
+  // Pinned datasets come first and hidden ones are dropped, both as this user's
+  // own view of a page the server already narrowed to what they may read.
+  const datasets = useMemo(
+    () =>
+      arrangeDatasets({
+        datasets: filteredDatasets,
+        pinnedIds,
+        hiddenIds,
+        showHidden,
+      }),
+    [filteredDatasets, pinnedIds, hiddenIds, showHidden],
+  );
+
+  const handleToggleShowHidden = useCallback(() => {
+    setShowHidden(!showHidden);
+  }, [setShowHidden, showHidden]);
 
   const handlePageChange = useCallback(
     (page: number, pageSize?: number) => {
@@ -138,6 +160,22 @@ export default function Datasets() {
           {t('header.dataset')}
         </h1>
         <div className="flex shrink-0 items-center gap-2">
+          {hiddenIds.length > 0 && (
+            <Button
+              variant="ghost"
+              className="h-8 shrink-0 gap-1.5 px-3 text-xs font-medium text-text-secondary"
+              onClick={handleToggleShowHidden}
+              data-testid="dataset-show-hidden"
+            >
+              {showHidden ? (
+                <EyeOff className="size-3.5" />
+              ) : (
+                <Eye className="size-3.5" />
+              )}
+              {t('common.showHidden', { count: hiddenIds.length })}
+            </Button>
+          )}
+
           <FilterPopover
             value={filterValue}
             onChange={handleFilterSubmit}
@@ -172,6 +210,7 @@ export default function Datasets() {
             <DatasetTable
               datasets={datasets}
               loading={loading}
+              hiddenDatasetIds={showHidden ? hiddenIds : []}
               showDatasetRenameModal={showDatasetRenameModal}
             />
           </div>

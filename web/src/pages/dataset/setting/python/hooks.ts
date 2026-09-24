@@ -1,6 +1,10 @@
 import { useSetModalState } from '@/hooks/common-hooks';
 
-import { useFetchKnowledgeBaseConfiguration } from '@/hooks/use-knowledge-request';
+import { PermissionRole } from '@/constants/permission';
+import {
+  useFetchDatasetAuthorization,
+  useFetchKnowledgeBaseConfiguration,
+} from '@/hooks/use-knowledge-request';
 import { useSelectParserList } from '@/hooks/use-user-setting-request';
 import { checkEmbedding } from '@/services/knowledge-service';
 import { useIsFetching } from '@tanstack/react-query';
@@ -32,6 +36,14 @@ export const useFetchKnowledgeConfigurationOnMount = (
 ) => {
   const { data: knowledgeDetails, loading } =
     useFetchKnowledgeBaseConfiguration();
+  const isCustomPermission =
+    knowledgeDetails.permission === PermissionRole.Custom;
+  // Only asked for when the dataset is `custom`: the subject lists are a
+  // manager's view, and the request would be refused for anyone else.
+  const { data: authorization } = useFetchDatasetAuthorization({
+    datasetId: knowledgeDetails.id,
+    enabled: !!knowledgeDetails.id && isCustomPermission,
+  });
 
   useEffect(() => {
     const parser_config = {
@@ -54,6 +66,17 @@ export const useFetchKnowledgeConfigurationOnMount = (
     } as z.infer<typeof formSchema>;
     form.reset(formValues);
   }, [form, knowledgeDetails]);
+
+  // The granted subjects live in their own table, so they are echoed into the
+  // picker once they arrive. Only these two fields are touched: resetting the
+  // whole form here would discard edits made while the request was in flight.
+  useEffect(() => {
+    if (!isCustomPermission) {
+      return;
+    }
+    form.setValue('department_ids', authorization.department_ids);
+    form.setValue('user_ids', authorization.user_ids);
+  }, [authorization, form, isCustomPermission]);
 
   return { knowledgeDetails, loading };
 };

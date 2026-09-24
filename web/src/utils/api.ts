@@ -172,6 +172,10 @@ export default {
   datasetFilter: `${restAPIv1}/datasets?type=filter`,
   createKb: `${restAPIv1}/datasets`,
   updateKb: (datasetId: string) => `${restAPIv1}/datasets/${datasetId}`,
+  // Who may read the dataset: the mode plus, for `custom`, the granted
+  // departments and individuals. Manager-only (creator or workspace manager).
+  datasetAuthorization: (datasetId: string) =>
+    `${restAPIv1}/datasets/${datasetId}/authorization`,
   rmKb: `${restAPIv1}/datasets`,
   getKbDetail: (datasetId: string) => `${restAPIv1}/datasets/${datasetId}`,
   getKnowledgeGraph: (knowledgeId: string) =>

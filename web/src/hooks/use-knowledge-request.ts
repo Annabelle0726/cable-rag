@@ -16,6 +16,7 @@
 
 import { useHandleFilterSubmit } from '@/components/list-filter-bar/use-handle-filter-submit';
 import message from '@/components/ui/message';
+import { PermissionRole } from '@/constants/permission';
 import { useIsGoBackend } from '@/utils/backend-variant';
 import { isDatasetId } from '@/utils/dataset-util';
 import { markListItemsDeleted } from '@/utils/list-deletion-util';
@@ -29,6 +30,7 @@ import {
   IArtifactPage,
   IArtifactTopic,
   IDataset,
+  IDatasetAuthorization,
   IDatasetFilter,
   IDatasetListResult,
   IKnowledgeGraph,
@@ -44,6 +46,7 @@ import {
   IFetchArtifactGraphRequestParams,
   ITestRetrievalRequestBody,
   IUpdateArtifactPageRequestParams,
+  IUpdateDatasetAuthorizationRequestBody,
 } from '@/interfaces/request/knowledge';
 import i18n from '@/locales/config';
 import kbService, {
@@ -54,6 +57,7 @@ import kbService, {
   getArtifactGraph,
   getArtifactPage,
   getArtifactsStructure,
+  getDatasetAuthorization,
   getKbDetail,
   getKnowledgeGraph,
   getWikiCommit,
@@ -68,6 +72,7 @@ import kbService, {
   renameTag,
   runIndex,
   updateArtifactPage,
+  updateDatasetAuthorization,
   updateKb,
 } from '@/services/knowledge-service';
 import {
@@ -100,6 +105,8 @@ export const enum KnowledgeApiAction {
   CreateKnowledge = 'createKnowledge',
   DeleteKnowledge = 'deleteKnowledge',
   SaveKnowledge = 'saveKnowledge',
+  FetchDatasetAuthorization = 'fetchDatasetAuthorization',
+  SaveDatasetAuthorization = 'saveDatasetAuthorization',
   FetchKnowledgeDetail = 'fetchKnowledgeDetail',
   FetchDatasetPipelineConfiguration = 'fetchDatasetPipelineConfiguration',
   FetchKnowledgeGraph = 'fetchKnowledgeGraph',
@@ -415,6 +422,84 @@ export const useFetchKnowledgeBaseConfiguration = (props?: {
   });
 
   return { data, loading };
+};
+
+export const DatasetAuthorizationKeys = {
+  detail: (datasetId: string | null | undefined) =>
+    [KnowledgeApiAction.FetchDatasetAuthorization, datasetId] as const,
+};
+
+/** Nothing is granted yet, and `me` is the mode a new dataset starts in. */
+export const EmptyDatasetAuthorization: IDatasetAuthorization = {
+  permission: PermissionRole.Me,
+  department_ids: [],
+  user_ids: [],
+};
+
+/**
+ * The dataset's visibility mode and the subjects a `custom` grant names.
+ *
+ * Manager-only: a member who may only read the dataset is refused by the server,
+ * so the settings dialog shows the mode from the dataset itself and only asks
+ * for the subject lists when the caller is allowed to see them.
+ */
+export const useFetchDatasetAuthorization = ({
+  datasetId,
+  enabled = true,
+}: {
+  datasetId: string | null | undefined;
+  enabled?: boolean;
+}) => {
+  const { data, isFetching } = useQuery<IDatasetAuthorization>({
+    queryKey: DatasetAuthorizationKeys.detail(datasetId),
+    initialData: EmptyDatasetAuthorization,
+    gcTime: 0,
+    enabled: !!datasetId && enabled,
+    queryFn: async () => {
+      const { data } = await getDatasetAuthorization(datasetId || '');
+      return data?.data ?? EmptyDatasetAuthorization;
+    },
+  });
+
+  return { data, loading: isFetching };
+};
+
+export const useUpdateDatasetAuthorization = () => {
+  const queryClient = useQueryClient();
+
+  const { isPending: loading, mutateAsync } = useMutation({
+    mutationKey: [KnowledgeApiAction.SaveDatasetAuthorization],
+    mutationFn: async ({
+      datasetId,
+      permission,
+      department_ids,
+      user_ids,
+    }: { datasetId: string } & IUpdateDatasetAuthorizationRequestBody) => {
+      const { data } = await updateDatasetAuthorization(datasetId, {
+        permission,
+        department_ids,
+        user_ids,
+      });
+      if (data.code === 0) {
+        await queryClient.invalidateQueries({
+          queryKey: DatasetAuthorizationKeys.detail(datasetId),
+        });
+        // The mode is part of the dataset record, so the detail and the list
+        // both go stale when it changes.
+        await queryClient.invalidateQueries({
+          queryKey: [KnowledgeApiAction.FetchKnowledgeDetail],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: [KnowledgeApiAction.FetchKnowledgeListByPage],
+        });
+      }
+      return data;
+    },
+  });
+
+  const saveDatasetAuthorization = useCallback(mutateAsync, [mutateAsync]);
+
+  return { saveDatasetAuthorization, loading };
 };
 
 export const DatasetPipelineConfigurationKeys = {

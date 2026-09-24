@@ -19,9 +19,22 @@ import {
   DatasetCategoryNavOrder,
   resolveDatasetCategory,
 } from '@/constants/dataset-category';
-import { useDeleteKnowledge, useUpdateKnowledge } from '@/hooks/use-knowledge-request';
+import {
+  useDeleteKnowledge,
+  useUpdateKnowledge,
+} from '@/hooks/use-knowledge-request';
+import { useDatasetPreferences } from '@/hooks/use-dataset-preferences';
 import { IDataset } from '@/interfaces/database/dataset';
-import { LucideTags, PenLine, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  LucideTags,
+  PenLine,
+  Pin,
+  PinOff,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
 import { MouseEventHandler, PropsWithChildren, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRenameDataset } from './use-rename-dataset';
@@ -39,8 +52,19 @@ export function DatasetDropdown({
   // The class is stored on the dataset itself, so every user and every browser
   // sees the same filing; `true` refreshes the paginated list the cards read.
   const { saveKnowledgeConfiguration } = useUpdateKnowledge(true);
+  const { isPinned, isHidden, togglePin, toggleHide } = useDatasetPreferences();
 
-  const { category: resolvedCategory, customTag } = resolveDatasetCategory(dataset);
+  const { category: resolvedCategory, customTag } =
+    resolveDatasetCategory(dataset);
+
+  const handleTogglePin: MouseEventHandler<HTMLDivElement> = useCallback(() => {
+    togglePin(dataset.id);
+  }, [dataset.id, togglePin]);
+
+  const handleToggleHide: MouseEventHandler<HTMLDivElement> =
+    useCallback(() => {
+      toggleHide(dataset.id);
+    }, [dataset.id, toggleHide]);
 
   const handleShowDatasetRenameModal: MouseEventHandler<HTMLDivElement> =
     useCallback(
@@ -84,6 +108,23 @@ export function DatasetDropdown({
         <DropdownMenuItem onClick={handleShowDatasetRenameModal}>
           {t('common.rename')} <PenLine />
         </DropdownMenuItem>
+
+        {/* Pin and hide are this user's own list preferences, so they are stored
+            in the browser and change nothing about who may read the dataset. */}
+        <DropdownMenuItem
+          onClick={handleTogglePin}
+          data-testid="dataset-toggle-pin"
+        >
+          {isPinned(dataset.id) ? t('common.unpin') : t('common.pin')}
+          {isPinned(dataset.id) ? <PinOff /> : <Pin />}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={handleToggleHide}
+          data-testid="dataset-toggle-hide"
+        >
+          {isHidden(dataset.id) ? t('common.showInList') : t('common.hide')}
+          {isHidden(dataset.id) ? <Eye /> : <EyeOff />}
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
 
         <DropdownMenuSub>
@@ -97,8 +138,11 @@ export function DatasetDropdown({
 
           <DropdownMenuSubContent className="w-56">
             {DatasetCategoryNavOrder.map((category) => {
-              const { icon: CategoryIcon, labelKey, toneClass } =
-                DatasetCategoryDefinitions[category];
+              const {
+                icon: CategoryIcon,
+                labelKey,
+                toneClass,
+              } = DatasetCategoryDefinitions[category];
 
               return (
                 <DropdownMenuCheckboxItem

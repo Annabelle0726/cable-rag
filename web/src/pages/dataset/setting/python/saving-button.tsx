@@ -1,6 +1,10 @@
 import { ButtonLoading } from '@/components/ui/button';
+import { PermissionRole } from '@/constants/permission';
 import { ParseType } from '@/constants/knowledge';
-import { useUpdateKnowledge } from '@/hooks/use-knowledge-request';
+import {
+  useUpdateDatasetAuthorization,
+  useUpdateKnowledge,
+} from '@/hooks/use-knowledge-request';
 import { useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -50,6 +54,7 @@ export function GeneralSavingButton() {
 export function SavingButton() {
   const { saveKnowledgeConfiguration, loading: submitLoading } =
     useUpdateKnowledge();
+  const { saveDatasetAuthorization } = useUpdateDatasetAuthorization();
   const form = useFormContext();
   const { id: kb_id } = useParams();
   const { t } = useTranslation();
@@ -91,6 +96,23 @@ export function SavingButton() {
                       ? values.parser_config.children_delimiter
                       : '',
                   },
+                });
+
+                // The mode is stored on the dataset row, but its subjects live in
+                // the authorization table, so the grant is written by its own
+                // endpoint — which also clears the subjects for a mode that has
+                // none, leaving no stale grants behind.
+                await saveDatasetAuthorization({
+                  datasetId: kb_id as string,
+                  permission: values.permission,
+                  department_ids:
+                    values.permission === PermissionRole.Custom
+                      ? (values.department_ids ?? [])
+                      : [],
+                  user_ids:
+                    values.permission === PermissionRole.Custom
+                      ? (values.user_ids ?? [])
+                      : [],
                 });
               })();
             }

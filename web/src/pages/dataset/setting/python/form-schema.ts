@@ -20,6 +20,11 @@ export const formSchema = z
     // avatar: z.instanceof(File),
     avatar: z.any().nullish(),
     permission: z.string().optional(),
+    // The subjects of a `custom` grant. They are stored by the authorization
+    // endpoint rather than by the dataset row, so they ride along in the form
+    // only to keep the picker and the save action in one place.
+    department_ids: z.array(z.string()).optional(),
+    user_ids: z.array(z.string()).optional(),
     language: z.string().optional(),
     chunk_method: z.string(),
     pipeline_id: z.string().optional(),

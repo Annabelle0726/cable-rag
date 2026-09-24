@@ -23,6 +23,7 @@ import {
   IFetchDocumentListRequestBody,
   IFetchKnowledgeListRequestParams,
   IUpdateArtifactPageRequestBody,
+  IUpdateDatasetAuthorizationRequestBody,
 } from '@/interfaces/request/knowledge';
 import api from '@/utils/api';
 import nextRequest from '@/utils/next-request';
@@ -368,6 +369,21 @@ export const datasetFilter = () => request.get(api.datasetFilter);
 
 export const updateKb = (datasetId: string, data: Record<string, any>) =>
   request.put(api.updateKb(datasetId), { data });
+
+/**
+ * Who may read the dataset, plus the subjects a `custom` grant names.
+ *
+ * Manager-only on the server (creator or workspace manager): a member who may
+ * only read is refused with `code=108`.
+ */
+export const getDatasetAuthorization = (datasetId: string) =>
+  request.get(api.datasetAuthorization(datasetId));
+
+/** Replace the visibility mode and, for `custom`, the whole subject set. */
+export const updateDatasetAuthorization = (
+  datasetId: string,
+  data: IUpdateDatasetAuthorizationRequestBody,
+) => request.put(api.datasetAuthorization(datasetId), { data });
 
 export const runIndex = (datasetId: string, indexType: string) =>
   request.post(api.runIndex(datasetId, indexType));

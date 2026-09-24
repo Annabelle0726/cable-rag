@@ -51,6 +51,8 @@ export default function DatasetSettings() {
       name: '',
       chunk_method: DocumentParserType.Naive,
       permission: PermissionRole.Me,
+      department_ids: [],
+      user_ids: [],
       language: DEFAULT_DATASET_LANGUAGE,
       parser_config: {
         layout_recognize: DocumentType.DeepDOC,

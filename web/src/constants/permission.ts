@@ -17,4 +17,6 @@
 export enum PermissionRole {
   Me = 'me',
   Team = 'team',
+  /** Only the departments and individuals named on the dataset. */
+  Custom = 'custom',
 }

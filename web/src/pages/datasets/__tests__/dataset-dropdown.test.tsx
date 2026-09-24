@@ -5,6 +5,8 @@ import { DatasetDropdown } from '../dataset-dropdown';
 const mockSave = jest.fn();
 const mockDeleteKnowledge = jest.fn();
 const mockShowRename = jest.fn();
+const mockTogglePin = jest.fn();
+const mockToggleHide = jest.fn();
 
 jest.mock('@/hooks/use-knowledge-request', () => ({
   useUpdateKnowledge: () => ({
@@ -14,6 +16,17 @@ jest.mock('@/hooks/use-knowledge-request', () => ({
   useDeleteKnowledge: () => ({
     deleteKnowledge: (...args: unknown[]) => mockDeleteKnowledge(...args),
     loading: false,
+  }),
+}));
+
+// The list preferences are the viewer's own, read from a store keyed by the
+// signed-in account; the test drives the two toggles directly.
+jest.mock('@/hooks/use-dataset-preferences', () => ({
+  useDatasetPreferences: () => ({
+    isPinned: () => false,
+    isHidden: () => false,
+    togglePin: (...args: unknown[]) => mockTogglePin(...args),
+    toggleHide: (...args: unknown[]) => mockToggleHide(...args),
   }),
 }));
 
@@ -49,7 +62,9 @@ const renderDropdown = () =>
 // way a keyboard user does: ArrowDown on the trigger, ArrowRight on the submenu
 // trigger, then a click on the item.
 const openMenu = async () => {
-  fireEvent.keyDown(screen.getByTestId('dataset-actions'), { key: 'ArrowDown' });
+  fireEvent.keyDown(screen.getByTestId('dataset-actions'), {
+    key: 'ArrowDown',
+  });
 
   await waitFor(() => {
     expect(screen.getByTestId('dataset-category-menu')).toBeInTheDocument();
@@ -72,6 +87,34 @@ const openCategorySubmenu = async () => {
 describe('dataset card class menu', () => {
   beforeEach(() => {
     mockSave.mockClear();
+    mockTogglePin.mockClear();
+    mockToggleHide.mockClear();
+  });
+
+  it('offers pin and hide alongside the class menu', async () => {
+    renderDropdown();
+    await openMenu();
+
+    expect(screen.getByTestId('dataset-toggle-pin')).toBeInTheDocument();
+    expect(screen.getByTestId('dataset-toggle-hide')).toBeInTheDocument();
+  });
+
+  it('pins the dataset from the quick menu', async () => {
+    renderDropdown();
+    await openMenu();
+
+    fireEvent.click(screen.getByTestId('dataset-toggle-pin'));
+
+    expect(mockTogglePin).toHaveBeenCalledWith('kb-1');
+  });
+
+  it('hides the dataset from the quick menu', async () => {
+    renderDropdown();
+    await openMenu();
+
+    fireEvent.click(screen.getByTestId('dataset-toggle-hide'));
+
+    expect(mockToggleHide).toHaveBeenCalledWith('kb-1');
   });
 
   it('offers the industrial classes plus the automatic option', async () => {
@@ -85,9 +128,7 @@ describe('dataset card class menu', () => {
     expect(
       screen.getByTestId(`dataset-category-set-${DatasetCategory.General}`),
     ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('dataset-category-set-auto'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('dataset-category-set-auto')).toBeInTheDocument();
   });
 
   it('stores the chosen class on the dataset', async () => {
