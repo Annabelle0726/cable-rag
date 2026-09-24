@@ -138,6 +138,8 @@ module.exports = {
            tokens so light and dark switch in one place. */
         'table-header': 'var(--table-header-bg)',
         'table-row-hover': 'var(--table-row-hover)',
+        'table-row-base': 'var(--table-row-base)',
+        'table-row-alternate': 'var(--table-row-alternate)',
         /* Semantic content scale: text is coloured by role, and both themes
            resolve it from the tokens declared in tailwind.css. */
         content: {
@@ -324,13 +326,7 @@ module.exports = {
           'Arial',
           'sans-serif',
         ],
-        mono: [
-          'Consolas',
-          '"Courier New"',
-          'SimSun',
-          '"宋体"',
-          'monospace',
-        ],
+        mono: ['Consolas', '"Courier New"', 'SimSun', '"宋体"', 'monospace'],
       },
       keyframes: {
         'accordion-down': {

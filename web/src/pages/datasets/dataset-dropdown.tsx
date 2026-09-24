@@ -24,6 +24,8 @@ import {
   useUpdateKnowledge,
 } from '@/hooks/use-knowledge-request';
 import { useDatasetPreferences } from '@/hooks/use-dataset-preferences';
+import { useCanManageDataset } from '@/hooks/use-can-manage-dataset';
+import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
 import { IDataset } from '@/interfaces/database/dataset';
 import {
   Eye,
@@ -48,6 +50,11 @@ export function DatasetDropdown({
     dataset: IDataset;
   }) {
   const { t } = useTranslation();
+  const canManage = useCanManageDataset(dataset);
+  const { navigateToDatasetSetting } = useNavigatePage();
+  const handleVisibilitySettings = useCallback(() => {
+    navigateToDatasetSetting(dataset.id);
+  }, [dataset.id, navigateToDatasetSetting]);
   const { deleteKnowledge } = useDeleteKnowledge();
   // The class is stored on the dataset itself, so every user and every browser
   // sees the same filing; `true` refreshes the paginated list the cards read.
@@ -105,6 +112,12 @@ export function DatasetDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
       <DropdownMenuContent>
+        <DropdownMenuItem
+          disabled={!canManage}
+          onClick={handleVisibilitySettings}
+        >
+          {t('listVisibility.settings')} <Eye />
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={handleShowDatasetRenameModal}>
           {t('common.rename')} <PenLine />
         </DropdownMenuItem>

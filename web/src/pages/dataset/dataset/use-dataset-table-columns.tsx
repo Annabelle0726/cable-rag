@@ -1,3 +1,5 @@
+import { useCanManageDataset } from '@/hooks/use-can-manage-dataset';
+import { useKnowledgeBaseContext } from '../contexts/knowledge-base-context';
 import { FileIcon } from '@/components/icon-font';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -44,7 +46,9 @@ export function useDatasetTableColumns({
   });
   // const { dataSourceInfo } = useDataSourceInfo();
   const { navigateToChunkParsedResult } = useNavigatePage();
-  const { setDocumentStatus } = useSetDocumentStatus();
+  const { setDocumentStatus, loading: statusLoading } = useSetDocumentStatus();
+  const { knowledgeBase } = useKnowledgeBaseContext();
+  const canManage = useCanManageDataset(knowledgeBase);
   const { id: datasetId } = useParams();
 
   const columns: ColumnDef<IDocumentInfo>[] = useMemo(
@@ -107,7 +111,22 @@ export function useDatasetTableColumns({
                   )}
                 >
                   <FileIcon name={name}></FileIcon>
-                  <span className={cn('truncate')}>{name}</span>
+                  <span
+                    className={cn(
+                      'truncate',
+                      row.original.status === '0' && 'text-text-disabled',
+                    )}
+                  >
+                    {name}
+                  </span>
+                  {row.original.status === '0' && (
+                    <span
+                      className="shrink-0 border border-border-button px-1.5 py-0.5 text-xs text-text-secondary"
+                      title={t('hiddenFileHint')}
+                    >
+                      {t('hiddenFile')}
+                    </span>
+                  )}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -153,6 +172,8 @@ export function useDatasetTableColumns({
           return (
             <Switch
               checked={row.getValue('status') === '1'}
+              disabled={!canManage || statusLoading}
+              aria-label={t('enabled')}
               onCheckedChange={(e) => {
                 setDocumentStatus({
                   status: e,
@@ -256,6 +277,8 @@ export function useDatasetTableColumns({
       t,
       navigateToChunkParsedResult,
       setDocumentStatus,
+      statusLoading,
+      canManage,
       datasetId,
       showChangeParserModal,
       showRenameModal,

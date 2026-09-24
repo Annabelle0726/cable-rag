@@ -1,5 +1,14 @@
 export default {
   translation: {
+    listVisibility: {
+      settings: '可见性设置',
+      pinned: '已置顶',
+      team: '公开（工作区内）',
+      private: '私有',
+      custom: '指定部门 / 人员可见',
+      hideFile: '隐藏文件（退出检索）',
+      restoreFile: '恢复显示与检索',
+    },
     common: {
       confirm: '确定',
       back: '返回',
@@ -463,6 +472,8 @@ export default {
       empty: '暂无数据',
     },
     knowledgeDetails: {
+      hiddenFile: '已隐藏',
+      hiddenFileHint: '该文件不参与检索；管理列表保留此行以便恢复。',
       continueUpload: '继续上传',
       goToConfiguration: '前往配置',
       uploadMissingModelsTitle: '部分文件缺少解析所需的模型',
@@ -782,14 +793,14 @@ export default {
       language: '文档语言',
       languageMessage: '请输入语言',
       languagePlaceholder: '请输入语言',
-      permissions: '权限',
+      permissions: '可见性设置',
       embeddingModel: 'Embedding 模型',
       chunkTokenNumber: '建议文本块大小',
       chunkTokenNumberMessage: '块 Token 数是必填项',
       embeddingModelTip:
         '知识库采用的默认 Embedding 模型。一旦知识库内已经产生了文本块，更换 Embedding 模型时，系统将随机抽取若干 Chunk 进行兼容性校验，使用新 Embedding 模型重新编码并计算新旧向量的余弦相似度，样本平均相似度需 ≥ 0.9 方可切换。否则，必须删除知识库内的所有文本块后才能更改。',
       permissionsTip:
-        '如果把知识库权限设为“团队”，则所有团队成员都可以操作该知识库。',
+        '公开：工作区成员可读取和检索；私有：仅创建者与工作区所有者/管理员可见；指定范围：对勾选部门或人员可见。读取权限不授予编辑权限。',
       chunkTokenNumberTip:
         '建议的生成文本块的 Token 数阈值。如果切分得到的小文本段 token 数达不到这一阈值就会不断与之后的文本段合并，直至再合并下一个文本段会超过这一阈值为止，此时产生一个最终文本块。如果系统在切分文本段时始终没有遇到文本分段标识符，即便文本段 token 数已经超过这一阈值，系统也不会生成新文本块。',
       chunkMethod: '切片方法',
@@ -800,18 +811,18 @@ export default {
       embeddingModelPlaceholder: '请选择 Embedding 模型',
       chunkMethodPlaceholder: '请选择分块方法',
       save: '保存',
-      me: '只有我',
+      me: '私有（创建者及管理员）',
       team: '团队',
       custom: '指定部门与人员',
-      customDepartments: '部门',
-      customUsers: '人员',
+      customDepartments: '对这些部门可见',
+      customUsers: '对这些人员可见',
       customDepartmentsPlaceholder: '请选择部门',
       customUsersPlaceholder: '请选择人员',
       customDepartmentsEmpty:
         '当前工作区还没有部门，请先到「团队成员」中创建。',
       customUsersEmpty: '当前工作区还没有其他成员。',
       customHint:
-        '只有被指定的部门与人员可以读取本知识库，他们可以检索，但不能修改——编辑权限始终属于创建者与工作区管理员。',
+        '对所选部门成员或所选人员可见，对其余人员隐藏。取消人员勾选不会覆盖其部门授权；要隐藏该人员，需同时移除其部门授权。部门成员变动后自动继承权限。创建者与工作区所有者/管理员始终可见；读取和检索权限不包含编辑权限。',
       cancel: '取消',
       methodTitle: '分块方法说明',
       methodExamples: '示例',

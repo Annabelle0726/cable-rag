@@ -2,6 +2,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { DatasetCategory } from '@/constants/dataset-category';
 import { DatasetDropdown } from '../dataset-dropdown';
 
+const mockNavigateSettings = jest.fn();
+let mockCanManage = true;
+jest.mock('@/hooks/logic-hooks/navigate-hooks', () => ({
+  useNavigatePage: () => ({ navigateToDatasetSetting: mockNavigateSettings }),
+}));
+jest.mock('@/hooks/use-can-manage-dataset', () => ({
+  useCanManageDataset: () => mockCanManage,
+}));
 const mockSave = jest.fn();
 const mockDeleteKnowledge = jest.fn();
 const mockShowRename = jest.fn();
@@ -86,6 +94,7 @@ const openCategorySubmenu = async () => {
 
 describe('dataset card class menu', () => {
   beforeEach(() => {
+    mockCanManage = true;
     mockSave.mockClear();
     mockTogglePin.mockClear();
     mockToggleHide.mockClear();
@@ -156,5 +165,25 @@ describe('dataset card class menu', () => {
     await waitFor(() => {
       expect(mockSave).toHaveBeenCalledWith({ kb_id: 'kb-1', category: '' });
     });
+  });
+});
+
+describe('dataset visibility entry', () => {
+  it('opens dataset settings for a manager', async () => {
+    mockCanManage = true;
+    renderDropdown();
+    await openMenu();
+    fireEvent.click(screen.getByText('listVisibility.settings'));
+    expect(mockNavigateSettings).toHaveBeenCalledWith('kb-1');
+  });
+  it('disables visibility changes for read-only viewers', async () => {
+    mockCanManage = false;
+    mockNavigateSettings.mockClear();
+    renderDropdown();
+    await openMenu();
+    expect(screen.getByText('listVisibility.settings')).toHaveAttribute(
+      'data-disabled',
+    );
+    expect(mockNavigateSettings).not.toHaveBeenCalled();
   });
 });

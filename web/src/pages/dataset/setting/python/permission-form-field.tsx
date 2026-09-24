@@ -18,7 +18,10 @@ export function PermissionFormField() {
   }, [t]);
 
   return (
-    <>
+    <section
+      className="rounded-lg border border-table-border bg-table-row-alternate p-4"
+      aria-label={t('listVisibility.settings')}
+    >
       <RAGFlowFormItem
         name="permission"
         label={t('knowledgeConfiguration.permissions')}
@@ -34,7 +37,10 @@ export function PermissionFormField() {
         ></SelectWithSearch>
       </RAGFlowFormItem>
 
+      <p className="mb-4 text-sm text-text-secondary">
+        {t('knowledgeConfiguration.permissionsTip')}
+      </p>
       {permission === PermissionRole.Custom && <DatasetAuthorizationFields />}
-    </>
+    </section>
   );
 }

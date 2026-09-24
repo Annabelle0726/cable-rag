@@ -1,5 +1,14 @@
 export default {
   translation: {
+    listVisibility: {
+      settings: 'Visibility settings',
+      pinned: 'Pinned',
+      team: 'Public within workspace',
+      private: 'Private',
+      custom: 'Selected departments / people',
+      hideFile: 'Hide file from retrieval',
+      restoreFile: 'Restore visibility and retrieval',
+    },
     common: {
       confirm: 'Confirm',
       back: 'Back',
@@ -506,6 +515,9 @@ export default {
       empty: 'No data',
     },
     knowledgeDetails: {
+      hiddenFile: 'Hidden',
+      hiddenFileHint:
+        'Excluded from retrieval; kept in the management list for restoration.',
       continueUpload: 'Continue upload',
       goToConfiguration: 'Go to configuration',
       uploadMissingModelsTitle: 'Some files lack a required model',
@@ -859,7 +871,7 @@ export default {
       embeddingModelTip:
         'The default embedding model used by the dataset. Once the dataset has chunks, when switching the embedding model, the system randomly samples a few chunks for a compatibility check, re-embeds them with the new embedding model, and computes cosine similarity between the new and old vectors. Switching is allowed only when the average similarity of the sample is ≥ 0.9. Otherwise, you must delete all chunks in the dataset before you can change it.',
       permissionsTip:
-        "If it is set to 'Team', all your team members will be able to manage the dataset.",
+        'Public: workspace members can read and retrieve. Private: only the creator and workspace owners/admins can access. Custom: selected departments or people can read. Read access never grants editing rights.',
       chunkTokenNumberTip:
         'It kind of sets the token threshold for a creating a chunk. A segment with fewer tokens than this threshold will be combined with the following segments until the token count exceeds the threshold, at which point a chunk is created. No new chunk is created unless a delimiter is encountered, even if the threshold is exceeded.',
       chunkMethod: 'Chunking method',
@@ -903,18 +915,18 @@ export default {
         tag: 'Tag',
       },
       save: 'Save',
-      me: 'Only me',
+      me: 'Private (creator and managers)',
       team: 'Team',
       custom: 'Specific departments and people',
-      customDepartments: 'Departments',
-      customUsers: 'People',
+      customDepartments: 'Visible to departments',
+      customUsers: 'Visible to people',
       customDepartmentsPlaceholder: 'Select departments',
       customUsersPlaceholder: 'Select people',
       customDepartmentsEmpty:
         'This workspace has no departments yet. Create one under Workspace members first.',
       customUsersEmpty: 'This workspace has no other members yet.',
       customHint:
-        'Only the listed departments and people can read this dataset. They can retrieve from it, never change it — editing stays with you and the workspace managers.',
+        'Visible to selected departments or people; hidden from everyone else. Removing a person does not override their department grant: remove that grant too to hide access. Department membership changes apply automatically. The creator and workspace owners/admins always retain access. Read access never grants editing rights.',
       cancel: 'Cancel',
       methodTitle: 'Chunking method description',
       methodExamples: 'Examples',

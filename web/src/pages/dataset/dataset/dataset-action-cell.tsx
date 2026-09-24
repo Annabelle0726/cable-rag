@@ -7,13 +7,19 @@ import {
 } from '@/components/ui/hover-card';
 import { DocumentType } from '@/constants/knowledge';
 import { UseRowSelectionType } from '@/hooks/logic-hooks/use-row-selection';
-import { useRemoveDocument } from '@/hooks/use-document-request';
+import { useCanManageDataset } from '@/hooks/use-can-manage-dataset';
+import { useKnowledgeBaseContext } from '../contexts/knowledge-base-context';
+import { useTranslation } from 'react-i18next';
+import {
+  useSetDocumentStatus,
+  useRemoveDocument,
+} from '@/hooks/use-document-request';
 import { IDocumentInfo } from '@/interfaces/database/document';
 import { downloadDatasetDocument } from '@/services/file-manager-service';
 import { formatFileSize } from '@/utils/common-util';
 import { formatDate } from '@/utils/date';
 import { downloadFileFromBlob } from '@/utils/file-util';
-import { Download, Eye, PenLine, Trash2 } from 'lucide-react';
+import { Download, Eye, EyeOff, PenLine, Trash2 } from 'lucide-react';
 import { omit } from 'lodash';
 import { useCallback } from 'react';
 import { UseRenameDocumentShowType } from './use-rename-document';
@@ -33,6 +39,27 @@ export function DatasetActionCell({
   setRowSelection,
 }: { record: IDocumentInfo } & UseRenameDocumentShowType &
   Pick<UseRowSelectionType, 'setRowSelection'>) {
+  const { t } = useTranslation();
+  const { knowledgeBase } = useKnowledgeBaseContext();
+  const canManage = useCanManageDataset(knowledgeBase);
+  const { setDocumentStatus, loading: visibilityLoading } =
+    useSetDocumentStatus();
+  const hidden = record.status === '0';
+  const visibilityLabel = t(
+    hidden ? 'listVisibility.restoreFile' : 'listVisibility.hideFile',
+  );
+  const handleToggleVisibility = useCallback(async () => {
+    if (!canManage) return;
+    try {
+      await setDocumentStatus({
+        documentId: record.id,
+        datasetId: record.dataset_id,
+        status: hidden,
+      });
+    } catch {
+      // The request layer reports errors; retain the server-provided state.
+    }
+  }, [canManage, hidden, record.id, record.dataset_id, setDocumentStatus]);
   const { id, type } = record;
   const isRunning = isDocumentProcessing(record);
   const isVirtualDocument = type === DocumentType.Virtual;
@@ -68,11 +95,7 @@ export function DatasetActionCell({
   }, [record, showRenameModal]);
 
   return (
-    <div
-      className="
-      flex gap-2 items-center opacity-0
-      transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-    >
+    <div className="flex gap-2 items-center">
       <Button
         size="icon-xs"
         variant="ghost"
@@ -118,6 +141,21 @@ export function DatasetActionCell({
           <Download className="size-[1em]" />
         </Button>
       )}
+      <Button
+        size="icon-xs"
+        variant="ghost"
+        disabled={!canManage || isRunning || visibilityLoading}
+        onClick={handleToggleVisibility}
+        aria-label={visibilityLabel}
+        title={visibilityLabel}
+        data-testid="document-toggle-visibility"
+      >
+        {hidden ? (
+          <Eye className="size-[1em]" />
+        ) : (
+          <EyeOff className="size-[1em]" />
+        )}
+      </Button>
       <ConfirmDeleteDialog onOk={handleRemove}>
         <Button
           data-testid="document-delete"

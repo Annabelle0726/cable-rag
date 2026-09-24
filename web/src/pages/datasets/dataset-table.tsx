@@ -1,5 +1,7 @@
 import { DatasetCategoryChip } from '@/components/dataset-category';
 import { MoreButton } from '@/components/more-button';
+import { Pin } from 'lucide-react';
+import { useDatasetPreferences } from '@/hooks/use-dataset-preferences';
 import { SharedBadge } from '@/components/shared-badge';
 import { TableSkeleton } from '@/components/table-skeleton';
 import {
@@ -43,13 +45,6 @@ export type DatasetTableProps = {
   hiddenDatasetIds?: string[];
 } & Pick<ReturnType<typeof useRenameDataset>, 'showDatasetRenameModal'>;
 
-/**
- * 国网 ECP 风格知识库数据表。
- *
- * 卡片改为高密度表格：表头 #F5F7FA / 40px，行高 38px，每行一条 1px 浅灰下边框，
- * Hover 整行转为 #F5F7FA 灰底。列序固定为「标识 / 数据集名称 / 文件数量 /
- * 最后更新时间 / 状态 / 操作」。
- */
 export function DatasetTable({
   datasets,
   loading = false,
@@ -60,6 +55,7 @@ export function DatasetTable({
   const { t } = useTranslation();
   const { navigateToDataset } = useNavigatePage();
   const hiddenIds = new Set(hiddenDatasetIds);
+  const { isPinned } = useDatasetPreferences();
 
   return (
     <Table
@@ -70,7 +66,7 @@ export function DatasetTable({
       )}
       data-testid="dataset-table"
     >
-      <TableHeader className="bg-table-header">
+      <TableHeader className="bg-table-header [&_tr]:border-b [&_tr]:border-table-border">
         <TableRow className="hover:bg-table-header">
           {/* One header spec for every column: #303133 半粗体 on #F5F7FA, 40px 高。 */}
           <TableHead className={cn(headCellClass, ColumnWidth.identity)}>
@@ -101,7 +97,7 @@ export function DatasetTable({
           datasets.map((dataset) => (
             <TableRow
               key={dataset.id}
-              className="h-[38px] border-b border-table-border hover:bg-table-row-hover"
+              className="h-[38px] border-b border-table-border odd:bg-table-row-base even:bg-table-row-alternate hover:bg-table-row-hover"
               data-testid="dataset-row"
             >
               <TableCell className="h-[38px] py-0 align-middle">
@@ -119,6 +115,20 @@ export function DatasetTable({
                   >
                     {dataset.name}
                   </button>
+                  {isPinned(dataset.id) && (
+                    <span
+                      className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-cable-brand"
+                      data-testid="dataset-pinned-badge"
+                    >
+                      <Pin className="size-3.5" aria-hidden />
+                      {t('listVisibility.pinned')}
+                    </span>
+                  )}
+                  <span className="shrink-0 border border-border-button px-1.5 py-0.5 text-xs text-text-secondary">
+                    {t(
+                      `listVisibility.${dataset.permission === 'team' ? 'team' : dataset.permission === 'custom' ? 'custom' : 'private'}`,
+                    )}
+                  </span>
                   <span className="shrink-0">
                     <SharedBadge>{dataset.nickname}</SharedBadge>
                   </span>

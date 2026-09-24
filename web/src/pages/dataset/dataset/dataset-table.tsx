@@ -126,16 +126,22 @@ export function DatasetTable({
       <Table
         rootClassName={
           bulkOperateBarVisible
-            ? 'max-h-[calc(100vh-320px)]'
-            : 'max-h-[calc(100vh-280px)]'
+            ? 'border border-table-border max-h-[calc(100vh-320px)]'
+            : 'border border-table-border max-h-[calc(100vh-280px)]'
         }
       >
-        <TableHeader>
+        <TableHeader className="bg-table-header [&_tr]:border-b [&_tr]:border-table-border">
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
+            <TableRow
+              key={headerGroup.id}
+              className="border-b border-table-border hover:bg-table-header"
+            >
               {headerGroup.headers.map((header) => {
                 return (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className="h-10 text-[13px] font-semibold text-table-head-ink"
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -156,7 +162,7 @@ export function DatasetTable({
                 data-testid="document-row"
                 data-doc-name={row.original.name}
                 data-state={row.getIsSelected() && 'selected'}
-                className="group"
+                className="group border-b border-table-border odd:bg-table-row-base even:bg-table-row-alternate hover:bg-table-row-hover data-[state=selected]:bg-table-row-hover"
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell
