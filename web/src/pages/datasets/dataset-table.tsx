@@ -132,14 +132,6 @@ export function DatasetTable({
                   <span className="shrink-0">
                     <SharedBadge>{dataset.nickname}</SharedBadge>
                   </span>
-                  {hiddenIds.has(dataset.id) && (
-                    <span
-                      className="shrink-0 border border-border-button px-1.5 py-0.5 text-xs leading-none text-text-disabled"
-                      data-testid="dataset-hidden-badge"
-                    >
-                      {t('common.hiddenBadge')}
-                    </span>
-                  )}
                 </div>
               </TableCell>
 
@@ -155,16 +147,18 @@ export function DatasetTable({
                 <span
                   className={cn(
                     'inline-flex items-center border px-1.5 py-0.5 text-xs leading-none',
-                    isAvailable(dataset)
+                    !hiddenIds.has(dataset.id) && isAvailable(dataset)
                       ? 'border-status-available-border bg-status-available text-status-available-ink'
                       : 'border-status-archived-border bg-status-archived text-status-archived-ink',
                   )}
                   data-testid="dataset-status"
                 >
                   {t(
-                    isAvailable(dataset)
-                      ? 'datasetTable.available'
-                      : 'datasetTable.archived',
+                    hiddenIds.has(dataset.id)
+                      ? 'common.hiddenBadge'
+                      : isAvailable(dataset)
+                        ? 'datasetTable.available'
+                        : 'datasetTable.archived',
                   )}
                 </span>
               </TableCell>

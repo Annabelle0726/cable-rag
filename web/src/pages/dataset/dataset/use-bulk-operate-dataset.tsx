@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { toast } from 'sonner';
 import { useKnowledgeBaseContext } from '../contexts/knowledge-base-context';
+import { useDocumentVisibility } from './use-document-visibility';
 import { DocumentType } from './constant';
 import { buildParserGapModalContent } from './parser-gap-content';
 import { useParserGapValidation } from './use-parser-gap-validation';
@@ -48,6 +49,7 @@ export function useBulkOperateDataset({
   const { visible, showModal, hideModal } = useSetModalState();
   const { findDocumentParseGaps } = useParserGapValidation();
   const { knowledgeBase } = useKnowledgeBaseContext();
+  const { parentHidden } = useDocumentVisibility();
 
   const chunkNum = useMemo(() => {
     if (!documents.length) {
@@ -170,13 +172,14 @@ export function useBulkOperateDataset({
 
   const onChangeStatus = useCallback(
     (enabled: boolean) => {
+      if (parentHidden) return;
       setDocumentStatus({
         status: enabled,
         documentId: selectedRowKeys,
         datasetId: id!,
       });
     },
-    [selectedRowKeys, setDocumentStatus, id],
+    [selectedRowKeys, setDocumentStatus, id, parentHidden],
   );
 
   const handleEnableClick = useCallback(() => {
@@ -244,5 +247,14 @@ export function useBulkOperateDataset({
     },
   ];
 
-  return { chunkNum, list, visible, hideModal, showModal, handleRunClick };
+  return {
+    chunkNum,
+    list: parentHidden
+      ? list.filter((item) => item.id !== 'enabled' && item.id !== 'disabled')
+      : list,
+    visible,
+    hideModal,
+    showModal,
+    handleRunClick,
+  };
 }

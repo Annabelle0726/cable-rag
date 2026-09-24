@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { DatasetActionCell } from '../dataset-action-cell';
 const ActionCell = DatasetActionCell;
 type DocumentRecord = Parameters<typeof ActionCell>[0]['record'];
@@ -9,6 +10,10 @@ jest.mock('@/components/confirm-delete-dialog', () => ({
 }));
 const mockSetStatus = jest.fn();
 let mockCanManage = true;
+let mockParentHidden = false;
+jest.mock('@/hooks/use-dataset-preferences', () => ({
+  useDatasetPreferences: () => ({ isHidden: () => mockParentHidden }),
+}));
 let mockLoading = false;
 let mockRunning = false;
 jest.mock('@/hooks/use-document-request', () => ({
@@ -22,7 +27,7 @@ jest.mock('@/hooks/use-can-manage-dataset', () => ({
   useCanManageDataset: () => mockCanManage,
 }));
 jest.mock('../../contexts/knowledge-base-context', () => ({
-  useKnowledgeBaseContext: () => ({ knowledgeBase: {} }),
+  useKnowledgeBaseContext: () => ({ knowledgeBase: { id: 'kb-1' } }),
 }));
 jest.mock('../utils', () => ({ isDocumentProcessing: () => mockRunning }));
 jest.mock('@/services/file-manager-service', () => ({
@@ -41,15 +46,18 @@ function renderFile(status = '1') {
     status,
   } as DocumentRecord;
   return render(
-    <DatasetActionCell
-      record={record}
-      showRenameModal={jest.fn()}
-      setRowSelection={jest.fn()}
-    />,
+    <TooltipProvider delayDuration={0}>
+      <DatasetActionCell
+        record={record}
+        showRenameModal={jest.fn()}
+        setRowSelection={jest.fn()}
+      />
+    </TooltipProvider>,
   );
 }
 
 beforeEach(() => {
+  mockParentHidden = false;
   mockCanManage = true;
   mockLoading = false;
   mockRunning = false;
@@ -118,3 +126,64 @@ it('preserves visibility on a network failure', async () => {
     screen.getByRole('button', { name: 'listVisibility.hideFile' }),
   ).toBeInTheDocument();
 });
+
+it('uses distinct detail and state icons with labels on all five actions', () => {
+  const { container } = renderFile();
+  expect(
+    screen
+      .getByRole('button', { name: 'listVisibility.fileDetails' })
+      .querySelector('.lucide-info'),
+  ).not.toBeNull();
+  expect(
+    screen
+      .getByTestId('document-toggle-visibility')
+      .querySelector('.lucide-eye'),
+  ).not.toBeNull();
+  expect(container.querySelectorAll('button[aria-label]')).toHaveLength(5);
+});
+
+it('shows the crossed-out eye for hidden files', () => {
+  renderFile('0');
+  expect(
+    screen
+      .getByTestId('document-toggle-visibility')
+      .querySelector('.lucide-eye-off'),
+  ).not.toBeNull();
+});
+
+it('opens file details by click', async () => {
+  renderFile();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'listVisibility.fileDetails' }),
+  );
+  expect(await screen.findByText('file.pdf')).toBeInTheDocument();
+});
+
+it.each([
+  'common.edit',
+  'listVisibility.fileDetails',
+  'common.download',
+  'listVisibility.hideFile',
+  'common.delete',
+])('shows a tooltip for %s', async (label) => {
+  renderFile();
+  fireEvent.focus(screen.getByRole('button', { name: label }).parentElement!);
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(label);
+});
+
+it.each(['0', '1'])(
+  'inherits parent hiding without changing stored status %s',
+  (status) => {
+    mockParentHidden = true;
+    renderFile(status);
+    const button = screen.getByTestId('document-toggle-visibility');
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute(
+      'aria-label',
+      'listVisibility.inheritedHidden',
+    );
+    expect(button.querySelector('.lucide-eye-off')).not.toBeNull();
+    fireEvent.click(button);
+    expect(mockSetStatus).not.toHaveBeenCalled();
+  },
+);

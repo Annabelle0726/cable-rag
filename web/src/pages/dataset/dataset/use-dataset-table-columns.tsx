@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { MetadataType } from '../components/metedata/constant';
 import { ShowManageMetadataModalProps } from '../components/metedata/interface';
+import { useDocumentVisibility } from './use-document-visibility';
 import { DatasetActionCell } from './dataset-action-cell';
 import { ParseDropdownButton, ParsingStatusCell } from './parsing-status-cell';
 import { UseChangeDocumentParserShowType } from './use-change-document-parser';
@@ -50,6 +51,7 @@ export function useDatasetTableColumns({
   const { knowledgeBase } = useKnowledgeBaseContext();
   const canManage = useCanManageDataset(knowledgeBase);
   const { id: datasetId } = useParams();
+  const { parentHidden } = useDocumentVisibility();
 
   const columns: ColumnDef<IDocumentInfo>[] = useMemo(
     () => [
@@ -114,17 +116,20 @@ export function useDatasetTableColumns({
                   <span
                     className={cn(
                       'truncate',
-                      row.original.status === '0' && 'text-text-disabled',
+                      (parentHidden || row.original.status === '0') &&
+                        'text-text-secondary',
                     )}
                   >
                     {name}
                   </span>
-                  {row.original.status === '0' && (
+                  {(parentHidden || row.original.status === '0') && (
                     <span
                       className="shrink-0 border border-border-button px-1.5 py-0.5 text-xs text-text-secondary"
-                      title={t('hiddenFileHint')}
+                      title={t(
+                        parentHidden ? 'parentHiddenFile' : 'hiddenFile',
+                      )}
                     >
-                      {t('hiddenFile')}
+                      {t(parentHidden ? 'parentHiddenFile' : 'hiddenFile')}
                     </span>
                   )}
                 </div>
@@ -171,8 +176,8 @@ export function useDatasetTableColumns({
           const id = row.original.id;
           return (
             <Switch
-              checked={row.getValue('status') === '1'}
-              disabled={!canManage || statusLoading}
+              checked={!parentHidden && row.getValue('status') === '1'}
+              disabled={parentHidden || !canManage || statusLoading}
               aria-label={t('enabled')}
               onCheckedChange={(e) => {
                 setDocumentStatus({
@@ -279,6 +284,7 @@ export function useDatasetTableColumns({
       setDocumentStatus,
       statusLoading,
       canManage,
+      parentHidden,
       datasetId,
       showChangeParserModal,
       showRenameModal,

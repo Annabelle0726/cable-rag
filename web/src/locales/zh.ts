@@ -1,13 +1,15 @@
 export default {
   translation: {
     listVisibility: {
+      inheritedHidden: '跟随知识库已隐藏，请先显示知识库',
+      fileDetails: '文件详情',
       settings: '可见性设置',
       pinned: '已置顶',
       team: '公开（工作区内）',
       private: '私有',
       custom: '指定部门 / 人员可见',
-      hideFile: '隐藏文件（退出检索）',
-      restoreFile: '恢复显示与检索',
+      hideFile: '隐藏文件',
+      restoreFile: '恢复显示',
     },
     common: {
       confirm: '确定',
@@ -472,8 +474,8 @@ export default {
       empty: '暂无数据',
     },
     knowledgeDetails: {
+      parentHiddenFile: '跟随知识库已隐藏',
       hiddenFile: '已隐藏',
-      hiddenFileHint: '该文件不参与检索；管理列表保留此行以便恢复。',
       continueUpload: '继续上传',
       goToConfiguration: '前往配置',
       uploadMissingModelsTitle: '部分文件缺少解析所需的模型',

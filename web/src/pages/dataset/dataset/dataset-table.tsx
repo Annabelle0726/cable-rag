@@ -13,6 +13,7 @@ import {
 } from '@tanstack/react-table';
 import * as React from 'react';
 
+import { cn } from '@/lib/utils';
 import { EmptyType } from '@/components/empty/constant';
 import Empty from '@/components/empty/empty';
 import { RenameDialog } from '@/components/rename-dialog';
@@ -35,6 +36,7 @@ import ProcessLogModal from '../process-log-modal';
 import { ChangeParserDialog } from './change-parser-dialog';
 import { useShowLog } from './hooks';
 import { useChangeDocumentParser } from './use-change-document-parser';
+import { useDocumentVisibility } from './use-document-visibility';
 import { useDatasetTableColumns } from './use-dataset-table-columns';
 import { useRenameDocument } from './use-rename-document';
 
@@ -56,6 +58,7 @@ export function DatasetTable({
   showManageMetadataModal,
   bulkOperateBarVisible = false,
 }: DatasetTableProps) {
+  const { isDocumentHidden } = useDocumentVisibility();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
@@ -162,7 +165,12 @@ export function DatasetTable({
                 data-testid="document-row"
                 data-doc-name={row.original.name}
                 data-state={row.getIsSelected() && 'selected'}
-                className="group border-b border-table-border odd:bg-table-row-base even:bg-table-row-alternate hover:bg-table-row-hover data-[state=selected]:bg-table-row-hover"
+                className={cn(
+                  'group border-b border-table-border hover:bg-table-row-hover data-[state=selected]:bg-table-row-hover',
+                  isDocumentHidden(row.original.status)
+                    ? 'bg-status-archived text-text-secondary'
+                    : 'odd:bg-table-row-base even:bg-table-row-alternate',
+                )}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell

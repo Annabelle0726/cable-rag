@@ -1,13 +1,15 @@
 export default {
   translation: {
     listVisibility: {
+      inheritedHidden: 'Hidden with dataset; show the dataset first',
+      fileDetails: 'File details',
       settings: 'Visibility settings',
       pinned: 'Pinned',
       team: 'Public within workspace',
       private: 'Private',
       custom: 'Selected departments / people',
-      hideFile: 'Hide file from retrieval',
-      restoreFile: 'Restore visibility and retrieval',
+      hideFile: 'Hide file',
+      restoreFile: 'Restore visibility',
     },
     common: {
       confirm: 'Confirm',
@@ -515,9 +517,8 @@ export default {
       empty: 'No data',
     },
     knowledgeDetails: {
+      parentHiddenFile: 'Hidden with dataset',
       hiddenFile: 'Hidden',
-      hiddenFileHint:
-        'Excluded from retrieval; kept in the management list for restoration.',
       continueUpload: 'Continue upload',
       goToConfiguration: 'Go to configuration',
       uploadMissingModelsTitle: 'Some files lack a required model',

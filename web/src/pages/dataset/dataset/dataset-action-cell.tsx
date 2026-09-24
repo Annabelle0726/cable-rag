@@ -1,10 +1,10 @@
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import { Button } from '@/components/ui/button';
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { DocumentType } from '@/constants/knowledge';
 import { UseRowSelectionType } from '@/hooks/logic-hooks/use-row-selection';
 import { useCanManageDataset } from '@/hooks/use-can-manage-dataset';
@@ -19,11 +19,42 @@ import { downloadDatasetDocument } from '@/services/file-manager-service';
 import { formatFileSize } from '@/utils/common-util';
 import { formatDate } from '@/utils/date';
 import { downloadFileFromBlob } from '@/utils/file-util';
-import { Download, Eye, EyeOff, PenLine, Trash2 } from 'lucide-react';
+import { Download, Eye, EyeOff, Info, PenLine, Trash2 } from 'lucide-react';
 import { omit } from 'lodash';
-import { useCallback } from 'react';
+import { ComponentProps, forwardRef, useCallback } from 'react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import { UseRenameDocumentShowType } from './use-rename-document';
+import { useDocumentVisibility } from './use-document-visibility';
 import { isDocumentProcessing } from './utils';
+
+const ActionButton = forwardRef<
+  HTMLButtonElement,
+  ComponentProps<typeof Button> & { label: string }
+>(({ label, children, ...props }, ref) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex">
+        <Button
+          ref={ref}
+          type="button"
+          size="icon-xs"
+          variant="ghost"
+          aria-label={label}
+          {...props}
+        >
+          {children}
+        </Button>
+      </span>
+    </TooltipTrigger>
+    <TooltipContent>{label}</TooltipContent>
+  </Tooltip>
+));
+ActionButton.displayName = 'DocumentActionButton';
 
 const Fields = ['name', 'size', 'type', 'create_time', 'update_time'];
 
@@ -44,12 +75,13 @@ export function DatasetActionCell({
   const canManage = useCanManageDataset(knowledgeBase);
   const { setDocumentStatus, loading: visibilityLoading } =
     useSetDocumentStatus();
-  const hidden = record.status === '0';
+  const { parentHidden, isDocumentHidden } = useDocumentVisibility();
+  const hidden = isDocumentHidden(record.status);
   const visibilityLabel = t(
     hidden ? 'listVisibility.restoreFile' : 'listVisibility.hideFile',
   );
   const handleToggleVisibility = useCallback(async () => {
-    if (!canManage) return;
+    if (!canManage || parentHidden) return;
     try {
       await setDocumentStatus({
         documentId: record.id,
@@ -59,7 +91,14 @@ export function DatasetActionCell({
     } catch {
       // The request layer reports errors; retain the server-provided state.
     }
-  }, [canManage, hidden, record.id, record.dataset_id, setDocumentStatus]);
+  }, [
+    canManage,
+    parentHidden,
+    hidden,
+    record.id,
+    record.dataset_id,
+    setDocumentStatus,
+  ]);
   const { id, type } = record;
   const isRunning = isDocumentProcessing(record);
   const isVirtualDocument = type === DocumentType.Virtual;
@@ -96,21 +135,25 @@ export function DatasetActionCell({
 
   return (
     <div className="flex gap-2 items-center">
-      <Button
+      <ActionButton
         size="icon-xs"
         variant="ghost"
         disabled={isRunning}
+        label={t('common.edit')}
         onClick={handleRename}
       >
         <PenLine className="size-[1em]" />
-      </Button>
-      <HoverCard>
-        <HoverCardTrigger>
-          <Button size="icon-xs" variant="ghost" disabled={isRunning}>
-            <Eye className="size-[1em]" />
-          </Button>
-        </HoverCardTrigger>
-        <HoverCardContent className="w-[40vw] max-h-[40vh] overflow-auto">
+      </ActionButton>
+      <Popover>
+        <PopoverTrigger asChild>
+          <ActionButton
+            label={t('listVisibility.fileDetails')}
+            disabled={isRunning}
+          >
+            <Info className="size-[1em]" />
+          </ActionButton>
+        </PopoverTrigger>
+        <PopoverContent className="w-[40vw] max-h-[40vh] overflow-auto">
           <ul className="space-y-2">
             {Object.entries(record)
               .filter(([key]) => Fields.some((x) => x === key))
@@ -128,43 +171,48 @@ export function DatasetActionCell({
                 );
               })}
           </ul>
-        </HoverCardContent>
-      </HoverCard>
+        </PopoverContent>
+      </Popover>
 
       {isVirtualDocument || (
-        <Button
+        <ActionButton
           size="icon-xs"
           variant="ghost"
+          label={t('common.download')}
           onClick={onDownloadDocument}
           disabled={isRunning}
         >
           <Download className="size-[1em]" />
-        </Button>
+        </ActionButton>
       )}
-      <Button
+      <ActionButton
         size="icon-xs"
         variant="ghost"
-        disabled={!canManage || isRunning || visibilityLoading}
+        disabled={!canManage || parentHidden || isRunning || visibilityLoading}
         onClick={handleToggleVisibility}
-        aria-label={visibilityLabel}
-        title={visibilityLabel}
+        label={
+          parentHidden ? t('listVisibility.inheritedHidden') : visibilityLabel
+        }
+        className={cn(hidden && 'text-text-secondary')}
+        data-hidden={hidden}
         data-testid="document-toggle-visibility"
       >
         {hidden ? (
-          <Eye className="size-[1em]" />
-        ) : (
           <EyeOff className="size-[1em]" />
+        ) : (
+          <Eye className="size-[1em]" />
         )}
-      </Button>
+      </ActionButton>
       <ConfirmDeleteDialog onOk={handleRemove}>
-        <Button
+        <ActionButton
+          label={t('common.delete')}
           data-testid="document-delete"
           size="icon-xs"
           variant="ghost"
           disabled={isRunning}
         >
           <Trash2 className="size-[1em]" />
-        </Button>
+        </ActionButton>
       </ConfirmDeleteDialog>
     </div>
   );

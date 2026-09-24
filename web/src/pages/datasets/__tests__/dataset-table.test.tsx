@@ -45,3 +45,38 @@ it.each([
   );
   expect(screen.queryByTestId('dataset-pinned-badge')).not.toBeInTheDocument();
 });
+
+it('shows only hidden status even when the backend dataset is available', () => {
+  const datasets = [
+    {
+      id: 'kb-1',
+      name: 'Dataset',
+      status: '1',
+      permission: 'team',
+      update_time: 0,
+      document_count: 2,
+    },
+  ] as Dataset[];
+  const { rerender } = render(
+    <DatasetTable
+      datasets={datasets}
+      hiddenDatasetIds={['kb-1']}
+      showDatasetRenameModal={jest.fn()}
+    />,
+  );
+  expect(screen.getByTestId('dataset-status')).toHaveTextContent(
+    'common.hiddenBadge',
+  );
+  expect(screen.queryByText('datasetTable.available')).not.toBeInTheDocument();
+  expect(screen.getAllByText('common.hiddenBadge')).toHaveLength(1);
+  rerender(
+    <DatasetTable
+      datasets={datasets}
+      hiddenDatasetIds={[]}
+      showDatasetRenameModal={jest.fn()}
+    />,
+  );
+  expect(screen.getByTestId('dataset-status')).toHaveTextContent(
+    'datasetTable.available',
+  );
+});

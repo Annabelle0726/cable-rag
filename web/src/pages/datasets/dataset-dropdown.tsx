@@ -28,6 +28,7 @@ import { useCanManageDataset } from '@/hooks/use-can-manage-dataset';
 import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
 import { IDataset } from '@/interfaces/database/dataset';
 import {
+  ShieldCheck,
   Eye,
   EyeOff,
   LucideTags,
@@ -116,7 +117,7 @@ export function DatasetDropdown({
           disabled={!canManage}
           onClick={handleVisibilitySettings}
         >
-          {t('listVisibility.settings')} <Eye />
+          {t('listVisibility.settings')} <ShieldCheck />
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleShowDatasetRenameModal}>
           {t('common.rename')} <PenLine />
