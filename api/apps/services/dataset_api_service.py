@@ -459,25 +459,21 @@ def list_datasets(tenant_id: str, args: dict):
         if not kbs:
             return False, f"User '{tenant_id}' lacks permission for dataset '{name}'"
     owner_ids = [owner_id.strip() for owner_id in args.get("owner_ids", []) if isinstance(owner_id, str) and owner_id.strip()]
-    if owner_ids:
-        tenants = TenantService.get_joined_tenants_by_user_id(tenant_id)
-        allowed_tenant_ids = {m["tenant_id"] for m in tenants}
-        allowed_tenant_ids.add(tenant_id)
-        tenant_ids = [owner_id for owner_id in owner_ids if owner_id in allowed_tenant_ids]
-        query_user_id = tenant_id if tenant_id in tenant_ids else ""
-    else:
-        tenants = TenantService.get_joined_tenants_by_user_id(tenant_id)
-        tenant_ids = [m["tenant_id"] for m in tenants]
-        query_user_id = tenant_id
+    # The dataset page lists one workspace: the caller's active one. The owner
+    # facet can therefore only ever name that workspace, so a facet asking for
+    # any other owner matches nothing -- passed as an empty scope, which the
+    # readable filter turns into "no rows" rather than into "no restriction".
+    active_tenant_id = TenantService.resolve_active_tenant_id(tenant_id)
+    listing_tenant_id = active_tenant_id if not owner_ids or active_tenant_id in owner_ids else ""
     if kb_ids:
-        accessible_ids = KnowledgebaseService.get_accessible_ids([m["tenant_id"] for m in tenants], tenant_id, kb_ids)
+        accessible_ids = KnowledgebaseService.get_accessible_ids(tenant_id, listing_tenant_id, kb_ids)
         denied_ids = [kb_id for kb_id in kb_ids if kb_id not in accessible_ids]
         if denied_ids:
             logging.warning("User '%s' lacks permission for datasets: '%s'", tenant_id, ", ".join(denied_ids))
         kb_ids = [kb_id for kb_id in kb_ids if kb_id in accessible_ids]
         if not kb_ids:
             return True, {"data": [], "total": 0}
-    kbs, total = KnowledgebaseService.get_list(tenant_ids, query_user_id, page, page_size, orderby, desc, kb_id, name, keywords, parser_id, kb_ids)
+    kbs, total = KnowledgebaseService.get_list(tenant_id, listing_tenant_id, page, page_size, orderby, desc, kb_id, name, keywords, parser_id, kb_ids)
     users = UserService.get_by_ids([m["tenant_id"] for m in kbs])
     user_map = {m.id: m.to_dict() for m in users}
 
@@ -511,9 +507,8 @@ def list_datasets(tenant_id: str, args: dict):
 
 
 def list_dataset_filters(tenant_id: str):
-    tenants = TenantService.get_joined_tenants_by_user_id(tenant_id)
-    tenant_ids = [m["tenant_id"] for m in tenants]
-    owners = KnowledgebaseService.get_owner_filter(tenant_ids, tenant_id)
+    active_tenant_id = TenantService.resolve_active_tenant_id(tenant_id)
+    owners = KnowledgebaseService.get_owner_filter(tenant_id, active_tenant_id)
     return True, {"filter": {"owner": owners}, "total": sum(owner["count"] for owner in owners)}
 
 

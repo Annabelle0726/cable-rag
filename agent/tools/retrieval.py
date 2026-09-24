@@ -172,6 +172,20 @@ class Retrieval(ToolBase, ABC):
 
         filtered_kb_ids: list[str] = list(set([kb_id for kb_id in kb_ids if kb_id]))
 
+        # The ids come from the tool's own parameters, so they are caller-supplied
+        # and cannot be trusted: a canvas could otherwise name any dataset id and
+        # retrieve from it. Keep only what the run's user may read, which is the
+        # same gate the dataset list applies. `sys.user_id` on the canvas carries
+        # the acting user.
+        acting_user_id = self._canvas.get_tenant_id()
+        readable_kb_ids = [kb_id for kb_id in filtered_kb_ids if KnowledgebaseService.accessible(kb_id, acting_user_id)]
+        if len(readable_kb_ids) != len(filtered_kb_ids):
+            logging.warning(
+                "Datasets filtered out of agent retrieval for lacking read access: %s",
+                sorted(set(filtered_kb_ids) - set(readable_kb_ids)),
+            )
+        filtered_kb_ids = readable_kb_ids
+
         kbs = KnowledgebaseService.get_by_ids(filtered_kb_ids)
         if not kbs:
             raise Exception("No dataset is selected.")

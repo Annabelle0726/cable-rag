@@ -50,6 +50,7 @@ from api.db.services.user_service import TenantService, UserTenantService
 from api.utils.api_utils import (
     check_duplicate_ids,
     get_data_error_result,
+    get_error_data_result,
     get_json_result,
     get_request_json,
     server_error_response,
@@ -407,6 +408,33 @@ async def _validate_dataset_ids(dataset_ids, tenant_id):
     return normalized_ids
 
 
+async def _validate_bound_datasets(req, user_id):
+    """Validate the datasets an assistant is being bound to, under either name.
+
+    `dataset_ids` is the documented request field, while `kb_ids` is the name the
+    dialog row itself stores. Both reach the same column, so both have to pass
+    the same read gate: without it a caller could bind any dataset id -- including
+    one they may not read -- and then retrieve from it through the assistant.
+
+    Returns an error message, or None when the request is acceptable. `req` is
+    normalized in place so the caller only ever persists `kb_ids`.
+    """
+    if "dataset_ids" in req:
+        kb_ids = await _validate_dataset_ids(req.get("dataset_ids"), user_id)
+        if isinstance(kb_ids, str):
+            return kb_ids
+        req["kb_ids"] = kb_ids
+        req.pop("dataset_ids", None)
+        return None
+
+    if "kb_ids" in req:
+        kb_ids = await _validate_dataset_ids(req.get("kb_ids"), user_id)
+        if isinstance(kb_ids, str):
+            return kb_ids
+        req["kb_ids"] = kb_ids
+    return None
+
+
 def _apply_prompt_defaults(req):
     prompt_config = req.setdefault("prompt_config", {})
     kb_ids = req.get("kb_ids") or []
@@ -460,12 +488,10 @@ async def create():
             return get_data_error_result(message=err)
         req["name"] = name
 
-        if "dataset_ids" in req:
-            kb_ids = await _validate_dataset_ids(req.get("dataset_ids"), current_user.id)
-            if isinstance(kb_ids, str):
-                return get_data_error_result(message=kb_ids)
-            req["kb_ids"] = kb_ids
-            req.pop("dataset_ids", None)
+        if "dataset_ids" in req or "kb_ids" in req:
+            err = await _validate_bound_datasets(req, current_user.id)
+            if err:
+                return get_data_error_result(message=err)
 
         if req.get("llm_id") is None and req.get("tenant_llm_id") is None:
             req["llm_id"] = tenant.tenant_llm_id
@@ -642,12 +668,10 @@ async def update_chat(chat_id):
                 return get_data_error_result(message=err)
             req["name"] = name
 
-        if "dataset_ids" in req:
-            kb_ids = await _validate_dataset_ids(req.get("dataset_ids"), current_user.id)
-            if isinstance(kb_ids, str):
-                return get_data_error_result(message=kb_ids)
-            req["kb_ids"] = kb_ids
-            req.pop("dataset_ids", None)
+        if "dataset_ids" in req or "kb_ids" in req:
+            err = await _validate_bound_datasets(req, current_user.id)
+            if err:
+                return get_data_error_result(message=err)
 
         effective_llm_setting = req.get("llm_setting", current_chat.get("llm_setting", {}))
         err = await _normalize_model_pair(req, current_user.id, "llm_id", "tenant_llm_id", _llm_model_type(effective_llm_setting))
@@ -723,12 +747,10 @@ async def patch_chat(chat_id):
             if name is not None:
                 req["name"] = name
 
-        if "dataset_ids" in req:
-            kb_ids = await _validate_dataset_ids(req.get("dataset_ids"), current_user.id)
-            if isinstance(kb_ids, str):
-                return get_data_error_result(message=kb_ids)
-            req["kb_ids"] = kb_ids
-            req.pop("dataset_ids", None)
+        if "dataset_ids" in req or "kb_ids" in req:
+            err = await _validate_bound_datasets(req, current_user.id)
+            if err:
+                return get_data_error_result(message=err)
 
         if "llm_setting" in req:
             if not isinstance(req["llm_setting"], dict):
@@ -1217,6 +1239,12 @@ async def mindmap():
     kb_ids = search_config.get("kb_ids", [])
     kb_ids.extend(req["kb_ids"])
     kb_ids = list(set(kb_ids))
+
+    # Every dataset named here is caller-supplied, whether directly or through a
+    # search app, so each one has to pass the read gate before retrieval.
+    for kb_id in kb_ids:
+        if not await thread_pool_exec(KnowledgebaseService.accessible, kb_id=kb_id, user_id=current_user.id):
+            return get_error_data_result(message=f"You don't own the dataset {kb_id}", code=RetCode.PERMISSION_ERROR)
 
     mind_map = await gen_mindmap(req["question"], kb_ids, search_app.get("tenant_id", current_user.id), search_config)
     if "error" in mind_map:

@@ -15,11 +15,12 @@
 #
 from datetime import datetime
 
-from peewee import JOIN, fn
+from peewee import JOIN, SQL, fn
 
 from api.constants import DATASET_NAME_LIMIT
-from api.db import TenantPermission
-from api.db.db_models import DB, Document, Knowledgebase, User, UserCanvas
+from api.db import TenantPermission, UserTenantRole
+from api.db.db_models import DB, Document, Knowledgebase, KnowledgebaseAuthorization, User, UserCanvas, UserTenant
+from api.db.joint_services.kb_authorization_service import MEMBER_ROLES, SUBJECT_DEPARTMENT, SUBJECT_USER, can_read_dataset
 from api.db.joint_services.tenant_model_service import get_composite_model_name_by_ids
 from api.db.services import duplicate_name
 from api.db.services.common_service import CommonService
@@ -115,17 +116,90 @@ class KnowledgebaseService(CommonService):
     model = Knowledgebase
 
     @classmethod
-    def _visibility_and_status_filter(cls, joined_tenant_ids, user_id):
-        """
-        Build a Peewee filter expression representing knowledgebase visibility
-        for a given user, combined with a valid-status constraint.
+    def _readable_filter(cls, user_id, tenant_ids):
+        """The SQL form of `can_read_dataset`, applied over a workspace scope.
 
-        Visibility rules:
-        - Team KBs (`permission == TenantPermission.TEAM`) owned by any tenant in `joined_tenant_ids`
-        - KBs owned by the current user (`tenant_id == user_id`)
-        Always constrained to `StatusEnum.VALID`.
+        Every listing path builds its WHERE clause from this one expression, so
+        the masking happens in SQL and never in the frontend: a dataset that
+        fails here is absent from the result set, which is also what stops a
+        dataset hidden from the list from being searched by a guessed id.
+
+        `tenant_ids` is the workspace scope being listed -- the active workspace
+        for the dataset page, or every joined workspace when answering "what may
+        this user read at all" (the admin console). The scope only narrows the
+        result: membership, management and grants are all decided against the
+        dataset's own workspace, so a scope naming a workspace the caller never
+        joined still yields nothing from it.
+
+        Within the scope a dataset is readable when the caller manages its
+        workspace, or is a member of it and the dataset is shared with it, or the
+        caller created it, or a `custom` grant names the caller or their
+        department. An empty scope, and any permission value this build does not
+        know, read nothing.
         """
-        return ((cls.model.tenant_id.in_(joined_tenant_ids) & (cls.model.permission == TenantPermission.TEAM.value)) | (cls.model.tenant_id == user_id)) & (cls.model.status == StatusEnum.VALID.value)
+        if not user_id or not tenant_ids:
+            return SQL("1 = 0")
+        if isinstance(tenant_ids, str):
+            tenant_ids = [tenant_ids]
+
+        # A manager governs every dataset of the workspace it administers, read
+        # per row so one query serves a scope of several workspaces. The
+        # subqueries are wrapped in `fn.EXISTS`: `ModelSelect.exists()` would run
+        # the query on the spot and return a bool, and its own alias context is
+        # what makes the correlated reference resolve to the wrong table.
+        manages_workspace = fn.EXISTS(
+            UserTenant.select().where(
+                (UserTenant.user_id == user_id)
+                & (UserTenant.tenant_id == cls.model.tenant_id)
+                & (UserTenant.role.in_([UserTenantRole.OWNER, UserTenantRole.ADMIN]))
+                & (UserTenant.status == StatusEnum.VALID.value)
+            )
+        )
+
+        # The caller's department in the dataset's own workspace. A missing
+        # membership or an unplaced member yields NULL, and `= NULL` matches no
+        # row, so a department grant never captures a member who was never
+        # placed in a department.
+        department_in_workspace = UserTenant.select(UserTenant.department_id).where(
+            (UserTenant.user_id == user_id)
+            & (UserTenant.tenant_id == cls.model.tenant_id)
+            & (UserTenant.role.in_(MEMBER_ROLES))
+            & (UserTenant.status == StatusEnum.VALID.value)
+        )
+
+        # Membership on the dataset's own workspace. Requiring it instead of
+        # trusting the caller's scope is what keeps this expression sufficient on
+        # its own: a scope naming a workspace the caller never joined still reads
+        # nothing out of it. A pending `invite` row is not a membership.
+        member_of_workspace = fn.EXISTS(
+            UserTenant.select().where(
+                (UserTenant.user_id == user_id)
+                & (UserTenant.tenant_id == cls.model.tenant_id)
+                & (UserTenant.role.in_(MEMBER_ROLES))
+                & (UserTenant.status == StatusEnum.VALID.value)
+            )
+        )
+
+        granted = fn.EXISTS(
+            KnowledgebaseAuthorization.select().where(
+                (KnowledgebaseAuthorization.kb_id == cls.model.id)
+                & (
+                    ((KnowledgebaseAuthorization.subject_type == SUBJECT_USER) & (KnowledgebaseAuthorization.subject_id == user_id))
+                    | ((KnowledgebaseAuthorization.subject_type == SUBJECT_DEPARTMENT) & (KnowledgebaseAuthorization.subject_id == department_in_workspace))
+                )
+            )
+        )
+
+        return (
+            cls.model.tenant_id.in_(list(tenant_ids))
+            & (cls.model.status == StatusEnum.VALID.value)
+            & (
+                manages_workspace
+                | ((cls.model.permission == TenantPermission.TEAM.value) & member_of_workspace)
+                | (cls.model.created_by == user_id)
+                | ((cls.model.permission == TenantPermission.CUSTOM.value) & granted)
+            )
+        )
 
     @classmethod
     @DB.connection_context()
@@ -209,69 +283,6 @@ class KnowledgebaseService(CommonService):
 
     @classmethod
     @DB.connection_context()
-    def get_by_tenant_ids(cls, joined_tenant_ids, user_id, page_number, items_per_page, orderby, desc, keywords, parser_id=None):
-        # Get knowledge bases by tenant IDs with pagination and filtering
-        # Args:
-        #     joined_tenant_ids: List of tenant IDs
-        #     user_id: Current user ID
-        #     page_number: Page number for pagination
-        #     items_per_page: Number of items per page
-        #     orderby: Field to order by
-        #     desc: Boolean indicating descending order
-        #     keywords: Search keywords
-        #     parser_id: Optional parser ID filter
-        # Returns:
-        #     Tuple of (knowledge_base_list, total_count)
-        fields = [
-            cls.model.id,
-            cls.model.avatar,
-            cls.model.name,
-            cls.model.language,
-            cls.model.description,
-            cls.model.tenant_id,
-            cls.model.permission,
-            cls.model.doc_num,
-            cls.model.token_num,
-            cls.model.chunk_num,
-            cls.model.parser_id,
-            cls.model.embd_id,
-            User.nickname,
-            User.avatar.alias("tenant_avatar"),
-            cls.model.update_time,
-        ]
-        if keywords:
-            kbs = (
-                cls.model.select(*fields)
-                .join(User, on=(cls.model.tenant_id == User.id))
-                .where(
-                    cls._visibility_and_status_filter(joined_tenant_ids, user_id),
-                    fn.LOWER(cls.model.name).contains(keywords.lower()),
-                )
-            )
-        else:
-            kbs = (
-                cls.model.select(*fields)
-                .join(User, on=(cls.model.tenant_id == User.id))
-                .where(
-                    cls._visibility_and_status_filter(joined_tenant_ids, user_id),
-                )
-            )
-        if parser_id:
-            kbs = kbs.where(cls.model.parser_id == parser_id)
-        if desc:
-            kbs = kbs.order_by(cls.model.getter_by(orderby).desc())
-        else:
-            kbs = kbs.order_by(cls.model.getter_by(orderby).asc())
-
-        count = kbs.count()
-
-        if page_number and items_per_page:
-            kbs = kbs.paginate(page_number, items_per_page)
-
-        return list(kbs.dicts()), count
-
-    @classmethod
-    @DB.connection_context()
     def get_all_kb_by_tenant_ids(cls, tenant_ids, user_id):
         # will get all permitted kb, be cautious.
         fields = [
@@ -286,8 +297,8 @@ class KnowledgebaseService(CommonService):
             cls.model.create_date,
             cls.model.update_date,
         ]
-        # find team kb and owned kb
-        kbs = cls.model.select(*fields).where(cls._visibility_and_status_filter(tenant_ids, user_id))
+        # find team kb, owned kb, managed kb and granted kb
+        kbs = cls.model.select(*fields).where(cls._readable_filter(user_id, tenant_ids))
         # sort by create_time asc
         kbs = kbs.order_by(cls.model.create_time.asc())
         # maybe cause slow query by deep paginate, optimize later.
@@ -503,11 +514,11 @@ class KnowledgebaseService(CommonService):
 
     @classmethod
     @DB.connection_context()
-    def get_list(cls, joined_tenant_ids, user_id, page_number, items_per_page, orderby, desc, id, name, keywords, parser_id=None, ids=None):
+    def get_list(cls, user_id, active_tenant_id, page_number, items_per_page, orderby, desc, id, name, keywords, parser_id=None, ids=None):
         # Get list of knowledge bases with filtering and pagination
         # Args:
-        #     joined_tenant_ids: List of tenant IDs
         #     user_id: Current user ID
+        #     active_tenant_id: The workspace being listed; an empty value lists nothing
         #     page_number: Page number for pagination
         #     items_per_page: Number of items per page
         #     orderby: Field to order by
@@ -531,7 +542,7 @@ class KnowledgebaseService(CommonService):
         if parser_id:
             kbs = kbs.where(cls.model.parser_id == parser_id)
 
-        kbs = kbs.where(cls._visibility_and_status_filter(joined_tenant_ids, user_id))
+        kbs = kbs.where(cls._readable_filter(user_id, active_tenant_id))
 
         if desc:
             kbs = kbs.order_by(cls.model.getter_by(orderby).desc())
@@ -545,13 +556,13 @@ class KnowledgebaseService(CommonService):
 
     @classmethod
     @DB.connection_context()
-    def get_accessible_ids(cls, joined_tenant_ids, user_id, ids):
-        kbs = cls.model.select(cls.model.id).where(cls.model.id.in_(ids), cls._visibility_and_status_filter(joined_tenant_ids, user_id))
+    def get_accessible_ids(cls, user_id, active_tenant_id, ids):
+        kbs = cls.model.select(cls.model.id).where(cls.model.id.in_(ids), cls._readable_filter(user_id, active_tenant_id))
         return {kb.id for kb in kbs}
 
     @classmethod
     @DB.connection_context()
-    def get_owner_filter(cls, joined_tenant_ids, user_id):
+    def get_owner_filter(cls, user_id, active_tenant_id):
         owners = (
             cls.model.select(
                 cls.model.tenant_id.alias("id"),
@@ -559,35 +570,26 @@ class KnowledgebaseService(CommonService):
                 fn.COUNT(cls.model.id).alias("count"),
             )
             .join(User, on=(cls.model.tenant_id == User.id))
-            .where(cls._visibility_and_status_filter(joined_tenant_ids, user_id))
+            .where(cls._readable_filter(user_id, active_tenant_id))
             .group_by(cls.model.tenant_id, User.nickname)
         )
         return list(owners.dicts())
 
     @classmethod
     @DB.connection_context()
-    def accessible(cls, kb_id, user_id):
-        # Check if a dataset is accessible by a user
-        # Args:
-        #     kb_id: Knowledge base ID
-        #     user_id: User ID
-        # Returns:
-        #     Boolean indicating accessibility
+    def accessible(cls, kb_id, user_id, active_tenant_id=None):
+        """Whether `user_id` may read one dataset.
+
+        The by-id counterpart of `_readable_filter`, and the gate every caller
+        that resolves a dataset id has to pass: chunk retrieval, search, the bot
+        API, assistant configuration. The workspace is resolved from the caller
+        when the caller does not already know it, so the existing call sites keep
+        working unchanged.
+        """
         e, kb = cls.get_by_id(kb_id)
-        if not e:
+        if not e or kb.status != StatusEnum.VALID.value:
             return False
-
-        if kb.status != StatusEnum.VALID.value:
-            return False
-
-        if kb.tenant_id == user_id:
-            return True
-
-        if kb.permission != TenantPermission.TEAM.value:
-            return False
-
-        joined_tenants = TenantService.get_joined_tenants_by_user_id(user_id)
-        return any(tenant["tenant_id"] == kb.tenant_id for tenant in joined_tenants)
+        return can_read_dataset(user_id, active_tenant_id or TenantService.resolve_active_tenant_id(user_id), kb)
 
     @classmethod
     @DB.connection_context()
