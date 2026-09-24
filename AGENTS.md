@@ -60,9 +60,10 @@ Preserve and build upon these established milestones:
 - **P5-00**: Department & Title architecture (`department` table + `user_tenant.department_id`/`title` append-only columns), department CRUD API with non-empty member guards (`code=102`), profile update API (`PUT /profile`), and flat UI department management.
 - **P5-01**: Global Active Tenant Context Middleware & `/user-setting/team` workspace switcher refactor.
 - **Data Source Module Cleanup**: Migrated shared data-source modules from deprecated `pages/user-setting/data-source/` to `src/components/data-source/`, fixing relative imports across 11 files and completely deleting the user-setting data-source page.
+- **P3-03 (Step 1 & 2)**: Added `KnowledgebaseAuthorization` DB model (`knowledgebase_authorization` table with `(kb_id, subject_type, subject_id)` composite unique index) and core authorization service (`kb_authorization_service.py` with `can_read_dataset`, `can_write_dataset` strict separation, transaction-safe atomic replace helper, and 41 unit tests).
 
 ### Pending / Active Implementation
-- **P3-03**: Knowledge-base 3-tier fine-grained authorization (`private`, `team`, `custom`), `knowledgebase_authorization` mapping table, `can_read_dataset` SQL list masking, strict `can_write_dataset` write/delete separation, and UI quick actions (pin/unpin, hide/show).
+- **P3-03 (Step 3 ~ 7)**: Knowledge-base fine-grained authorization rollout: SQL-level dataset masking (`accessible`), write path guards enforcement (`can_write_dataset`), authorization management APIs (`GET/PUT /datasets/<id>/authorization`), frontend multi-select authorization UI (departments + users), pin/hide quick actions, and full E2E validation.
 - **P2-01~07**: Tenant invitation & onboard workflow.
 - **P3-01a/b**: Member removal and asset transfer/cleanup logic.
 - **P4-04**: Owner-Tenant model configuration resolution for Assistant usage.
