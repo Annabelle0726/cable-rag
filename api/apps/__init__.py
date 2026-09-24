@@ -284,15 +284,13 @@ def requested_tenant_id() -> str | None:
     """The workspace the client asked for via ``X-Tenant-Id``, if any.
 
     This carries a request, never a grant: ``TenantService.resolve_active_tenant_id``
-    only honours it when the caller holds a membership on that tenant.
+    only honours it when the caller holds a membership on that tenant. The read
+    itself lives in ``api.utils.api_utils`` so the service layer can resolve the
+    active workspace the same way without importing this module.
     """
-    try:
-        value = request.headers.get("X-Tenant-Id")
-    except RuntimeError:
-        # No request context (worker/CLI call path).
-        return None
-    value = (value or "").strip()
-    return value or None
+    from api.utils.api_utils import requested_tenant_id as read_requested_tenant_id
+
+    return read_requested_tenant_id()
 
 
 def require_tenant_admin(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:

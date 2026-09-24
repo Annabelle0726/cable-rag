@@ -31,6 +31,7 @@ from peewee import SqliteDatabase
 
 from api.db import TenantPermission
 from api.db.db_models import Document, Knowledgebase, KnowledgebaseAuthorization, UserTenant
+from api.db.services import knowledgebase_service as kb_service
 from api.db.services.document_service import DocumentService
 from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.user_service import TenantService
@@ -184,6 +185,55 @@ def test_a_manager_of_another_workspace_may_not_write(monkeypatch, db):
     """Manager authority is scoped to the workspace that owns the dataset."""
     monkeypatch.setattr(TenantService, "resolve_active_tenant_id", classmethod(lambda cls, user_id, requested_tenant_id=None: T2))
     assert KnowledgebaseService.writable.__func__.__wrapped__(KnowledgebaseService, KB_TEAM, ADMIN) is False
+
+
+def test_the_x_tenant_id_header_names_the_workspace(monkeypatch, db):
+    """An API/SDK caller reaches the workspace it names with `X-Tenant-Id`.
+
+    The resolver only honours a workspace the caller holds a membership on, so
+    honouring the header cannot widen access -- but ignoring it would refuse a
+    manager working through the API rather than the UI.
+    """
+    memberships = {(ADMIN, T1), (ADMIN, T2)}
+
+    def resolve(cls, user_id, requested_tenant_id=None):
+        if requested_tenant_id and (user_id, requested_tenant_id) in memberships:
+            return requested_tenant_id
+        return T2  # the caller's own workspace
+
+    monkeypatch.setattr(TenantService, "resolve_active_tenant_id", classmethod(resolve))
+    monkeypatch.setattr(kb_service, "requested_tenant_id", lambda: None)
+    assert KnowledgebaseService.writable.__func__.__wrapped__(KnowledgebaseService, KB_TEAM, ADMIN) is False
+
+    monkeypatch.setattr(kb_service, "requested_tenant_id", lambda: T1)
+    assert KnowledgebaseService.writable.__func__.__wrapped__(KnowledgebaseService, KB_TEAM, ADMIN) is True
+    assert KnowledgebaseService.accessible.__func__.__wrapped__(KnowledgebaseService, KB_PRIVATE, ADMIN) is True
+
+    # A header naming a workspace the caller has no membership on is ignored.
+    monkeypatch.setattr(kb_service, "requested_tenant_id", lambda: "tenant-nowhere")
+    assert KnowledgebaseService.writable.__func__.__wrapped__(KnowledgebaseService, KB_TEAM, ADMIN) is False
+
+
+def test_an_explicit_workspace_outranks_the_header(monkeypatch):
+    monkeypatch.setattr(kb_service, "requested_tenant_id", lambda: T1)
+    resolved = []
+    monkeypatch.setattr(TenantService, "resolve_active_tenant_id", classmethod(lambda cls, user_id, requested_tenant_id=None: resolved.append(requested_tenant_id) or T2))
+
+    assert kb_service._active_workspace(ADMIN, T2) == T2
+    assert resolved == []
+
+
+def test_the_header_reaches_the_resolver(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(kb_service, "requested_tenant_id", lambda: T1)
+    monkeypatch.setattr(
+        TenantService,
+        "resolve_active_tenant_id",
+        classmethod(lambda cls, user_id, requested_tenant_id=None: seen.update(user_id=user_id, requested=requested_tenant_id) or T1),
+    )
+
+    assert kb_service._active_workspace(ADMIN) == T1
+    assert seen == {"user_id": ADMIN, "requested": T1}
 
 
 def test_an_invalid_dataset_is_never_writable(db):

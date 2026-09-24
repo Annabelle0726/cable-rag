@@ -25,7 +25,7 @@ from api.db.joint_services.tenant_model_service import get_composite_model_name_
 from api.db.services import duplicate_name
 from api.db.services.common_service import CommonService
 from api.db.services.user_service import TenantService
-from api.utils.api_utils import get_data_error_result, get_parser_config
+from api.utils.api_utils import get_data_error_result, get_parser_config, requested_tenant_id
 from common.constants import StatusEnum
 from common.misc_utils import get_uuid
 from common.time_utils import current_timestamp, datetime_format
@@ -35,6 +35,21 @@ def _base_model_name(embd_id: str) -> str:
     """Return the base model name by stripping provider/instance suffix from an embd_id."""
     parts = embd_id.rsplit("@", 2)
     return parts[0]
+
+
+def _active_workspace(user_id, active_tenant_id=None):
+    """The workspace a dataset decision is made in for `user_id`.
+
+    An explicitly supplied id wins, so a caller that already resolved the
+    workspace keeps it. Otherwise the caller's active workspace is resolved with
+    the ``X-Tenant-Id`` request header, exactly as ``@require_tenant_admin``
+    does: API and SDK callers name their target workspace there, and a header
+    naming a workspace the caller holds no membership on is ignored by the
+    resolver rather than trusted.
+    """
+    if active_tenant_id:
+        return active_tenant_id
+    return TenantService.resolve_active_tenant_id(user_id, requested_tenant_id())
 
 
 def _kb_embedding_base_name(kb, resolved_names) -> str:
@@ -216,7 +231,7 @@ class KnowledgebaseService(CommonService):
         e, kb = cls.get_by_id(kb_id)
         if not e or kb.status != StatusEnum.VALID.value:
             return False
-        return can_write_dataset(user_id, active_tenant_id or TenantService.resolve_active_tenant_id(user_id), kb)
+        return can_write_dataset(user_id, _active_workspace(user_id, active_tenant_id), kb)
 
     @classmethod
     @DB.connection_context()
@@ -573,7 +588,7 @@ class KnowledgebaseService(CommonService):
         e, kb = cls.get_by_id(kb_id)
         if not e or kb.status != StatusEnum.VALID.value:
             return False
-        return can_read_dataset(user_id, active_tenant_id or TenantService.resolve_active_tenant_id(user_id), kb)
+        return can_read_dataset(user_id, _active_workspace(user_id, active_tenant_id), kb)
 
     @classmethod
     @DB.connection_context()

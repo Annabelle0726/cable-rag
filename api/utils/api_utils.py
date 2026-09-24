@@ -59,6 +59,25 @@ def _safe_jsonify(payload: dict):
     return payload
 
 
+def requested_tenant_id() -> str | None:
+    """The workspace the client asked for via ``X-Tenant-Id``, if any.
+
+    This carries a request, never a grant: the resolver only honours it when the
+    caller holds a membership on that tenant. It lives here rather than in
+    ``api.apps`` so the service layer can resolve the active workspace without
+    importing the application module -- API/SDK callers name their target
+    workspace with this header, and a permission decision that ignored it would
+    refuse a legitimate request (or honour the wrong workspace).
+    """
+    try:
+        value = request.headers.get("X-Tenant-Id")
+    except RuntimeError:
+        # No request context (worker/CLI call path).
+        return None
+    value = (value or "").strip()
+    return value or None
+
+
 async def _coerce_request_data() -> dict:
     """Fetch JSON body with sane defaults; fallback to form data."""
     if hasattr(request, "_cached_payload"):
