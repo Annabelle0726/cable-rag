@@ -30,8 +30,13 @@ class UserTenantRole(StrEnum):
 
 
 class TenantPermission(StrEnum):
+    """Dataset visibility modes. CUSTOM adds a subject set stored separately in
+    `knowledgebase_authorization`, so `permission` stays the mode and never
+    carries a serialized list."""
+
     ME = "me"
     TEAM = "team"
+    CUSTOM = "custom"
 
 
 class SerializedType(IntEnum):
