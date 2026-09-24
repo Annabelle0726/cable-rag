@@ -166,6 +166,7 @@ def _load_list_datasets_module(monkeypatch, *, kbs, parsing_status_by_kb):
         "api.db.services.user_service",
         TenantService=SimpleNamespace(
             get_joined_tenants_by_user_id=lambda user_id: [{"tenant_id": "tenant-1"}],
+            resolve_active_tenant_id=lambda user_id, requested_tenant_id=None: "tenant-1",
         ),
         UserService=SimpleNamespace(get_by_ids=lambda ids: []),
         UserTenantService=SimpleNamespace(),
@@ -319,8 +320,8 @@ def test_list_datasets_with_ids_filters_query_once(monkeypatch):
 
     assert ok is True
     assert payload["total"] == 2
-    module.KnowledgebaseService.get_accessible_ids.assert_called_once_with(["tenant-1"], "tenant-1", ["kb-a", "kb-b"])
-    get_list_mock.assert_called_once_with(["tenant-1"], "tenant-1", 1, 30, "create_time", True, None, None, "", None, ["kb-a", "kb-b"])
+    module.KnowledgebaseService.get_accessible_ids.assert_called_once_with("tenant-1", "tenant-1", ["kb-a", "kb-b"])
+    get_list_mock.assert_called_once_with("tenant-1", "tenant-1", 1, 30, "create_time", True, None, None, "", None, ["kb-a", "kb-b"])
 
 
 def test_list_datasets_with_include_parsing_status_false_skips_helper(monkeypatch):
