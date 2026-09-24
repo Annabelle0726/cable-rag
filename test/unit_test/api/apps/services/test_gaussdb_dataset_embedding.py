@@ -183,6 +183,9 @@ def _load_dataset_module(monkeypatch):
         get_parser_config=lambda *_args, **_kwargs: {},
         remap_dictionary_keys=lambda value: value,
         verify_embedding_availability=lambda *_args, **_kwargs: (True, ""),
+        # The service module wraps its permission denials in this, so the stub has
+        # to be callable and carry the code the real one carries.
+        PermissionDeniedMessage=type("PermissionDeniedMessage", (str,), {"code": 108}),
     )
     rag = _install_module(monkeypatch, "rag")
     rag.__path__ = []

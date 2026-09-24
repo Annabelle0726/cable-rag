@@ -341,7 +341,7 @@ async def metadata_summary(dataset_id, tenant_id):
         description: Metadata summary retrieved successfully.
     """
     if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}. ")
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}. ")
     # Get doc_ids from query parameters (comma-separated string)
     doc_ids_param = request.args.get("doc_ids", "")
     doc_ids = doc_ids_param.split(",") if doc_ids_param else None
@@ -832,7 +832,7 @@ def list_docs(dataset_id, tenant_id):
     """
     if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
         logging.error(f"You don't own the dataset {dataset_id}. ")
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}. ")
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}. ")
 
     if request.args.get("type") == "filter":
         err_code, err_msg, payload, total = _get_doc_filters_with_request(request, dataset_id)

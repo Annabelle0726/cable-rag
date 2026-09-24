@@ -35,7 +35,11 @@ from api.db.services import knowledgebase_service as kb_service
 from api.db.services.document_service import DocumentService
 from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.user_service import TenantService
-from api.utils.api_utils import get_error_permission_result
+from api.utils.api_utils import (
+    PermissionDeniedMessage,
+    get_error_data_result,
+    get_error_permission_result,
+)
 from common.constants import RetCode
 
 pytestmark = pytest.mark.p1
@@ -259,6 +263,20 @@ def test_a_denial_carries_the_platform_permission_code():
     assert payload["message"] == "You don't own the dataset kb-1."
     if hasattr(response, "status_code"):
         assert response.status_code == 200
+
+
+def test_a_wrapped_service_denial_reaches_the_caller_as_code_108():
+    """A service that returns `(False, message)` cannot say why it refused, so the
+    denial says it for itself and the route reports `code=108` instead of the
+    generic data error."""
+    plain = get_error_data_result(message="some data error")
+    plain_payload = plain.get_json() if hasattr(plain, "get_json") else plain
+    assert plain_payload["code"] == RetCode.DATA_ERROR
+
+    wrapped = get_error_data_result(PermissionDeniedMessage("no authorization"))
+    wrapped_payload = wrapped.get_json() if hasattr(wrapped, "get_json") else wrapped
+    assert wrapped_payload["code"] == RetCode.PERMISSION_ERROR
+    assert wrapped_payload["message"] == "no authorization"
 
 
 # --------------------------------------------------------------------------- #

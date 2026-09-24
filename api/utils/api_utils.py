@@ -353,10 +353,27 @@ def get_result(code=RetCode.SUCCESS, message="", data=None, total=None):
     return _safe_jsonify(response)
 
 
+class PermissionDeniedMessage(str):
+    """A denial message that carries the code its caller must report.
+
+    A service that answers `(False, message)` cannot say *why* it refused, so the
+    route reports every failure the same way -- which turns a permission denial
+    into a data error (`code=102`) and hides it from the frontend's permission
+    handling. Wrapping the message says it in the one place the route already
+    looks, so `get_error_data_result` reports `code=108` for it and the plain
+    strings keep their usual code.
+    """
+
+    code = RetCode.PERMISSION_ERROR
+
+
 def get_error_data_result(
     message="Sorry! Data missing!",
     code=RetCode.DATA_ERROR,
 ):
+    carried_code = getattr(message, "code", None)
+    if carried_code is not None:
+        code = carried_code
     result_dict = {"code": code, "message": message}
     response = {}
     for key, value in result_dict.items():

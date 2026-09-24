@@ -31,7 +31,7 @@ from api.db.services.knowledgebase_service import KnowledgebaseService, validate
 from api.db.services.task_service import GRAPH_RAPTOR_FAKE_DOC_ID, TaskService
 from api.db.services.tenant_model_service import TenantModelService
 from api.db.services.user_service import TenantService, UserService, UserTenantService
-from api.utils.api_utils import deep_merge, get_parser_config, remap_dictionary_keys, verify_embedding_availability
+from api.utils.api_utils import PermissionDeniedMessage, deep_merge, get_parser_config, remap_dictionary_keys, verify_embedding_availability
 from common import settings
 from common.constants import PAGERANK_FLD, FileSource, LLMType, RetCode, StatusEnum, TaskStatus
 from common.misc_utils import thread_pool_exec, thread_pool_exec_long_time
@@ -172,7 +172,7 @@ def _delete_datasets_sync(tenant_id: str, ids: list = None, delete_all: bool = F
             continue
         kb_id_instance_pairs.append((kb_id, kb))
     if len(error_kb_ids) > 0:
-        return False, f"""User '{tenant_id}' lacks permission for datasets: '{", ".join(error_kb_ids)}'"""
+        return False, PermissionDeniedMessage(f"""User '{tenant_id}' lacks permission for datasets: '{", ".join(error_kb_ids)}'""")
 
     errors = []
     success_count = 0
@@ -266,7 +266,7 @@ def get_dataset(dataset_id: str, tenant_id: str):
         return False, 'Lack of "Dataset ID"'
 
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, f"User '{tenant_id}' lacks permission for dataset '{dataset_id}'"
+        return False, PermissionDeniedMessage(f"User '{tenant_id}' lacks permission for dataset '{dataset_id}'")
 
     ok, kb = KnowledgebaseService.get_by_id(dataset_id)
     if not ok:
@@ -290,7 +290,7 @@ def get_ingestion_summary(dataset_id: str, tenant_id: str):
         return False, 'Lack of "Dataset ID"'
 
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, f"User '{tenant_id}' lacks permission for dataset '{dataset_id}'"
+        return False, PermissionDeniedMessage(f"User '{tenant_id}' lacks permission for dataset '{dataset_id}'")
 
     ok, kb = KnowledgebaseService.get_by_id(dataset_id)
     if not ok:
@@ -320,7 +320,7 @@ async def update_dataset(tenant_id: str, dataset_id: str, req: dict):
     # Renaming or reconfiguring a dataset is a write: the creator or a manager of
     # the owning workspace, never a member holding only read access.
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, f"User '{tenant_id}' lacks permission for dataset '{dataset_id}'"
+        return False, PermissionDeniedMessage(f"User '{tenant_id}' lacks permission for dataset '{dataset_id}'")
 
     kb = KnowledgebaseService.get_or_none(id=dataset_id)
     if kb is None:
@@ -456,12 +456,12 @@ def list_datasets(tenant_id: str, args: dict):
     if kb_id:
         kbs = KnowledgebaseService.get_kb_by_id(kb_id, tenant_id)
         if not kbs:
-            return False, f"User '{tenant_id}' lacks permission for dataset '{kb_id}'"
+            return False, PermissionDeniedMessage(f"User '{tenant_id}' lacks permission for dataset '{kb_id}'")
 
     if name:
         kbs = KnowledgebaseService.get_kb_by_name(name, tenant_id)
         if not kbs:
-            return False, f"User '{tenant_id}' lacks permission for dataset '{name}'"
+            return False, PermissionDeniedMessage(f"User '{tenant_id}' lacks permission for dataset '{name}'")
     owner_ids = [owner_id.strip() for owner_id in args.get("owner_ids", []) if isinstance(owner_id, str) and owner_id.strip()]
     # The dataset page lists one workspace: the caller's active one. The owner
     # facet can therefore only ever name that workspace, so a facet asking for
@@ -525,7 +525,7 @@ async def get_knowledge_graph(dataset_id: str, tenant_id: str):
     :return: (success, result) or (success, error_message)
     """
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     req = {"kb_id": [dataset_id], "knowledge_graph_kwd": ["graph"]}
@@ -566,7 +566,7 @@ def delete_knowledge_graph(dataset_id: str, tenant_id: str):
     :return: (success, result) or (success, error_message)
     """
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
     from rag.graphrag.phase_markers import clear_phase_markers
     from rag.nlp import search
@@ -598,7 +598,7 @@ def run_index(dataset_id: str, tenant_id: str, index_type: str):
     if not dataset_id:
         return False, 'Lack of "Dataset ID"'
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     ok, kb = KnowledgebaseService.get_by_id(dataset_id)
     if not ok:
@@ -662,7 +662,7 @@ def trace_index(dataset_id: str, tenant_id: str, index_type: str):
         return False, 'Lack of "Dataset ID"'
 
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     ok, kb = KnowledgebaseService.get_by_id(dataset_id)
     if not ok:
@@ -692,7 +692,7 @@ def list_tags(dataset_id: str, tenant_id: str):
         return False, 'Lack of "Dataset ID"'
 
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     tenants = UserTenantService.get_tenants_by_user_id(tenant_id)
     tags = []
@@ -761,7 +761,7 @@ def get_auto_metadata(dataset_id: str, tenant_id: str):
     """
     kb = KnowledgebaseService.get_or_none(id=dataset_id, tenant_id=tenant_id)
     if kb is None:
-        return False, f"User '{tenant_id}' lacks permission for dataset '{dataset_id}'"
+        return False, PermissionDeniedMessage(f"User '{tenant_id}' lacks permission for dataset '{dataset_id}'")
     parser_cfg = kb.parser_config or {}
     return True, {"metadata": parser_cfg.get("metadata") or [], "built_in_metadata": parser_cfg.get("built_in_metadata") or []}
 
@@ -778,7 +778,7 @@ async def update_auto_metadata(dataset_id: str, tenant_id: str, cfg: dict):
     kb = KnowledgebaseService.get_or_none(id=dataset_id)
     # Changing the dataset's parser configuration is a write.
     if kb is None or not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, f"User '{tenant_id}' lacks permission for dataset '{dataset_id}'"
+        return False, PermissionDeniedMessage(f"User '{tenant_id}' lacks permission for dataset '{dataset_id}'")
 
     parser_cfg = kb.parser_config or {}
     parser_cfg["metadata"] = cfg.get("metadata")
@@ -803,7 +803,7 @@ def delete_tags(dataset_id: str, tenant_id: str, tags: list[str]):
         return False, 'Lack of "Dataset ID"'
 
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     ok, kb = KnowledgebaseService.get_by_id(dataset_id)
     if not ok:
@@ -852,7 +852,7 @@ def list_ingestion_logs(
         return False, 'Lack of "Dataset ID"'
 
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     from api.db.services.pipeline_operation_log_service import PipelineOperationLogService
 
@@ -895,7 +895,7 @@ def get_ingestion_log(dataset_id: str, tenant_id: str, log_id: str):
         return False, 'Lack of "Dataset ID"'
 
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     from api.db.services.pipeline_operation_log_service import PipelineOperationLogService
 
@@ -936,7 +936,7 @@ def delete_index(dataset_id: str, tenant_id: str, index_type: str, wipe: bool = 
         return False, 'Lack of "Dataset ID"'
 
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     ok, kb = KnowledgebaseService.get_by_id(dataset_id)
     if not ok:
@@ -1009,7 +1009,7 @@ def rename_tag(dataset_id: str, tenant_id: str, from_tag: str, to_tag: str):
         return False, 'Lack of "Dataset ID"'
 
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     ok, kb = KnowledgebaseService.get_by_id(dataset_id)
     if not ok:
@@ -1327,7 +1327,7 @@ def check_embedding(dataset_id: str, tenant_id: str, req: dict):
         return False, 'Lack of "Dataset ID"'
 
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     ok, kb = KnowledgebaseService.get_by_id(dataset_id)
     if not ok:
@@ -1817,7 +1817,7 @@ async def has_any_wiki(dataset_id: str, tenant_id: str):
     auth failure. Runs a ``limit=1`` search and reads only the total.
     """
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _wiki_index_or_none(kb.tenant_id, dataset_id)
@@ -1907,7 +1907,7 @@ async def get_dataset_structure(dataset_id: str, tenant_id: str, kind: str, keyw
     ``(False, message)`` on auth/validation failure.
     """
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     resolved_kind = _resolve_dataset_structure_kind(kind)
     if not resolved_kind:
@@ -2562,7 +2562,7 @@ async def _involved_doc_ids_for_kind(index_nm, dataset_id: str, kind: str, tenan
 async def _get_alteration(dataset_id: str, tenant_id: str, kind: str):
     """Shared driver: doc-level drift between the ``kind`` product and the dataset."""
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     ok, kb = KnowledgebaseService.get_by_id(dataset_id)
     if not ok:
         return False, "Invalid Dataset ID"
@@ -2701,7 +2701,7 @@ async def list_wiki_pages(
     pages of the same type grouped together visually.
     """
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _wiki_index_or_none(kb.tenant_id, dataset_id)
@@ -2821,7 +2821,7 @@ async def list_wiki_topics(
 ):
     """List wiki topics for the dataset Artifact tab."""
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _wiki_index_or_none(kb.tenant_id, dataset_id)
@@ -2928,7 +2928,7 @@ async def get_wiki_page(
     Returns ``(True, page_dict)`` or ``(True, None)`` when no row matches.
     """
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _wiki_index_or_none(kb.tenant_id, dataset_id)
@@ -3005,7 +3005,7 @@ async def get_wiki_page(
 async def has_any_skill(dataset_id: str, tenant_id: str):
     """Fast existence probe for the dataset Skills sidebar entry."""
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _skill_index_or_none(kb.tenant_id, dataset_id)
@@ -3038,7 +3038,7 @@ async def has_any_skill(dataset_id: str, tenant_id: str):
 async def get_skill_tree(dataset_id: str, tenant_id: str):
     """Fetch the one-shot recursive skill tree for this dataset."""
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _skill_index_or_none(kb.tenant_id, dataset_id)
@@ -3086,7 +3086,7 @@ async def delete_skills(dataset_id: str, tenant_id: str):
     not exist yet there is nothing to delete, so it succeeds with ``0``.
     """
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _skill_index_or_none(kb.tenant_id, dataset_id)
@@ -3178,7 +3178,7 @@ async def delete_skill(dataset_id: str, tenant_id: str, skill_kwd: str):
     4. Prune the ``skill_all`` tree and rewrite the aggregate row.
     """
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _skill_index_or_none(kb.tenant_id, dataset_id)
@@ -3310,7 +3310,7 @@ async def delete_skill(dataset_id: str, tenant_id: str, skill_kwd: str):
 async def get_skill_page(dataset_id: str, tenant_id: str, skill_kwd: str):
     """Fetch the full markdown body for a single skill node."""
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _skill_index_or_none(kb.tenant_id, dataset_id)
@@ -3448,7 +3448,7 @@ def _nav_item(row: dict) -> dict:
 async def _nav_search(dataset_id: str, tenant_id: str, condition: dict, page: int, page_size: int):
     """Run one nav-tree search and shape the hits into UI nodes."""
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _compiled_index_or_none(kb.tenant_id, dataset_id)
@@ -3534,7 +3534,7 @@ async def delete_nav(dataset_id: str, tenant_id: str):
     index yet.
     """
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _compiled_index_or_none(kb.tenant_id, dataset_id)
@@ -3568,7 +3568,7 @@ async def delete_nav_node(dataset_id: str, tenant_id: str, name: str):
     name = name.strip()
 
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _compiled_index_or_none(kb.tenant_id, dataset_id)
@@ -3689,7 +3689,7 @@ async def generate_nav(
     Returns ``(True, {"deleted": <n>, "upserted": <n>})`` on success.
     """
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
     if kb is None:
@@ -4782,7 +4782,7 @@ async def update_wiki_page(
     ``(False, message)`` on authorization failure.
     """
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _wiki_index_or_none(kb.tenant_id, dataset_id)
@@ -5203,7 +5203,7 @@ async def get_wiki_graph(
     ``(False, message)`` on authorization failure.
     """
     if not KnowledgebaseService.accessible(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     total_entities = 0
@@ -5482,7 +5482,7 @@ async def clear_wiki(dataset_id: str, tenant_id: str):
     ``(False, str)`` on auth failure.
     """
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
     _, kb = KnowledgebaseService.get_by_id(dataset_id)
 
     pack = _wiki_index_or_none(kb.tenant_id, dataset_id)
@@ -5624,7 +5624,7 @@ def get_dataset_authorization(dataset_id: str, tenant_id: str):
     who else can reach the dataset.
     """
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     kb = Knowledgebase.get_or_none(id=dataset_id)
     if kb is None:
@@ -5648,7 +5648,7 @@ async def update_dataset_authorization(dataset_id: str, tenant_id: str, req: dic
     decided by the dataset row alone.
     """
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
-        return False, "no authorization"
+        return False, PermissionDeniedMessage("no authorization")
 
     kb = Knowledgebase.get_or_none(id=dataset_id)
     if kb is None:

@@ -401,7 +401,7 @@ async def retrieval_test(tenant_id, dataset_id=None):
         return get_error_data_result("`dataset_ids` should be a list")
     for id in kb_ids:
         if not KnowledgebaseService.accessible(kb_id=id, user_id=tenant_id):
-            return get_error_data_result(f"You don't own the dataset {id}.")
+            return get_error_permission_result(f"You don't own the dataset {id}.")
     kbs = KnowledgebaseService.get_by_ids(kb_ids)
     embd_err = validate_dataset_embedding_models(kbs)
     if embd_err:
@@ -597,7 +597,7 @@ async def list_chunks(tenant_id, dataset_id, document_id):
     from rag.nlp import search
 
     if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
     dataset_tenant_id = _get_dataset_tenant_id(dataset_id)
     if not dataset_tenant_id:
         return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
@@ -691,7 +691,7 @@ async def get_chunk(tenant_id, dataset_id, document_id, chunk_id):
     from rag.nlp import search
 
     if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
     dataset_tenant_id = _get_dataset_tenant_id(dataset_id)
     if not dataset_tenant_id:
         return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
@@ -746,7 +746,7 @@ async def get_document_structure_graph(tenant_id, dataset_id, document_id):
     from rag.nlp import search
 
     if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
     dataset_tenant_id = _get_dataset_tenant_id(dataset_id)
     if not dataset_tenant_id:
         return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
@@ -1108,7 +1108,7 @@ async def get_document_structure_claims(tenant_id, dataset_id, document_id):
         offset/limit: paging, limit capped at 100
     """
     if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
     dataset_tenant_id = _get_dataset_tenant_id(dataset_id)
     if not dataset_tenant_id:
         return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")

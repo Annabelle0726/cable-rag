@@ -181,6 +181,9 @@ def _load_list_datasets_module(monkeypatch, *, kbs, parsing_status_by_kb):
         get_parser_config=MagicMock(),
         remap_dictionary_keys=_identity_remap,
         verify_embedding_availability=MagicMock(),
+        # The service module wraps its permission denials in this, so the stub has
+        # to be callable and carry the code the real one carries.
+        PermissionDeniedMessage=type("PermissionDeniedMessage", (str,), {"code": 108}),
     )
     _stub(
         monkeypatch,

@@ -150,6 +150,9 @@ def _load_nav_module(monkeypatch, *, accessible=True, index_pack=("idx-1", None)
         get_parser_config=MagicMock(),
         remap_dictionary_keys=lambda source_data, key_aliases=None: dict(source_data),
         verify_embedding_availability=MagicMock(),
+        # The service module wraps its permission denials in this, so the stub has
+        # to be callable and carry the code the real one carries.
+        PermissionDeniedMessage=type("PermissionDeniedMessage", (str,), {"code": 108}),
     )
     _stub(
         monkeypatch,
