@@ -116,6 +116,9 @@ def _load_list_datasets_module(monkeypatch, *, kbs, parsing_status_by_kb):
         Document=SimpleNamespace(kb_id="kb_id"),
         File=SimpleNamespace(),
         SyncLogs=SimpleNamespace(kb_id="kb_id"),
+        Department=SimpleNamespace(),
+        Knowledgebase=SimpleNamespace(),
+        UserTenant=SimpleNamespace(),
     )
     _stub(
         monkeypatch,

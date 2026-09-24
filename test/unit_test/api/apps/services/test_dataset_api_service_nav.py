@@ -93,6 +93,9 @@ def _load_nav_module(monkeypatch, *, accessible=True, index_pack=("idx-1", None)
         StatusEnum=SimpleNamespace(),
         TaskStatus=SimpleNamespace(),
         ModelTypeBinary=_StubModelTypeBinary,
+        # `api.db` imports this at module scope, and the module under test now
+        # reaches `api.db` for the permission modes.
+        PipelineTaskType=SimpleNamespace(),
     )
     _stub(monkeypatch, "common.settings", docStoreConn=doc_store, retriever=retriever, DOC_ENGINE="infinity")
     _stub(
@@ -102,6 +105,9 @@ def _load_nav_module(monkeypatch, *, accessible=True, index_pack=("idx-1", None)
         Document=SimpleNamespace(),
         File=SimpleNamespace(),
         SyncLogs=SimpleNamespace(),
+        Department=SimpleNamespace(),
+        Knowledgebase=SimpleNamespace(),
+        UserTenant=SimpleNamespace(),
     )
     _stub(
         monkeypatch,

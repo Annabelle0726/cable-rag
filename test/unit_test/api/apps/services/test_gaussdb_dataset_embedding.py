@@ -117,6 +117,9 @@ def _load_dataset_module(monkeypatch):
         Document=SimpleNamespace(kb_id="kb_id"),
         File=SimpleNamespace(),
         SyncLogs=SimpleNamespace(kb_id="kb_id", status=SimpleNamespace(in_=lambda _values: None)),
+        Department=SimpleNamespace(),
+        Knowledgebase=SimpleNamespace(),
+        UserTenant=SimpleNamespace(),
     )
     _install_module(
         monkeypatch,
@@ -169,6 +172,9 @@ def _load_dataset_module(monkeypatch):
         RetCode=SimpleNamespace(NOT_EFFECTIVE=590),
         StatusEnum=SimpleNamespace(VALID=SimpleNamespace(value="1")),
         TaskStatus=SimpleNamespace(SCHEDULE="schedule", RUNNING="running", CANCEL="cancel"),
+        # `api.db` imports this at module scope, and the module under test now
+        # reaches `api.db` for the permission modes.
+        PipelineTaskType=SimpleNamespace(),
     )
     _install_module(
         monkeypatch,

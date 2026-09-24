@@ -19,7 +19,9 @@ import math
 import os
 import re
 
-from api.db.db_models import Connector2Kb, Document, File, SyncLogs
+from api.db import TenantPermission
+from api.db.db_models import Connector2Kb, Department, Document, File, Knowledgebase, SyncLogs, UserTenant
+from api.db.joint_services.kb_authorization_service import MEMBER_ROLES, SUBJECT_DEPARTMENT, SUBJECT_USER, get_kb_authorizations, set_dataset_authorization
 from api.db.joint_services.tenant_model_service import get_composite_model_name_by_ids, resolve_model_config, resolve_model_id
 from api.db.services.connector_service import Connector2KbService, SyncLogsService
 from api.db.services.document_service import DocumentService, queue_raptor_o_graphrag_tasks
@@ -5572,3 +5574,110 @@ async def clear_wiki(dataset_id: str, tenant_id: str):
         deleted["file_commit_history"] = False
 
     return True, {"deleted": deleted}
+
+
+def _normalized_subject_ids(value) -> list[str]:
+    """De-duplicate a request's subject id list, keeping order and dropping blanks."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        raise ValueError("`department_ids` and `user_ids` should be lists of ids")
+    seen, ordered = set(), []
+    for item in value:
+        if not isinstance(item, str):
+            raise ValueError("`department_ids` and `user_ids` should be lists of ids")
+        item = item.strip()
+        if item and item not in seen:
+            seen.add(item)
+            ordered.append(item)
+    return ordered
+
+
+def _known_department_ids(tenant_id: str, ids: list[str]) -> set[str]:
+    if not ids:
+        return set()
+    return {
+        row.id
+        for row in Department.select(Department.id).where(
+            (Department.tenant_id == tenant_id) & (Department.id.in_(ids)) & (Department.status == StatusEnum.VALID.value)
+        )
+    }
+
+
+def _member_ids(tenant_id: str, ids: list[str]) -> set[str]:
+    if not ids:
+        return set()
+    return {
+        row.user_id
+        for row in UserTenant.select(UserTenant.user_id).where(
+            (UserTenant.tenant_id == tenant_id) & (UserTenant.user_id.in_(ids)) & (UserTenant.role.in_(MEMBER_ROLES)) & (UserTenant.status == StatusEnum.VALID.value)
+        )
+    }
+
+
+def get_dataset_authorization(dataset_id: str, tenant_id: str):
+    """The visibility mode of one dataset and the subjects its grants name.
+
+    Reading the subject list is a manager's view rather than a reader's: it names
+    who else can reach the dataset.
+    """
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return False, "no authorization"
+
+    kb = Knowledgebase.get_or_none(id=dataset_id)
+    if kb is None:
+        return False, "Invalid Dataset ID"
+
+    rows = get_kb_authorizations(kb.id)
+    return True, {
+        "permission": kb.permission,
+        "department_ids": [row["subject_id"] for row in rows if row["subject_type"] == SUBJECT_DEPARTMENT],
+        "user_ids": [row["subject_id"] for row in rows if row["subject_type"] == SUBJECT_USER],
+    }
+
+
+async def update_dataset_authorization(dataset_id: str, tenant_id: str, req: dict):
+    """Replace a dataset's visibility mode and, for `custom`, its subject set.
+
+    A subject set naming a department from another workspace, or a user who is
+    not a member of this one, is refused instead of stored: the permitted
+    subjects have to stay inside the workspace that owns the dataset. A mode
+    other than `custom` stores no subjects at all, since `me` and `team` are
+    decided by the dataset row alone.
+    """
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return False, "no authorization"
+
+    kb = Knowledgebase.get_or_none(id=dataset_id)
+    if kb is None:
+        return False, "Invalid Dataset ID"
+
+    permission = (req.get("permission") or "").strip()
+    if permission not in (TenantPermission.ME.value, TenantPermission.TEAM.value, TenantPermission.CUSTOM.value):
+        return False, "`permission` must be one of me, team or custom"
+
+    department_ids = _normalized_subject_ids(req.get("department_ids"))
+    user_ids = _normalized_subject_ids(req.get("user_ids"))
+
+    subjects = []
+    if permission == TenantPermission.CUSTOM.value:
+        unknown_departments = [department_id for department_id in department_ids if department_id not in _known_department_ids(kb.tenant_id, department_ids)]
+        if unknown_departments:
+            return False, f"Unknown department(s) for this workspace: {', '.join(unknown_departments)}"
+        outsiders = [user_id for user_id in user_ids if user_id not in _member_ids(kb.tenant_id, user_ids)]
+        if outsiders:
+            return False, f"Not a member of this workspace: {', '.join(outsiders)}"
+        subjects = [{"subject_type": SUBJECT_DEPARTMENT, "subject_id": department_id} for department_id in department_ids]
+        subjects += [{"subject_type": SUBJECT_USER, "subject_id": user_id} for user_id in user_ids]
+
+    set_dataset_authorization(kb.id, permission, subjects)
+    logging.info(
+        "dataset authorization updated: dataset=%s permission=%s departments=%d users=%d",
+        dataset_id,
+        permission,
+        len(department_ids),
+        len(user_ids),
+    )
+    return True, {"permission": permission, "department_ids": department_ids, "user_ids": user_ids}

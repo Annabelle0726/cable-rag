@@ -224,6 +224,8 @@ WRITE_HANDLERS = {
     "api/apps/restful_apis/dataset_api.py": [
         "delete",
         "update",
+        "get_dataset_authorization",
+        "update_dataset_authorization",
         "delete_tags",
         "rename_tag",
         "clear_wiki",

@@ -39,7 +39,7 @@ from datetime import datetime
 from functools import wraps
 
 from api.db import TenantPermission, UserTenantRole
-from api.db.db_models import DB, KnowledgebaseAuthorization, UserTenant
+from api.db.db_models import DB, Knowledgebase, KnowledgebaseAuthorization, UserTenant
 from common.constants import StatusEnum
 from common.misc_utils import get_uuid
 from common.time_utils import current_timestamp, datetime_format
@@ -294,19 +294,8 @@ def _normalize_subjects(subjects) -> list[dict]:
     return normalized
 
 
-@_with_connection
-def replace_kb_authorizations(kb_id: str, subjects: list[dict]) -> None:
-    """Replace the whole subject set of one dataset in a single transaction.
-
-    This is a replace, not an append: the previous grants are deleted and the
-    new ones inserted atomically, so a failed write leaves the old set intact
-    rather than a half-applied one. Passing an empty set clears the dataset's
-    grants, which is what a mode other than `custom` requires.
-    """
-    if not kb_id:
-        raise ValueError("kb_id is required")
-
-    rows = _normalize_subjects(subjects)
+def _write_subjects(kb_id: str, rows: list[dict]) -> int:
+    """Swap a dataset's grant rows for `rows`, inside the caller's transaction."""
     timestamp = current_timestamp()
     stamp = datetime_format(datetime.now())
     payload = [
@@ -323,12 +312,55 @@ def replace_kb_authorizations(kb_id: str, subjects: list[dict]) -> None:
         for subject in rows
     ]
 
-    with DB.atomic():
-        KnowledgebaseAuthorization.delete().where(KnowledgebaseAuthorization.kb_id == kb_id).execute()
-        if payload:
-            KnowledgebaseAuthorization.insert_many(payload).execute()
+    KnowledgebaseAuthorization.delete().where(KnowledgebaseAuthorization.kb_id == kb_id).execute()
+    if payload:
+        KnowledgebaseAuthorization.insert_many(payload).execute()
+    return len(payload)
 
-    logger.info("dataset authorization replaced: kb=%s subjects=%d", kb_id, len(payload))
+
+@_with_connection
+def replace_kb_authorizations(kb_id: str, subjects: list[dict]) -> None:
+    """Replace the whole subject set of one dataset in a single transaction.
+
+    This is a replace, not an append: the previous grants are deleted and the
+    new ones inserted atomically, so a failed write leaves the old set intact
+    rather than a half-applied one. Passing an empty set clears the dataset's
+    grants, which is what a mode other than `custom` requires.
+    """
+    if not kb_id:
+        raise ValueError("kb_id is required")
+
+    rows = _normalize_subjects(subjects)
+    with DB.atomic():
+        written = _write_subjects(kb_id, rows)
+
+    logger.info("dataset authorization replaced: kb=%s subjects=%d", kb_id, written)
+
+
+@_with_connection
+def set_dataset_authorization(kb_id: str, permission: str, subjects: list[dict]) -> None:
+    """Set a dataset's visibility mode and its subject set in one transaction.
+
+    The mode lives on the dataset row and the subjects in the grant table, so
+    they are written together: a mode other than `custom` carries no subjects,
+    and a half-applied write would leave a mode that disagrees with its subject
+    set. Calls `replace_kb_authorizations`' write step on the same connection, so
+    this is safe from inside a larger transaction as well.
+    """
+    if not kb_id:
+        raise ValueError("kb_id is required")
+    if permission not in (TenantPermission.ME, TenantPermission.TEAM, TenantPermission.CUSTOM):
+        raise ValueError(f"permission must be one of me/team/custom, got {permission!r}")
+
+    # Only `custom` carries a subject set; the other modes are decided by the
+    # dataset row alone, so any stored subjects would be dead data.
+    rows = _normalize_subjects(subjects) if permission == TenantPermission.CUSTOM else []
+
+    with DB.atomic():
+        Knowledgebase.update(permission=permission).where(Knowledgebase.id == kb_id).execute()
+        written = _write_subjects(kb_id, rows)
+
+    logger.info("dataset authorization set: kb=%s permission=%s subjects=%d", kb_id, permission, written)
 
 
 @_with_connection

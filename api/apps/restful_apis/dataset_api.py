@@ -329,6 +329,52 @@ async def update(tenant_id, dataset_id):
         return get_error_data_result(message="Internal server error")
 
 
+@manager.route("/datasets/<dataset_id>/authorization", methods=["GET"])  # noqa: F821
+@login_required
+@add_tenant_id_to_kwargs
+async def get_dataset_authorization(tenant_id, dataset_id):
+    """Read a dataset's visibility mode and the subjects its `custom` grants name.
+
+    The subject list names who else can reach the dataset, so it is a creator's
+    or a manager's view rather than a reader's; a caller who may not change the
+    dataset is refused with code=108.
+    """
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
+
+    success, result = dataset_api_service.get_dataset_authorization(dataset_id, tenant_id)
+    if success:
+        return get_result(data=result)
+    return get_error_data_result(message=result)
+
+
+@manager.route("/datasets/<dataset_id>/authorization", methods=["PUT"])  # noqa: F821
+@login_required
+@add_tenant_id_to_kwargs
+async def update_dataset_authorization(tenant_id, dataset_id):
+    """Set a dataset's visibility mode and, for `custom`, its subject set.
+
+    Body: `{ "permission": "me|team|custom", "department_ids": [], "user_ids": [] }`.
+    The subject set is replaced atomically, and a mode other than `custom` clears
+    it. Only a creator or a workspace manager may call this.
+    """
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
+
+    req = await request.get_json()
+    if not isinstance(req, dict):
+        return get_error_argument_result("A JSON object body is required.")
+
+    try:
+        success, result = await dataset_api_service.update_dataset_authorization(dataset_id, tenant_id, req)
+    except ValueError as e:
+        return get_error_argument_result(str(e))
+
+    if success:
+        return get_result(data=result)
+    return get_error_data_result(message=result)
+
+
 @manager.route("/datasets", methods=["GET"])  # noqa: F821
 @login_required
 @add_tenant_id_to_kwargs
