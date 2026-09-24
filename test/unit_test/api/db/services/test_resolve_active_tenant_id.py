@@ -127,3 +127,54 @@ def test_a_caller_with_no_membership_resolves_to_its_own_id(monkeypatch):
     resolve = _resolver(monkeypatch, own_role=None, joined=[])
 
     assert resolve(TenantService, "user-orphan") == "user-orphan"
+
+
+def test_resolving_an_already_resolved_id_is_not_a_fixed_point(monkeypatch):
+    """Why the resolver must never be applied to a resolved workspace id.
+
+    ``@add_tenant_id_to_kwargs`` injects the caller's USER id, and services call
+    this resolver on it. That is the whole reason it can inject the user id
+    rather than the workspace: the value is a person, not a workspace.
+
+    It cannot be "simplified" into injecting an already-resolved workspace id,
+    because the workspace id of an owner IS that owner's user id
+    (``user_register`` creates the tenant with ``id = user_id``), so a second
+    resolution of it re-enters with the OWNER as the caller and returns the
+    owner's own active workspace instead - a silent switch into a workspace the
+    original caller never named.
+
+    Here ``user-member`` belongs to ``tenant-own``, whose id is its owner's user
+    id. The member resolves to ``tenant-own``; feeding that same value back
+    resolves to ``tenant-second``, the workspace that owner happens to be
+    working in.
+    """
+    memberships = {
+        ("user-member", "tenant-own"): UserTenantRole.NORMAL,
+        ("tenant-own", "tenant-own"): UserTenantRole.OWNER,
+        ("tenant-own", "tenant-second"): UserTenantRole.NORMAL,
+    }
+    # Only the owner of `tenant-own` has an explicitly stored selection.
+    stored = {"tenant-own": "tenant-second"}
+
+    monkeypatch.setattr(
+        UserTenantService,
+        "get_role",
+        classmethod(lambda _cls, user_id, tenant_id: memberships.get((user_id, tenant_id))),
+    )
+    monkeypatch.setattr(
+        UserService,
+        "get_by_id",
+        classmethod(lambda _cls, user_id: (True, SimpleNamespace(id=user_id, current_tenant_id=stored.get(user_id)))),
+    )
+    monkeypatch.setattr(
+        TenantService,
+        "get_joined_tenants_by_user_id",
+        classmethod(lambda _cls, user_id: [{"tenant_id": "tenant-own", "role": UserTenantRole.NORMAL}] if user_id == "user-member" else []),
+    )
+    resolve = TenantService.resolve_active_tenant_id.__func__.__wrapped__
+
+    member_workspace = resolve(TenantService, "user-member")
+
+    assert member_workspace == "tenant-own"
+    # The same value, resolved again, lands somewhere else.
+    assert resolve(TenantService, member_workspace) == "tenant-second"

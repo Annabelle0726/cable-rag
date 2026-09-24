@@ -294,21 +294,25 @@ def requested_tenant_id() -> str | None:
 
 
 def require_tenant_admin(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
-    """Restrict a route to a user who may administer the target tenant.
+    """Restrict a route to a user who may administer the workspace it acts in.
 
     Authorisation comes from ``UserTenantService.can_manage_tenant``, which is
-    true when the caller holds OWNER or ADMIN on that tenant. OWNER implies
-    ADMIN, so a tenant owner passes without any extra row.
+    true when the caller holds OWNER or ADMIN on that workspace. OWNER implies
+    ADMIN, so a workspace owner passes without any extra row.
+
+    The subject is the caller's ACTIVE workspace, resolved from the caller's own
+    identity and the validated ``X-Tenant-Id`` header - the same rule the routes
+    themselves use to pick the workspace they read and write. It is deliberately
+    NOT ``kwargs["tenant_id"]``: ``add_tenant_id_to_kwargs`` fills that name with
+    the caller's USER id, and because a registered user owns a workspace whose id
+    is its own user id, reading that value would authorise the caller's ownership
+    of its PERSONAL workspace while the request acts in a workspace where it may
+    only be a NORMAL member.
 
     This is deliberately separate from ``login_required``: that decorator is the
     single authentication entry point for the whole API, so widening it to carry
     role logic would put every route at risk. Role checks are applied per route
     instead.
-
-    The tenant under test comes from ``kwargs["tenant_id"]``, which
-    ``add_tenant_id_to_kwargs`` fills with the caller's ACTIVE workspace. When it
-    is absent the active workspace is resolved directly, never assumed to be the
-    caller's own id.
     """
 
     @wraps(func)
@@ -320,7 +324,7 @@ def require_tenant_admin(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitab
         if not user:
             raise QuartAuthUnauthorized()
 
-        tenant_id = kwargs.get("tenant_id") or TenantService.resolve_active_tenant_id(user.id, requested_tenant_id())
+        tenant_id = TenantService.resolve_active_tenant_id(user.id, requested_tenant_id())
         if not UserTenantService.can_manage_tenant(user.id, tenant_id):
             return get_error_permission_result("admin role required for this tenant")
 
