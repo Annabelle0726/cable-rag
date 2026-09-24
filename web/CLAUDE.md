@@ -21,9 +21,19 @@ npm run build      # Production build
 npm run lint       # oxlint
 npm run format     # oxfmt
 npm run test       # Jest tests
+
 ```
 
 ## Development Conventions
+
+### Design System, Theme & Branding
+
+* **Header & Theme Color**: The top header uses State Grid Green (国网绿 `#005c3f`). All header items, icons, and navigation text must maintain high-contrast white text (`text-white` / `text-white/85`) in both Light and Dark modes.
+* **Brand Logo & Lockup**: `BrandLockup` uses a transparent logo mark (`brand-mark.png`) paired with white HTML text (`header.brandShort`). **Do not** add white card backgrounds, borders, or hover background rectangles around the logo entrypoint.
+* **Supported Languages**: The system strictly supports **ONLY Simplified Chinese (`zh`)** and **English (`en`)**. The language switcher is a single-click button toggling directly between `zh` and `en`. Do not add or propagate keys to other language files.
+* **Table Component**: Data tables must support zebra striping (斑马纹) with alternating row background colors for enhanced readability.
+* **Dark & Light Modes**: Full dark and light mode support is mandatory across all components. Ensure text visibility and proper contrast against backgrounds in both modes (especially in dark mode where default dark text becomes invisible).
+* **LaTeX Math Rendering**: Ensure LaTeX equations are properly rendered in markdown/chat/knowledge base components (e.g., via KaTeX/MathJax). Inline math uses `$ ... $` and display math uses `$$ ... $$`. Ensure LaTeX formulas adjust text and element colors correctly when switching between Light and Dark modes.
 
 ### Test File Placement
 
@@ -36,28 +46,30 @@ The frontend serves two backends, Go and Python. The active one is detected at r
 All divergence between the two backends is funneled through dispatch points. Business code never branches on backend identity.
 
 1. Never import `@/utils/backend-runtime` anywhere except its two sanctioned boundaries (enforced by oxlint `no-restricted-imports`):
-   - `src/utils/backend-variant.tsx` — the dispatch primitives;
-   - `src/main.tsx` — the bootstrap gate.
+* `src/utils/backend-variant.tsx` — the dispatch primitives;
+* `src/main.tsx` — the bootstrap gate.
+
+
 2. Branch only through the primitives from `@/utils/backend-variant`:
-   - JSX: `<BackendVariant go={...} python={...} />` inside a dispatcher file (a page `index.tsx` or form dispatcher) — never inline in business components.
-   - Values (field names, defaults, payload transforms): `pickByBackend({ go, python })` inside an adapter file.
-   - Hook-level needs (e.g. a query `enabled` flag): `useIsGoBackend()`.
+* JSX: `<BackendVariant go={...} python={...} />` inside a dispatcher file (a page `index.tsx` or form dispatcher) — never inline in business components.
+* Values (field names, defaults, payload transforms): `pickByBackend({ go, python })` inside an adapter file.
+* Hook-level needs (e.g. a query `enabled` flag): `useIsGoBackend()`.
+
+
 3. Routes never fork per backend: one route, one dispatcher component, with the variant implementations under `go/` and `python/` subdirectories. Reference example: `src/pages/dataset/setting/`.
 4. Variant file naming: `Xxx.go.tsx` / `Xxx.python.ts(x)` siblings behind a same-named dispatcher, or `go/` + `python/` subdirectories for whole pages. No temporal names (`Next`, `Legacy`, `New`).
 5. Small differences (a field's visibility, a field name) belong in capability-style adapter/config files reached through `pickByBackend`, not scattered inline ternaries in shared components.
-6. Runtime detection (`/api/v1/language`) is the ONLY source of backend identity in app code. Never read `API_PROXY_SCHEME` / `__API_PROXY_SCHEME__` or declare that global in `src/`, and never create another backend-detection helper (a deleted `api-proxy-scheme.ts` did exactly this — do not recreate it). The env var only configures the dev-server proxy in `vite.config.ts`; it is build-time, dev-only, and defaults to `python`, so it cannot say which backend is actually serving (enforced by oxlint `no-restricted-globals` for bare reads; the Vite `define` that injected it into the client bundle is removed).
-
-Migration status: complete. All former `isGoBackend()` call sites go through the primitives — per-variant transforms are dispatched inside `src/pages/agent/utils.ts` and `src/utils/pipeline-operator.ts`, extractor initial values inside `src/pages/agent/constant/pipeline.tsx`, the parser-change dialog inside `src/pages/dataset/dataset/change-parser-dialog.tsx`, and the dataset configuration route is a single dispatcher (`src/pages/dataset/setting/`). `no-restricted-imports` is enforced at `error`.
+6. Runtime detection (`/api/v1/language`) is the ONLY source of backend identity in app code. Never read `API_PROXY_SCHEME` / `__API_PROXY_SCHEME__` or declare that global in `src/`, and never create another backend-detection helper. The env var only configures the dev-server proxy in `vite.config.ts`.
 
 ### CSS and Layout Debugging
 
 When fixing CSS/layout issues (especially flex truncation, ellipsis, or element sizing), **always inspect the full parent hierarchy** for `flex-shrink`, `min-width`, and `overflow` constraints before applying fixes like `min-w-0`. Do not repeatedly apply the same fix without verifying the root cause.
 
-- Before editing, explain: (1) the full flex/container hierarchy from the target element up to the nearest non-flex ancestor, (2) what constraint is actually causing the bug, and (3) how the proposed fix addresses that root cause.
+* Before editing, explain: (1) the full flex/container hierarchy from the target element up to the nearest non-flex ancestor, (2) what constraint is actually causing the bug, and (3) how the proposed fix addresses that root cause.
 
 ### Color Tokens
 
-When writing or modifying styles, **use the project-defined color tokens from `src/tailwind.css`** (e.g., `bg-bg-base`, `text-text-primary`, `text-text-secondary`, `text-text-disabled`, `border-border-button`, `bg-bg-card`). Do not use arbitrary hex/RGB values or Tailwind's default palette colors (e.g., `emerald-500`, `blue-400`) directly in component class names. These tokens are defined for both light and dark modes and keep the UI consistent with the design system.
+When writing or modifying styles, **use the project-defined color tokens from `src/tailwind.css**` (e.g., `bg-bg-base`, `text-text-primary`, `text-text-secondary`, `text-text-disabled`, `border-border-button`, `bg-bg-card`). Do not use arbitrary hex/RGB values or Tailwind's default palette colors directly in component class names. These tokens are defined for both light and dark modes and keep the UI consistent with the design system.
 
 ### Scope and Boundaries
 
@@ -65,9 +77,9 @@ Respect explicit boundaries from the user. If the user says **"only fix the sele
 
 ### Internationalization (i18n)
 
-For translation tasks, add keys **only to the explicitly requested language files** (commonly `src/locales/zh.ts` and `src/locales/en.ts`). Do not auto-propagate changes to all language files unless the user explicitly asks.
+For translation tasks, add keys **only to `src/locales/zh.ts` and `src/locales/en.ts**`. Do not auto-propagate changes to other language files.
 
-- **Style for `en.ts`**: Sentence case — first word capitalized, rest lowercase (e.g., `referenceAnswer: 'Reference answer'`). Proper nouns remain as-is.
+* **Style for `en.ts**`: Sentence case — first word capitalized, rest lowercase (e.g., `referenceAnswer: 'Reference answer'`). Proper nouns remain as-is.
 
 ### React Component Refactoring
 
@@ -79,40 +91,17 @@ When refactoring or extracting components, **verify layout behavior after each s
 
 **Never write raw `queryKey` arrays inline.** Always use a query key factory object that returns `as const` tuples. Raw arrays duplicated across `useQuery` and `invalidateQueries` are brittle, unreadable, and cause stale-cache bugs when key structures drift.
 
-```ts
-// ❌ Bad — raw array, hard to match with useQuery
-queryClient.invalidateQueries({
-  queryKey: [
-    LLMApiAction.AddedProviders,
-    params.provider_name,
-    params.instance_name,
-    'models',
-  ],
-});
-
-// ✅ Good — factory reference, self-documenting
-queryClient.invalidateQueries({
-  queryKey: LlmKeys.instanceModels(params.provider_name, params.instance_name),
-});
-```
-
-- Place the factory in the same file as the hooks, named `{Domain}Keys` (e.g., `LlmKeys`, `DatasetKeys`).
-- Every `useQuery` and every `invalidateQueries` must reference the same factory function.
-- Use `as const` on each factory return value for type-safe readonly tuples.
+* Place the factory in the same file as the hooks, named `{Domain}Keys` (e.g., `LlmKeys`, `DatasetKeys`).
+* Every `useQuery` and every `invalidateQueries` must reference the same factory function.
+* Use `as const` on each factory return value for type-safe readonly tuples.
 
 #### Cache Debugging
 
-For React Query / cache invalidation bugs, **carefully compare query keys across all consuming components and mutation hooks**. Mismatched keys (e.g., with/without `refreshCount`) are a common root cause of stale data or duplicate requests.
-
-- Systematically: (1) list every component/hook that calls `useQuery` for this data, (2) compare their query keys character-for-character, (3) check every mutation's `onSuccess` for cache invalidation, and (4) verify no parent re-renders are remounting the observer.
+For React Query / cache invalidation bugs, **carefully compare query keys across all consuming components and mutation hooks**. Mismatched keys are a common root cause of stale data or duplicate requests.
 
 #### Colocate Queries with the Consuming View
 
-**Fire a query in the component that renders its data — not in a parent page.** When a page switches between mutually exclusive views (tabs, view modes), extract each view into its own component that issues its own requests on mount. Conditional rendering then provides lazy loading for free.
-
-- Do not hoist child-view queries into the page component — it fires requests the user may never need (e.g., fetching the skill tree on page entry while the default view is the LLM wiki).
-- Do not thread `enabled` flags or view-mode props through hooks to gate a hoisted query; that is a sign the query lives at the wrong level. Split the view instead.
-- Remember the trade-off: with `gcTime: 0`, unmounting a view drops its cache, so switching back refetches. That is usually desirable for always-fresh data — do not reintroduce eager hoisting just to avoid the refetch.
+**Fire a query in the component that renders its data — not in a parent page.** When a page switches between mutually exclusive views (tabs, view modes), extract each view into its own component that issues its own requests on mount.
 
 ### Network Request Layering
 
@@ -122,40 +111,19 @@ HTTP requests are organized in three layers. **Never import `@/utils/request`, `
 2. `src/services/xx-service.ts` — Register endpoints via `registerNextServer`, all going through `@/utils/next-request`.
 3. `src/utils/next-request.ts` — The single axios instance; handles token, 401 redirects, and error notifications.
 
-Interface types are split between two folders:
-
-- Response/data shape → `src/interfaces/database/xx.ts`
-- Request params/body → `src/interfaces/request/xx.ts`
-
-Model-related endpoints (LLM provider / factory / my LLM, etc.) are consolidated in `src/services/llm-service.ts` rather than scattered across hooks. For GET endpoints, register with `method: 'get'` in the service, and on the call site pass `true` as the second argument to use the native axios config (e.g., `service.listProviders({ params: { available: true } }, true)`).
-
 ### Shared UI Component Lock
 
-The folder `src/components/ui/` is the project's **shared UI library** — it contains both official shadcn/ui primitives and project-authored common components built on top of shadcn. Both kinds are intended to be reused across the app and **must not be modified casually**.
+The folder `src/components/ui/` is the project's **shared UI library** — it contains both official shadcn/ui primitives and project-authored common components built on top of shadcn.
 
-- **Do not modify, refactor, restyle, or "improve"** any file under `src/components/ui/` (including subfolders), even if it seems like the most direct fix.
-- If a component does not meet requirements, **wrap or compose it** in a new component **outside** `src/components/ui/` (e.g., under `src/components/` or a feature folder), and customize via `className`, `props`, or composition.
-- Exceptions require **explicit user approval** in the same conversation. When in doubt, ask first and propose a wrapper-based alternative.
-- Adding a new shared component to `src/components/ui/`, or upgrading a shadcn primitive via the official `shadcn` CLI, is allowed only when the user explicitly requests it.
+* **Do not modify, refactor, restyle, or "improve"** any file under `src/components/ui/` without explicit approval.
+* Wrap or compose components outside `src/components/ui/` for custom behaviors.
 
 ### React Patterns and Conventions
 
-- **Avoid inline event handlers.** Do not define arrow functions directly on JSX event props like `onClick={() => ...}` or `onChange={(e) => ...}`. Instead, extract the handler and reference it by name (e.g., `onClick={handleClick}`). Inline handlers are recreated on every render, which can break `React.memo` optimizations and make stack traces harder to read.
-- **Prefer `requestAnimationFrame` or `useLayoutEffect`** over `setTimeout(..., 0)` for focus or DOM measurement operations.
-- **Prefer `useTranslation` from `react-i18next`** over project-wrapped utilities like `useTranslate`.
-- Extract complex logic into hooks or utils; keep components lean.
-- Use **PascalCase** for constants and component names.
-  - Components: `EditableTextarea`, `RAGFlowFormItem`
-  - Constants: `InitialMockData`, `DefaultPlaceholder`
-- Avoid camelCase or SCREAMING_SNAKE_CASE for components and top-level constants.
-- **Name things semantically, not generically.** A name should say what the value holds or what the callback does, so call sites read naturally. Don't leak a generic underlying-primitive API into your own component's public props — rename at the wrapper boundary (e.g., a tabs wrapper exposes `activeTab` / `onTabChange`, mapped internally to Radix's `value` / `onValueChange`), and align with what callers already name the state. Same for variables and functions: `hiddenNodeIds` over `nodeIdSet`, `pickByBackend` over `resolveVariant`.
-- Avoid duplicating component structures in JSX; favor render props or reusable components.
-
-### Utility Libraries and Reuse
-
-- **Time/date handling**: Use `dayjs` for all date/time formatting, parsing, and manipulation.
-- **Utility hooks**: Prefer `ahooks` for common reusable hooks (e.g., `useDebounce`, `useSetState`).
-- **General utilities**: Lodash is available for utility functions when needed.
-- **Project utilities first**: Before reaching for a third-party library, check if the project already has an existing utility or hook that covers the need.
-- **Extract and share**: If repeated logic cannot be satisfied by an existing project utility or a third-party library, extract it into an appropriate shared hook (`src/hooks/`) or utility file (`src/utils/`).
-- **Check for duplicate patterns before adding**: When asked to add logic (validation, existence checks, API calls, etc.), first search for existing hooks/functions that do the same or similar thing — especially in the same file or sibling hooks. If a hook already does X, call it instead of re-implementing X inline. This applies to mutations calling mutations, utility wrappers, and boilerplate around API calls.
+* **Avoid inline event handlers** on JSX event props.
+* **Prefer `requestAnimationFrame` or `useLayoutEffect**` over `setTimeout(..., 0)` for focus or DOM measurement operations.
+* **Prefer `useTranslation` from `react-i18next**`.
+* Use **PascalCase** for constants and component names.
+* **Name things semantically, not generically.**
+* **Time/date handling**: Use `dayjs`.
+* **Utility hooks**: Prefer `ahooks`.
