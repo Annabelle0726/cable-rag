@@ -1148,6 +1148,7 @@ def test_chat_create_accepts_provider_scoped_rerank_id_unit(monkeypatch):
     monkeypatch.setattr(module.TenantService, "get_by_id", lambda _tid: (True, SimpleNamespace(llm_id="glm-4@CI@ZHIPU-AI", tenant_llm_id="tenant-llm-id")))
     monkeypatch.setattr(module.DialogService, "query", lambda **_kwargs: [])
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
     monkeypatch.setattr(module.KnowledgebaseService, "query", lambda **_kwargs: [_DummyKB()])
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _id: (True, _DummyKB()))
 
@@ -1223,6 +1224,7 @@ def test_chat_create_uses_direct_chat_fields_unit(monkeypatch):
     monkeypatch.setattr(module.TenantService, "get_by_id", lambda _tid: (True, SimpleNamespace(llm_id="glm-4", tenant_llm_id="tenant-llm-id")))
     monkeypatch.setattr(module.DialogService, "query", lambda **_kwargs: [])
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
     monkeypatch.setattr(module.KnowledgebaseService, "query", lambda **_kwargs: [_DummyKB()])
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _id: (True, _DummyKB()))
 
@@ -1378,6 +1380,7 @@ def test_patch_chat_drops_response_only_fields_before_update_unit(monkeypatch):
     monkeypatch.setattr(module.DialogService, "get_by_id", lambda _id: (True, _DummyDialogRecord(existing)))
     monkeypatch.setattr(module.TenantService, "get_by_id", lambda _tid: (True, SimpleNamespace(llm_id="glm-4", tenant_llm_id="tenant-llm-id")))
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
     monkeypatch.setattr(module.KnowledgebaseService, "query", lambda **_kwargs: [_DummyKB()])
     monkeypatch.setattr(module, "get_api_key", lambda *args, **kwargs: SimpleNamespace(id=1))
 

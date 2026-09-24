@@ -607,10 +607,12 @@ def test_list_knowledge_graph_delete_kg_matrix_unit(monkeypatch):
     assert res["message"] == "Database operation failed", res
 
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: False)
     res = _run(inspect.unwrap(module.knowledge_graph)("tenant-1", "kb-1"))
     assert res["code"] == module.RetCode.AUTHENTICATION_ERROR, res
 
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _kb_id: (True, _KB(tenant_id="tenant-1")))
     monkeypatch.setattr(module.search, "index_name", lambda _tenant_id: "idx")
     monkeypatch.setattr(module.settings, "docStoreConn", SimpleNamespace(index_exist=lambda *_args, **_kwargs: False))
@@ -656,6 +658,7 @@ def test_list_knowledge_graph_delete_kg_matrix_unit(monkeypatch):
     assert len(res["data"]["graph"]["edges"]) == 1, res
 
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: False)
     res = inspect.unwrap(module.delete_knowledge_graph)("tenant-1", "kb-1")
     assert res["code"] == module.RetCode.AUTHENTICATION_ERROR, res
 
@@ -680,11 +683,13 @@ def test_run_index_matrix_unit(monkeypatch):
     # No authorization
     _set_request_args(monkeypatch, module, {"type": "graph"})
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: False)
     res = _run(inspect.unwrap(module.run_index)("tenant-1", "kb-1"))
     assert res["code"] == module.RetCode.DATA_ERROR, res
 
     # Invalid dataset ID
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _kb_id: (False, None))
     res = _run(inspect.unwrap(module.run_index)("tenant-1", "kb-1"))
     assert "Invalid Dataset ID" in res["message"], res
@@ -746,11 +751,13 @@ def test_trace_index_matrix_unit(monkeypatch):
     # No authorization
     _set_request_args(monkeypatch, module, {"type": "graph"})
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: False)
     res = inspect.unwrap(module.trace_index)("tenant-1", "kb-1")
     assert res["code"] == module.RetCode.DATA_ERROR, res
 
     # Invalid dataset ID
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _kb_id: (False, None))
     res = inspect.unwrap(module.trace_index)("tenant-1", "kb-1")
     assert "Invalid Dataset ID" in res["message"], res
@@ -813,6 +820,7 @@ def test_delete_index_wipe_flag_unit(monkeypatch):
 
     kb = _KB(kb_id="kb-1", graphrag_task_id="graph-task", raptor_task_id="raptor-task")
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _kb_id: (True, kb))
     monkeypatch.setattr(module.KnowledgebaseService, "update_by_id", lambda *_args, **_kwargs: True)
 

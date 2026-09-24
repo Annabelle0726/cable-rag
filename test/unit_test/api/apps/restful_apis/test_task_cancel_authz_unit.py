@@ -90,6 +90,7 @@ def _load_module(monkeypatch, *, accessible_kb_ids):
     class RetCode:
         ARGUMENT_ERROR = 101
         DATA_ERROR = 102
+        PERMISSION_ERROR = 108
         AUTHENTICATION_ERROR = 109
         CONNECTION_ERROR = 503
 
@@ -167,7 +168,9 @@ def _load_module(monkeypatch, *, accessible_kb_ids):
             return False, None
 
         @staticmethod
-        def accessible(doc_id, user_id):
+        def writable(doc_id, user_id):
+            """The write gate task cancel now uses: it fails closed when the
+            document no longer resolves, and admits only readable datasets."""
             ok, doc = _DocumentService.get_by_id(doc_id)
             if not ok:
                 return False
@@ -184,7 +187,7 @@ def _load_module(monkeypatch, *, accessible_kb_ids):
 
     class _KnowledgebaseService:
         @staticmethod
-        def accessible(kb_id, user_id):
+        def writable(kb_id, user_id, active_tenant_id=None):
             return kb_id in accessible_kb_ids
 
     kb_svc_mod.KnowledgebaseService = _KnowledgebaseService

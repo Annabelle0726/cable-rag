@@ -207,13 +207,14 @@ class ConnectorService(CommonService):
 
         Authorization is owned by the service (not the HTTP layer) because this
         operation deletes documents and schedules sync tasks against the
-        caller-supplied kb. The caller must be able to access the kb and the
-        connector must actually be bound to it; the binding check mirrors
+        caller-supplied kb. The caller must be able to change the kb -- its
+        creator or a manager of its workspace -- and the connector must actually
+        be bound to it; the binding check mirrors
         ``cleanup_stale_documents_for_task``.
         """
         from api.db.services.file_service import FileService
 
-        if not KnowledgebaseService.accessible(kb_id, tenant_id):
+        if not KnowledgebaseService.writable(kb_id, tenant_id):
             LOGGER.warning(
                 "rebuild denied: kb not accessible connector_id=%s kb_id=%s user_id=%s",
                 connector_id,

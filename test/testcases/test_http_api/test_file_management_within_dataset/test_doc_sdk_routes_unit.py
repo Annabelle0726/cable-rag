@@ -679,15 +679,19 @@ class TestDocRoutesUnit:
         assert res["message"] == "Specify document_id please."
 
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: False)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: False)
         res = _run(module.download("ds-1", "doc-1"))
         assert res["message"] == "Document not found!"
 
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(module.DocumentService, "accessible", lambda *_args, **_kwargs: False)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", lambda *_args, **_kwargs: False)
         res = _run(module.download("ds-1", "doc-1"))
         assert res["message"] == "Document not found!"
 
         monkeypatch.setattr(module.DocumentService, "accessible", lambda *_args, **_kwargs: True)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", lambda *_args, **_kwargs: True)
         monkeypatch.setattr(module.DocumentService, "query", lambda **_kwargs: [])
         res = _run(module.download("ds-1", "doc-1"))
         assert "not own the document" in res["message"]
@@ -702,10 +706,12 @@ class TestDocRoutesUnit:
         assert res["message"] == "Specify document_id please."
 
         monkeypatch.setattr(module.DocumentService, "accessible", lambda *_args, **_kwargs: False)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", lambda *_args, **_kwargs: False)
         res = _run(module.download_document("doc-1"))
         assert res["message"] == "Document not found!"
 
         monkeypatch.setattr(module.DocumentService, "accessible", lambda *_args, **_kwargs: True)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", lambda *_args, **_kwargs: True)
         monkeypatch.setattr(module.DocumentService, "query", lambda **_kwargs: [])
         res = _run(module.download_document("doc-1"))
         assert "not own the document" in res["message"]
@@ -723,7 +729,9 @@ class TestDocRoutesUnit:
         _patch_send_file(monkeypatch, module)
         _patch_storage(monkeypatch, module, file_stream=b"pdf-bytes")
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(module.DocumentService, "accessible", lambda *_args, **_kwargs: True)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", lambda *_args, **_kwargs: True)
         monkeypatch.setattr(module.DocumentService, "query", lambda **_kwargs: [_DummyDoc(name="report.pdf", doc_type=FileType.PDF)])
         monkeypatch.setattr(module.File2DocumentService, "get_storage_address", lambda **_kwargs: ("b", "n"))
         res = _run(module.download("ds-1", "doc-1"))
@@ -733,10 +741,12 @@ class TestDocRoutesUnit:
     def test_parse_branches(self, monkeypatch):
         module = _load_doc_module(monkeypatch)
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: False)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: False)
         res = _run(module.parse.__wrapped__("tenant-1", "ds-1"))
         assert "don't own the dataset" in res["message"]
 
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _id: (True, SimpleNamespace(tenant_id="tenant-1", pipeline_id=None)))
         monkeypatch.setattr(module, "get_request_json", lambda: _AwaitableValue({"document_ids": ["doc-1"]}))
         monkeypatch.setattr(module, "check_duplicate_ids", lambda ids, _kind: (ids, []))
@@ -781,6 +791,7 @@ class TestDocRoutesUnit:
         # current counters so the decrement is driven by that fresh read.
         monkeypatch.setattr(module.Document, "fresh_doc", SimpleNamespace(id="doc-1", kb_id="kb-1", token_num=70, chunk_num=7, process_duration=1.5))
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _id: (True, SimpleNamespace(tenant_id="tenant-1", pipeline_id=None)))
         monkeypatch.setattr(module, "get_request_json", lambda: _AwaitableValue({"document_ids": ["doc-1"]}))
         monkeypatch.setattr(module, "check_duplicate_ids", lambda ids, _kind: (ids, []))
@@ -827,10 +838,12 @@ class TestDocRoutesUnit:
     def test_stop_parsing_branches(self, monkeypatch):
         module = _load_doc_module(monkeypatch)
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: False)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: False)
         res = _run(module.stop_parsing.__wrapped__("tenant-1", "ds-1"))
         assert "don't own the dataset" in res["message"]
 
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _id: (True, SimpleNamespace(tenant_id="tenant-1", pipeline_id=None)))
         monkeypatch.setattr(module, "get_request_json", lambda: _AwaitableValue({}))
         res = _run(module.stop_parsing.__wrapped__("tenant-1", "ds-1"))
@@ -885,6 +898,7 @@ class TestDocRoutesUnit:
         owner_tenant = "dataset-owner"
 
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(
             module.KnowledgebaseService,
             "get_by_id",
@@ -921,6 +935,7 @@ class TestDocRoutesUnit:
         owner_tenant = "dataset-owner"
 
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(
             module.KnowledgebaseService,
             "get_by_id",
@@ -954,6 +969,7 @@ class TestDocRoutesUnit:
         decrements = []
 
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(module, "get_request_json", lambda: _AwaitableValue({"document_ids": ["doc-1"]}))
         monkeypatch.setattr(module, "check_duplicate_ids", lambda ids, _kind: (ids, []))
         monkeypatch.setattr(module.DocumentService, "query", lambda **_kwargs: [object()])
@@ -1012,10 +1028,12 @@ class TestDocRoutesUnit:
     def test_list_chunks_branches(self, monkeypatch):
         module = _load_restful_chunk_module(monkeypatch)
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: False)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: False)
         res = _run(_route_core(module.list_chunks)("tenant-1", "ds-1", "doc-1"))
         assert "don't own the dataset" in res["message"]
 
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(module.DocumentService, "query", lambda **_kwargs: [])
         res = _run(_route_core(module.list_chunks)("tenant-1", "ds-1", "doc-1"))
         assert "don't own the document" in res["message"]
@@ -1069,6 +1087,7 @@ class TestDocRoutesUnit:
         module = _load_restful_chunk_module(monkeypatch)
         seen = {}
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(
             module.KnowledgebaseService,
             "get_by_id",
@@ -1098,16 +1117,19 @@ class TestDocRoutesUnit:
     def test_add_chunk_access_guard(self, monkeypatch):
         module = _load_restful_chunk_module(monkeypatch)
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: False)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: False)
         res = _run(_route_core(module.add_chunk)("tenant-1", "ds-1", "doc-1"))
         assert "don't own the dataset" in res["message"]
 
     def test_rm_chunk_branches(self, monkeypatch):
         module = _load_restful_chunk_module(monkeypatch)
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: False)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: False)
         res = _run(_route_core(module.rm_chunk)("tenant-1", "ds-1", "doc-1"))
         assert "don't own the dataset" in res["message"]
 
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(module.DocumentService, "query", lambda **_kwargs: [])
         res = _run(_route_core(module.rm_chunk)("tenant-1", "ds-1", "doc-1"))
         assert "don't own the document" in res["message"]
@@ -1133,11 +1155,13 @@ class TestDocRoutesUnit:
     def test_update_chunk_branches(self, monkeypatch):
         module = _load_restful_chunk_module(monkeypatch)
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: False)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: False)
         _patch_docstore(monkeypatch, module, get=lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("chunk lookup must not run before access check")))
         res = _run(_route_core(module.update_chunk)("tenant-1", "ds-1", "doc-1", "chunk-1"))
         assert "don't own the dataset" in res["message"]
 
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(module.DocumentService, "query", lambda **_kwargs: [])
         res = _run(_route_core(module.update_chunk)("tenant-1", "ds-1", "doc-1", "chunk-1"))
         assert "don't own the document" in res["message"]
@@ -1193,10 +1217,12 @@ class TestDocRoutesUnit:
 
         monkeypatch.setattr(module, "get_request_json", lambda: _AwaitableValue({"dataset_ids": ["ds-1"]}))
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: False)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: False)
         res = _run(module.retrieval_test.__wrapped__("tenant-1"))
         assert "don't own the dataset" in res["message"]
 
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: True)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: True)
         monkeypatch.setattr(module.KnowledgebaseService, "get_by_ids", lambda _ids: [SimpleNamespace(embd_id="m1"), SimpleNamespace(embd_id="m2")])
         monkeypatch.setattr(module.TenantLLMService, "split_model_name_and_factory", lambda embd_id: (embd_id, "f"))
         res = _run(module.retrieval_test.__wrapped__("tenant-1"))

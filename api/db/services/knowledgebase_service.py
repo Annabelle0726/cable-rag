@@ -20,7 +20,7 @@ from peewee import JOIN, SQL, fn
 from api.constants import DATASET_NAME_LIMIT
 from api.db import TenantPermission, UserTenantRole
 from api.db.db_models import DB, Document, Knowledgebase, KnowledgebaseAuthorization, User, UserCanvas, UserTenant
-from api.db.joint_services.kb_authorization_service import MEMBER_ROLES, SUBJECT_DEPARTMENT, SUBJECT_USER, can_read_dataset
+from api.db.joint_services.kb_authorization_service import MEMBER_ROLES, SUBJECT_DEPARTMENT, SUBJECT_USER, can_read_dataset, can_write_dataset
 from api.db.joint_services.tenant_model_service import get_composite_model_name_by_ids
 from api.db.services import duplicate_name
 from api.db.services.common_service import CommonService
@@ -203,36 +203,20 @@ class KnowledgebaseService(CommonService):
 
     @classmethod
     @DB.connection_context()
-    def accessible4deletion(cls, kb_id, user_id):
-        """Check if a dataset can be deleted by a specific user.
+    def writable(cls, kb_id, user_id, active_tenant_id=None):
+        """Whether `user_id` may change one dataset.
 
-        This method verifies whether a user has permission to delete a dataset
-        by checking if they are the creator of that dataset.
-
-        Args:
-            kb_id (str): The unique identifier of the dataset to check.
-            user_id (str): The unique identifier of the user attempting the deletion.
-
-        Returns:
-            bool: True if the user has permission to delete the dataset,
-                  False if the user doesn't have permission or the dataset doesn't exist.
-
-        Example:
-            >>> KnowledgebaseService.accessible4deletion("kb123", "user456")
-            True
-
-        Note:
-            - This method only checks creator permissions
-            - A return value of False can mean either:
-                1. The dataset doesn't exist
-                2. The user is not the creator of the dataset
+        The write counterpart of `accessible`, and the gate every mutating path
+        has to pass: upload, parse, re-parse, edit, delete, index and the
+        artifact/collection writes. It answers to the creator and the managers of
+        the owning workspace only -- a member granted `custom` read access may
+        retrieve a dataset but must never be able to change it, which is why this
+        never consults `permission`.
         """
-        # Check if a dataset can be deleted by a user
-        docs = cls.model.select(cls.model.id).where(cls.model.id == kb_id, cls.model.created_by == user_id).paginate(0, 1)
-        docs = docs.dicts()
-        if not docs:
+        e, kb = cls.get_by_id(kb_id)
+        if not e or kb.status != StatusEnum.VALID.value:
             return False
-        return True
+        return can_write_dataset(user_id, active_tenant_id or TenantService.resolve_active_tenant_id(user_id), kb)
 
     @classmethod
     @DB.connection_context()

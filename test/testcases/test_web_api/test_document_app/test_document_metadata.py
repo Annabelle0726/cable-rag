@@ -346,6 +346,7 @@ class TestDocumentMetadataUnit:
             return False
 
         monkeypatch.setattr(module.DocumentService, "accessible", fake_accessible_denied)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", fake_accessible_denied)
         monkeypatch.setattr(
             module.DocumentService,
             "get_by_id",
@@ -358,6 +359,7 @@ class TestDocumentMetadataUnit:
 
         # From here on the user is authorized; exercise the original branches.
         monkeypatch.setattr(module.DocumentService, "accessible", lambda _doc_id, _user_id: True)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", lambda _doc_id, _user_id: True)
 
         monkeypatch.setattr(module.DocumentService, "get_by_id", lambda _doc_id: (False, None))
         res = _run(module.get("doc1"))
@@ -404,6 +406,7 @@ class TestDocumentMetadataUnit:
             return False
 
         monkeypatch.setattr(module.DocumentService, "accessible", fake_accessible_denied)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", fake_accessible_denied)
         res = _run(module.download_attachment(attachment_id="att1"))
         assert res["code"] == RetCode.DATA_ERROR
         assert "document not found" in res["message"]
@@ -411,6 +414,7 @@ class TestDocumentMetadataUnit:
 
         # From here on the user is authorized; exercise the original branches.
         monkeypatch.setattr(module.DocumentService, "accessible", lambda _doc_id, _user_id: True)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", lambda _doc_id, _user_id: True)
 
         async def fake_thread_pool_exec(*_args, **_kwargs):
             return b"attachment"
@@ -444,6 +448,7 @@ class TestDocumentMetadataUnit:
     def test_download_document_rejects_other_tenant_unit(self, document_rest_api_module, monkeypatch):
         module = document_rest_api_module
         monkeypatch.setattr(module.DocumentService, "accessible", lambda _doc_id, _user_id: False)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", lambda _doc_id, _user_id: False)
 
         res = _run(module.download_document("doc1"))
         assert res["code"] == RetCode.DATA_ERROR
@@ -452,7 +457,9 @@ class TestDocumentMetadataUnit:
     def test_dataset_document_download_rejects_other_tenant_unit(self, document_rest_api_module, monkeypatch):
         module = document_rest_api_module
         monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda kb_id, user_id: False)
+        monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda kb_id, user_id: False)
         monkeypatch.setattr(module.DocumentService, "accessible", lambda _doc_id, _user_id: True)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", lambda _doc_id, _user_id: True)
 
         res = _run(module.download("kb1", "doc1"))
         assert res["code"] == RetCode.DATA_ERROR
@@ -542,6 +549,7 @@ class TestDocumentMetadataUnit:
             return None
 
         monkeypatch.setattr(module.DocumentService, "accessible", lambda _doc_id, _user_id: True)
+        monkeypatch.setattr(module.DocumentService, "accessible", "writable", lambda _doc_id, _user_id: True)
         monkeypatch.setattr(
             module.DocumentService,
             "get_by_id",

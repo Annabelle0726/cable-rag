@@ -47,12 +47,12 @@ from api.db.services.file2document_service import File2DocumentService
 from api.db.services.file_service import FileService
 from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.canvas_service import UserCanvasService
-from api.common.check_team_permission import check_kb_team_permission
 from api.db.services.task_service import TaskService, cancel_all_task_of
 from api.utils.api_utils import (
     construct_json_result,
     get_data_error_result,
     get_error_data_result,
+    get_error_permission_result,
     get_result,
     get_json_result,
     server_error_response,
@@ -391,8 +391,8 @@ async def metadata_batch_update(dataset_id, tenant_id):
       200:
         description: Metadata updated successfully.
     """
-    if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}. ")
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}. ")
 
     req = await get_request_json()
     selector = req.get("selector", {}) or {}
@@ -515,9 +515,12 @@ async def upload_document(dataset_id, tenant_id):
         logging.error(f"Can't find the dataset with ID {dataset_id}!")
         return get_error_data_result(message=f"Can't find the dataset with ID {dataset_id}!", code=RetCode.DATA_ERROR)
 
-    if not check_kb_team_permission(kb, tenant_id):
-        logging.error("no authorization")
-        return get_error_data_result(message="no authorization", code=RetCode.AUTHENTICATION_ERROR)
+    # Uploading writes to the dataset, so the caller must be its creator or a
+    # manager of its workspace -- a member holding only read access (including one
+    # granted `custom` retrieval) must not be able to add documents.
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        logging.warning("dataset upload denied: dataset=%s user=%s", dataset_id, tenant_id)
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
 
     if upload_type == "web":
         return await _upload_web_document(dataset_id, kb, tenant_id)
@@ -1179,8 +1182,8 @@ async def delete_documents(tenant_id, dataset_id):
 
     try:
         # Validate dataset exists and user has permission
-        if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-            return get_error_data_result(message=f"You don't own the dataset {dataset_id}. ")
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}. ")
 
         # Get documents to delete
         doc_ids = req.get("ids") or []
@@ -1258,9 +1261,9 @@ async def update_metadata_config(tenant_id, dataset_id, document_id):
       200:
         description: Document updated successfully.
     """
-    # Verify ownership and existence of dataset
-    if not KnowledgebaseService.query(id=dataset_id, tenant_id=tenant_id):
-        return get_error_data_result(message="you don't own the dataset")
+    # Changing a document's metadata configuration is a write on the dataset.
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
 
     # Verify document exists in the dataset
     doc = DocumentService.query(id=document_id, kb_id=dataset_id)
@@ -1399,8 +1402,8 @@ async def update_metadata(tenant_id, dataset_id):
         description: Metadata updated successfully.
     """
     # Verify ownership of dataset
-    if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
 
     # Get request body
     req = await get_request_json()
@@ -1481,8 +1484,8 @@ async def ingest(tenant_id):
 
 def _run_sync(user_id: str, req):
     for doc_id in req["doc_ids"]:
-        if not DocumentService.accessible(doc_id, user_id):
-            return RetCode.AUTHENTICATION_ERROR, "no authorization"
+        if not DocumentService.writable(doc_id, user_id):
+            return RetCode.PERMISSION_ERROR, "no authorization"
 
     kb_table_num_map = {}
     for doc_id in req["doc_ids"]:
@@ -1580,8 +1583,8 @@ async def parse_documents(tenant_id, dataset_id):
       200:
         description: Successful operation.
     """
-    if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
 
     req = await get_request_json()
     if req is None:
@@ -1697,8 +1700,8 @@ async def stop_parse_documents(tenant_id, dataset_id):
       200:
         description: Successful operation.
     """
-    if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
 
     req = await get_request_json()
     if req is None:

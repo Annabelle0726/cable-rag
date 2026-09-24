@@ -164,7 +164,7 @@ async def rebuild(connector_id):
     try:
         err = ConnectorService.rebuild(kb_id, connector_id, current_user.id)
     except ConnectorAuthorizationError as exc:
-        return get_json_result(data=False, message=str(exc), code=RetCode.AUTHENTICATION_ERROR)
+        return get_json_result(data=False, message=str(exc), code=RetCode.PERMISSION_ERROR)
     if err:
         return get_json_result(data=False, message=err, code=RetCode.SERVER_ERROR)
     return get_json_result(data=True)

@@ -20,7 +20,8 @@ from quart import make_response, request
 
 from api.apps import current_user, login_required
 from api.apps.services import dataset_api_service
-from api.utils.api_utils import add_tenant_id_to_kwargs, get_error_argument_result, get_error_data_result, get_json_result, get_result
+from api.db.services.knowledgebase_service import KnowledgebaseService
+from api.utils.api_utils import add_tenant_id_to_kwargs, get_error_argument_result, get_error_data_result, get_error_permission_result, get_json_result, get_result
 from api.utils.pagination_utils import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, validate_rest_api_ids, validate_rest_api_page, validate_rest_api_page_size
 from api.utils.validation_utils import (
     CreateDatasetReq,
@@ -210,6 +211,12 @@ async def delete(tenant_id):
         return get_error_argument_result(err)
 
     try:
+        # Deleting is a write, so each named dataset has to pass the write gate.
+        # `delete_all` needs no gate here: it only ever covers the caller's own
+        # workspace, so the caller is the creator of everything it reaches.
+        for target_id in req.get("ids") or []:
+            if not KnowledgebaseService.writable(target_id, tenant_id):
+                return get_error_permission_result(f"You don't own the dataset {target_id}.")
         success, result = await dataset_api_service.delete_datasets(tenant_id, req.get("ids"), req.get("delete_all", False))
         if success:
             return get_result(data=result)
@@ -306,6 +313,9 @@ async def update(tenant_id, dataset_id):
         return get_error_argument_result(err)
 
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = await dataset_api_service.update_dataset(tenant_id, dataset_id, req)
         if success:
             return get_result(data=result)
@@ -480,6 +490,9 @@ async def delete_tags(tenant_id, dataset_id):
         return get_error_argument_result("tags must be a list of strings")
 
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = dataset_api_service.delete_tags(dataset_id, tenant_id, req["tags"])
         if success:
             return get_result(data=result)
@@ -506,6 +519,9 @@ async def rename_tag(tenant_id, dataset_id):
         return get_error_argument_result("from_tag and to_tag must not be empty")
 
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = dataset_api_service.rename_tag(dataset_id, tenant_id, req["from_tag"], req["to_tag"])
         if success:
             return get_result(data=result)
@@ -777,6 +793,9 @@ def delete_dataset_structure(tenant_id, dataset_id):
     wipe_arg = (request.args.get("wipe", "true") or "true").strip().lower()
     wipe = wipe_arg not in ("false", "0", "no", "off")
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = dataset_api_service.delete_dataset_structure(
             dataset_id,
             tenant_id,
@@ -840,6 +859,9 @@ async def clear_wiki(tenant_id, dataset_id):
     Success: {"code": 0, "data": {"deleted": {kwd: result}}}
     """
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = await dataset_api_service.clear_wiki(
             dataset_id,
             tenant_id,
@@ -943,6 +965,9 @@ async def delete_all_skills(tenant_id, dataset_id):
     Success: {"code": 0, "data": {"deleted": <n>}}
     """
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = await dataset_api_service.delete_skills(
             dataset_id,
             tenant_id,
@@ -1125,6 +1150,9 @@ async def delete_dataset_nav(tenant_id, dataset_id):
     Success: {"code": 0, "data": {"deleted": <n>}}
     """
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = await dataset_api_service.delete_nav(
             dataset_id,
             tenant_id,
@@ -1153,6 +1181,9 @@ async def delete_dataset_nav_node(tenant_id, dataset_id, name):
     Success: {"code": 0, "data": {"deleted": <n>}}
     """
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = await dataset_api_service.delete_nav_node(
             dataset_id,
             tenant_id,
@@ -1191,6 +1222,9 @@ async def generate_dataset_nav(tenant_id, dataset_id):
         req = await request.json or {}
         documents = req.get("documents")
 
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = await dataset_api_service.generate_nav(
             dataset_id,
             tenant_id,
@@ -1220,6 +1254,9 @@ async def delete_skill_page(tenant_id, dataset_id, skill_kwd):
     Success: {"code": 0, "data": {"deleted": <n>}}
     """
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = await dataset_api_service.delete_skill(
             dataset_id,
             tenant_id,
@@ -1279,6 +1316,9 @@ async def update_wiki_page(tenant_id, dataset_id, page_type, slug):
             return get_error_argument_result("'title' must be a string.")
         if comments is not None and not isinstance(comments, str):
             return get_error_argument_result("'comments' must be a string.")
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = await dataset_api_service.update_wiki_page(
             dataset_id,
             tenant_id,
@@ -1310,6 +1350,9 @@ async def run_index(tenant_id, dataset_id):
     index_type = request.args.get("type", "")
     index_type = index_type.lower()
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = dataset_api_service.run_index(dataset_id, tenant_id, index_type)
         if success:
             return get_result(data=result)
@@ -1356,6 +1399,9 @@ def delete_index(tenant_id, dataset_id, index_type=None):
     wipe_arg = (request.args.get("wipe", "true") or "true").strip().lower()
     wipe = wipe_arg not in ("false", "0", "no", "off")
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = dataset_api_service.delete_index(dataset_id, tenant_id, index_type, wipe=wipe)
         if success:
             return get_result(data=result)
@@ -1513,6 +1559,9 @@ async def update_auto_metadata(tenant_id, dataset_id):
         return get_error_argument_result(err)
 
     try:
+        # Changing a dataset is a write: its creator or a workspace manager.
+        if not KnowledgebaseService.writable(dataset_id, tenant_id):
+            return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
         success, result = await dataset_api_service.update_auto_metadata(dataset_id, tenant_id, cfg)
         if success:
             return get_result(data=result)

@@ -70,12 +70,11 @@ async def _cancel_task(task_id):
     if doc_id and doc_id not in (CANVAS_DEBUG_DOC_ID, GRAPH_RAPTOR_FAKE_DOC_ID):
         from api.db.services.document_service import DocumentService
 
-        # DocumentService.accessible fails closed when the document no longer
-        # resolves, so a task whose document is gone cannot be cancelled cross
-        # tenant.
-        if not DocumentService.accessible(doc_id, current_user.id):
+        # The write gate fails closed when the document no longer resolves, so a
+        # task whose document is gone cannot be cancelled cross tenant.
+        if not DocumentService.writable(doc_id, current_user.id):
             logging.warning("task cancel denied: task_id=%s user_id=%s", task_id, current_user.id)
-            return get_json_result(data=False, code=RetCode.AUTHENTICATION_ERROR, message="no authorization")
+            return get_json_result(data=False, code=RetCode.PERMISSION_ERROR, message="no authorization")
         _, doc = DocumentService.get_by_id(doc_id)
 
     try:

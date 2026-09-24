@@ -317,6 +317,7 @@ def test_retrieval_success_with_metadata_and_kg(monkeypatch):
     monkeypatch.setattr(module.DocMetadataService, "get_flatted_meta_by_kbs", lambda _kbs: [{"doc_id": "doc-1"}])
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _kb_id: (True, _DummyKB()))
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda _kb_id, _tenant_id: True)
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda _kb_id, _tenant_id: True)
     monkeypatch.setattr(module, "convert_conditions", lambda cond: cond.get("conditions", []))
     monkeypatch.setattr(module, "meta_filter", lambda *_args, **_kwargs: [])
 
@@ -368,6 +369,7 @@ def test_retrieval_not_found_exception_mapping(monkeypatch):
     monkeypatch.setattr(module.DocMetadataService, "get_flatted_meta_by_kbs", lambda _kbs: [])
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _kb_id: (True, _DummyKB()))
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda _kb_id, _tenant_id: True)
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda _kb_id, _tenant_id: True)
     monkeypatch.setattr(module, "label_question", lambda *_args, **_kwargs: [])
 
     class _BrokenRetriever:
@@ -388,6 +390,7 @@ def test_retrieval_generic_exception_mapping(monkeypatch):
     monkeypatch.setattr(module.DocMetadataService, "get_flatted_meta_by_kbs", lambda _kbs: [])
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _kb_id: (True, _DummyKB()))
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda _kb_id, _tenant_id: True)
+    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda _kb_id, _tenant_id: True)
     monkeypatch.setattr(module, "label_question", lambda *_args, **_kwargs: [])
 
     class _BrokenRetriever:

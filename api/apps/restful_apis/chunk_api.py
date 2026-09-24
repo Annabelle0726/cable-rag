@@ -47,6 +47,7 @@ from api.utils.api_utils import (
     check_duplicate_ids,
     construct_json_result,
     get_error_data_result,
+    get_error_permission_result,
     get_request_json,
     get_result,
     server_error_response,
@@ -235,8 +236,8 @@ def _release_doc_counters(doc):
 @login_required
 @add_tenant_id_to_kwargs
 async def parse(tenant_id, dataset_id):
-    if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
     dataset_tenant_id = _get_dataset_tenant_id(dataset_id)
     if not dataset_tenant_id:
         return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
@@ -312,8 +313,8 @@ async def parse(tenant_id, dataset_id):
 @login_required
 @add_tenant_id_to_kwargs
 async def stop_parsing(tenant_id, dataset_id):
-    if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
     dataset_tenant_id = _get_dataset_tenant_id(dataset_id)
     if not dataset_tenant_id:
         return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
@@ -1164,8 +1165,8 @@ async def delete_document_structure_graph(tenant_id, dataset_id, document_id):
     """
     from rag.nlp import search
 
-    if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
     dataset_tenant_id = _get_dataset_tenant_id(dataset_id)
     if not dataset_tenant_id:
         return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
@@ -1206,8 +1207,8 @@ async def delete_document_structure_graph(tenant_id, dataset_id, document_id):
 async def add_chunk(tenant_id, dataset_id, document_id):
     from rag.nlp import rag_tokenizer, search
 
-    if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
     dataset_tenant_id = _get_dataset_tenant_id(dataset_id)
     if not dataset_tenant_id:
         return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
@@ -1307,8 +1308,8 @@ async def add_chunk(tenant_id, dataset_id, document_id):
 async def rm_chunk(tenant_id, dataset_id, document_id):
     from rag.nlp import search
 
-    if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
     dataset_tenant_id = _get_dataset_tenant_id(dataset_id)
     if not dataset_tenant_id:
         return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
@@ -1361,8 +1362,8 @@ async def update_chunk(tenant_id, dataset_id, document_id, chunk_id):
     from rag.app.qa import beAdoc, rmPrefix
     from rag.nlp import rag_tokenizer, search
 
-    if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
     dataset_tenant_id = _get_dataset_tenant_id(dataset_id)
     if not dataset_tenant_id:
         return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
@@ -1466,8 +1467,8 @@ async def update_chunk(tenant_id, dataset_id, document_id, chunk_id):
 async def switch_chunks(tenant_id, dataset_id, document_id):
     from rag.nlp import search
 
-    if not KnowledgebaseService.accessible(kb_id=dataset_id, user_id=tenant_id):
-        return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
+        return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
     dataset_tenant_id = _get_dataset_tenant_id(dataset_id)
     if not dataset_tenant_id:
         return get_error_data_result(message=f"You don't own the dataset {dataset_id}.")

@@ -18,7 +18,7 @@ import logging
 from functools import wraps
 from quart import request
 from api.apps import login_required, current_user
-from api.utils.api_utils import get_json_result, get_data_error_result, get_request_json, server_error_response, validate_request
+from api.utils.api_utils import get_json_result, get_data_error_result, get_error_permission_result, get_request_json, server_error_response, validate_request
 from api.utils.pagination_utils import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, validate_rest_api_page, validate_rest_api_page_size
 from api.common.check_team_permission import check_file_team_permission
 from api.db.services.file_commit_service import FileCommitService
@@ -121,6 +121,10 @@ def _register_commit_routes(prefix, param_name, resolver_type=None):
     @validate_request("message", "files")
     async def create_commit(entity_id):
         folder_id = _resolve(entity_id)
+        # A commit records an edit, so the resolver's read check is not enough
+        # here: the caller has to be able to change the dataset it commits into.
+        if not KnowledgebaseService.writable(folder_id, current_user.id):
+            return get_error_permission_result(f"You don't own the dataset {folder_id}.")
         req = await get_request_json()
         try:
             commit = FileCommitService.create_commit(

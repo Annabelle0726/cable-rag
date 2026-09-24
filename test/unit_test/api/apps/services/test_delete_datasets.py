@@ -93,6 +93,9 @@ def _load_delete_datasets_module(monkeypatch, *, f2d_rows, file_filter_delete, s
             get_or_none=lambda **_kwargs: kb,
             delete_by_id=lambda kb_id: calls.append("delete_dataset") is None,
             query=lambda **kwargs: [],
+            # The write gate on every dataset being deleted; these tests cover the
+            # deletion mechanics, so it admits the caller.
+            writable=lambda kb_id, user_id, active_tenant_id=None: True,
         ),
         validate_dataset_embedding_models=lambda kbs: None,
     )

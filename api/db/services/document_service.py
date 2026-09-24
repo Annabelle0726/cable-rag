@@ -22,8 +22,8 @@ import xxhash
 from peewee import fn, Case, JOIN
 
 from api.constants import IMG_BASE64_PREFIX, FILE_NAME_LEN_LIMIT
-from api.db import PIPELINE_SPECIAL_PROGRESS_FREEZE_TASK_TYPES, FileType, UserTenantRole, CanvasCategory
-from api.db.db_models import DB, Document, Knowledgebase, Task, Tenant, UserTenant, File2Document, File, UserCanvas, User
+from api.db import PIPELINE_SPECIAL_PROGRESS_FREEZE_TASK_TYPES, FileType, CanvasCategory
+from api.db.db_models import DB, Document, Knowledgebase, Task, Tenant, File2Document, File, UserCanvas, User
 from api.db.db_utils import bulk_insert_into_db
 from api.db.services.common_service import CommonService, retry_deadlock_operation
 from api.db.services.knowledgebase_service import KnowledgebaseService
@@ -943,18 +943,16 @@ class DocumentService(CommonService):
 
     @classmethod
     @DB.connection_context()
-    def accessible4deletion(cls, doc_id, user_id):
-        docs = (
-            cls.model.select(cls.model.id)
-            .join(Knowledgebase, on=(Knowledgebase.id == cls.model.kb_id))
-            .join(UserTenant, on=((UserTenant.tenant_id == Knowledgebase.created_by) & (UserTenant.user_id == user_id)))
-            .where(cls.model.id == doc_id, UserTenant.status == StatusEnum.VALID.value, ((UserTenant.role == UserTenantRole.NORMAL) | (UserTenant.role == UserTenantRole.OWNER)))
-            .paginate(0, 1)
-        )
-        docs = docs.dicts()
-        if not docs:
+    def writable(cls, doc_id, user_id):
+        """Whether `user_id` may change one document.
+
+        A document has no authority of its own: it inherits the dataset's, so
+        this is the dataset write gate reached through the document.
+        """
+        e, doc = cls.get_by_id(doc_id)
+        if not e:
             return False
-        return True
+        return KnowledgebaseService.writable(doc.kb_id, user_id)
 
     @classmethod
     @DB.connection_context()
