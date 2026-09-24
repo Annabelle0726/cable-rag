@@ -124,9 +124,14 @@ describe('useRenameSession', () => {
       name: '电缆标准查询',
     });
     expect(mockUpdateSession).not.toHaveBeenCalled();
-    expect(screen.getByTestId('route-conversation-id')).toHaveTextContent(
-      'server-7',
-    );
+    // Wait for the route: the rename writes it from the promise continuation and
+    // react-router commits that navigation on its own schedule, so reading it
+    // straight after the outcome above races it.
+    await waitFor(() => {
+      expect(screen.getByTestId('route-conversation-id')).toHaveTextContent(
+        'server-7',
+      );
+    });
     expect(useChatStreamStore.getState().sessions['temp-abc']).toBeUndefined();
   });
 

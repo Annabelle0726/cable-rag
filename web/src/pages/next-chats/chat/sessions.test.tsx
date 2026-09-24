@@ -49,11 +49,13 @@ jest.mock('@/hooks/use-chat-request', () => {
 jest.mock('@/pages/next-chats/hooks/use-select-conversation-list', () => ({
   useSelectDerivedConversationList: () => ({
     list: MockConversations,
-    addTemporaryConversation: jest.fn(),
-    removeTemporaryConversation: jest.fn(),
     handleInputChange: jest.fn(),
     searchString: '',
     loading: false,
+  }),
+  useTemporaryConversation: () => ({
+    addTemporaryConversation: jest.fn(),
+    removeTemporaryConversation: jest.fn(),
   }),
   useFindPrologueFromDialogList: () => undefined,
 }));
@@ -75,6 +77,7 @@ const renderSessions = (route: string, loadingConversationId?: string) =>
                 visible
                 onVisibleChange={jest.fn()}
                 onOpenSettings={jest.fn()}
+                onNewConversation={jest.fn()}
                 loadingConversationId={loadingConversationId}
               />
             }

@@ -33,7 +33,10 @@ import { useChatStreamStore } from '../chat-stream/store';
 import { useChatUrlParams } from '../hooks/use-chat-url';
 import { useHandleClickConversationCard } from '../hooks/use-click-card';
 import { useRenameSession } from '../hooks/use-rename-session';
-import { useSelectDerivedConversationList } from '../hooks/use-select-conversation-list';
+import {
+  useSelectDerivedConversationList,
+  useTemporaryConversation,
+} from '../hooks/use-select-conversation-list';
 import { ConversationDropdown } from './conversation-dropdown';
 import { InlineRenameInput } from './inline-rename-input';
 
@@ -47,6 +50,12 @@ type SessionProps = Pick<
   /** Opens the chat settings drawer, owned by the chat page. */
   onOpenSettings: () => void;
   /**
+   * Starts a new conversation: the page seeds the placeholder the session list
+   * renders, and the settings drawer — which is where a conversation's datasets
+   * are chosen — raises itself over it when there is nothing to inherit.
+   */
+  onNewConversation: () => void;
+  /**
    * The session whose messages are being fetched. Its row swaps its rename action
    * for a spinner and stops taking clicks, so the rail says "loading" instead of
    * letting the same request be queued twice.
@@ -58,16 +67,16 @@ export function Sessions({
   visible,
   onVisibleChange,
   onOpenSettings,
+  onNewConversation,
   loadingConversationId,
 }: SessionProps) {
   const { t } = useTranslation();
   const {
     list: conversationList,
-    addTemporaryConversation,
-    removeTemporaryConversation,
     handleInputChange,
     searchString,
   } = useSelectDerivedConversationList();
+  const { removeTemporaryConversation } = useTemporaryConversation();
   const { data } = useFetchChat();
   const switchVisible = useCallback(() => {
     onVisibleChange(!visible);
@@ -304,11 +313,14 @@ export function Sessions({
               <LucideUndo2 size={16} />
             </Button>
           ) : (
-            // New conversation
+            // New conversation: the placeholder the page seeds, which the
+            // settings drawer then guides the datasets of when it has none to
+            // inherit.
             <Button
               variant="ghost"
               size="icon-xs"
-              onClick={addTemporaryConversation}
+              onClick={onNewConversation}
+              aria-label={t('chat.newConversation')}
               data-testid="chat-detail-session-new"
             >
               <LucidePlus className="h-4 w-4" />

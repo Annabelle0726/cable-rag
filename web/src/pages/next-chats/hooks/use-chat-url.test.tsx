@@ -114,9 +114,14 @@ describe('useCreateConversationBeforeSendMessage', () => {
       chatId: 'dialog-1',
       name: '电缆标准问题',
     });
-    expect(screen.getByTestId('route-conversation-id')).toHaveTextContent(
-      'server-1',
-    );
+    // Asserted the same way as the outcome above: the route is written from the
+    // promise continuation, and react-router commits that navigation on its own
+    // schedule, so reading it straight after the first waitFor races it.
+    await waitFor(() => {
+      expect(screen.getByTestId('route-conversation-id')).toHaveTextContent(
+        'server-1',
+      );
+    });
   });
 
   it('creates the session for a placeholder conversation and drops its local entry', async () => {
@@ -134,9 +139,11 @@ describe('useCreateConversationBeforeSendMessage', () => {
       expect(screen.getByTestId('outcome')).toHaveTextContent('server-2:0');
     });
     expect(useChatStreamStore.getState().sessions['temp-abc']).toBeUndefined();
-    expect(screen.getByTestId('route-conversation-id')).toHaveTextContent(
-      'server-2',
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId('route-conversation-id')).toHaveTextContent(
+        'server-2',
+      );
+    });
   });
 
   it('reuses an existing session instead of creating another one', async () => {

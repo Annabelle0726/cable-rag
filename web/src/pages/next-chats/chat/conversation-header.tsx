@@ -16,6 +16,7 @@ import {
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRenameSession } from '../hooks/use-rename-session';
+import { DatasetTag, DatasetTags } from './dataset-tags';
 import { InlineRenameInput } from './inline-rename-input';
 
 type ConversationHeaderProps = {
@@ -25,12 +26,23 @@ type ConversationHeaderProps = {
   /** Model the conversation answers with, switchable from the name dropdown. */
   llmId?: string;
   onModelChange?: (llmId: string) => void;
+  /**
+   * Effective datasets of the open conversation — its own binding, else the
+   * assistant's set — already named, shown as tags. Named by the page because
+   * resolving them needs the dataset request, which this leaf row must not
+   * carry.
+   */
+  datasets?: DatasetTag[];
   /** Reported by the page, which owns the titling this header only displays. */
   summarizing?: boolean;
   /** Re-opens the conversation list this header only renders without. */
   onExpandSessions?: () => void;
-  /** Opens the chat settings drawer, which is reachable here only because the
-   * conversation list (and its own settings button) is collapsed. */
+  /**
+   * Opens the chat settings drawer. It is where the conversation's datasets are
+   * changed, so it is the target of both the settings entry and the tags, and it
+   * is reachable here only because the conversation list (and its own settings
+   * button) is collapsed.
+   */
   onOpenSettings?: () => void;
 };
 
@@ -40,10 +52,12 @@ type ConversationHeaderProps = {
  *
  * One fixed-height row, by design: the assistant/conversation name with the
  * controls that belong to it (`chevron` opens the model dropdown, the title
- * renames), and on the right only the settings entry and the control that
- * re-opens the conversation list. Anything else (the multi-model view, the
- * retrieval and prompt settings) lives in the settings drawer, so the row can
- * never grow into the transcript.
+ * renames), the tags naming the datasets this conversation retrieves from, and
+ * on the right only the settings entry and the control that re-opens the
+ * conversation list. Anything else (the multi-model view, the retrieval and
+ * prompt settings) lives in the settings drawer, so the row can never grow into
+ * the transcript. The tags open that same drawer, where their datasets are
+ * changed — there is no separate picker.
  *
  * The dropdown is a popover anchored under the row rather than an expanding
  * section: the header keeps its height, so the messages below never move.
@@ -53,6 +67,7 @@ export function ConversationHeader({
   title,
   llmId,
   onModelChange,
+  datasets,
   summarizing = false,
   onExpandSessions,
   onOpenSettings,
@@ -177,6 +192,17 @@ export function ConversationHeader({
           </span>
         )}
       </div>
+
+      {/* The conversation's retrieval scope, between the title it belongs to and
+          the controls on the right: the tags say where the answers come from
+          without costing the row any height. A tag opens the same settings
+          drawer as the gear beside it, which is where the selection changes. */}
+      {onOpenSettings && datasets && (
+        <DatasetTags
+          datasets={datasets}
+          onOpenSettings={onOpenSettings}
+        ></DatasetTags>
+      )}
 
       <div className="flex shrink-0 items-center gap-2">
         {onOpenSettings && (

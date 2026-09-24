@@ -476,9 +476,28 @@ export const useCreateSession = () => {
     mutateAsync,
   } = useMutation({
     mutationKey: [ChatApiAction.CreateSession],
-    mutationFn: async ({ chatId, name }: { chatId: string; name: string }) => {
+    mutationFn: async ({
+      chatId,
+      name,
+      datasetIds,
+    }: {
+      chatId: string;
+      name: string;
+      /**
+       * Datasets the new conversation retrieves from. Omitted entirely when the
+       * caller has no binding to state — the session then inherits the
+       * assistant's own set, which is the server's default.
+       */
+      datasetIds?: string[];
+    }) => {
       const { data } = await chatService.createSession(
-        { url: api.createSession(chatId), data: { name } },
+        {
+          url: api.createSession(chatId),
+          data: {
+            name,
+            ...(datasetIds ? { dataset_ids: datasetIds } : {}),
+          },
+        },
         true,
       );
       if (data.code === 0) {

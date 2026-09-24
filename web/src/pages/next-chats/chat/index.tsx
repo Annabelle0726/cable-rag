@@ -6,6 +6,7 @@ import {
   useGetChatSearchParams,
   usePatchChat,
 } from '@/hooks/use-chat-request';
+import { useFetchDatasetsByIds } from '@/hooks/use-knowledge-request';
 import { useSetModalState } from '@/hooks/common-hooks';
 import { IClientConversation } from '@/interfaces/database/chat';
 import { BreadcrumbTrail } from '@/layouts/components/breadcrumb-context';
@@ -13,7 +14,10 @@ import type { BreadcrumbCrumb } from '@/layouts/components/breadcrumb-context';
 import { RootLayoutContainer } from '@/layouts/root-layout';
 import { cn } from '@/lib/utils';
 import { Routes } from '@/routes';
-import { isPersistedConversationId } from '@/utils/chat';
+import {
+  isPersistedConversationId,
+  isTemporaryConversationId,
+} from '@/utils/chat';
 import { isEmpty } from 'lodash';
 import { LucideArrowBigLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -21,11 +25,13 @@ import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { useHandleClickConversationCard } from '../hooks/use-click-card';
 import { useChatUrlParams } from '../hooks/use-chat-url';
+import { useTemporaryConversation } from '../hooks/use-select-conversation-list';
 import { useSummarizeConversationTitle } from '../hooks/use-summarize-conversation-title';
 import { ChatSettings } from './app-settings/chat-settings';
 import { MultipleChatBox } from './chat-box/next-multiple-chat-box';
 import { SingleChatBox } from './chat-box/single-chat-box';
 import { ConversationHeader } from './conversation-header';
+import { resolveDatasetTags } from './dataset-tags';
 import { Sessions } from './sessions';
 import { useAddChatBox } from './use-add-box';
 import { useSwitchDebugMode } from './use-switch-debug-mode';
@@ -48,8 +54,8 @@ export default function Chat() {
   const { id: chatId } = useParams();
   const { clearConversationParams } = useChatUrlParams();
 
-  const { data: dialogList } = useFetchSessionList();
-  const { data: currentDialog } = useFetchChat();
+  const { data: dialogList, loading: sessionsLoading } = useFetchSessionList();
+  const { data: currentDialog, loading: chatLoading } = useFetchChat();
   const { patchChat } = usePatchChat();
 
   // Lifted out of `Sessions` so the header can mirror it: while the conversation
@@ -77,14 +83,100 @@ export default function Chat() {
     [chatId, currentDialog?.llm_id, patchChat],
   );
 
-  // The settings drawer is owned here: both of its triggers (the conversation
-  // list header, and the chat header that only shows while the list is
-  // collapsed) open the same panel.
+  /**
+   * The one settings drawer, with three triggers: the gear at the top of the
+   * conversation list, the gear in the chat header that replaces it while the
+   * list is collapsed, and the dataset tags — which is where a conversation's
+   * datasets are changed, because the dataset field lives in this panel.
+   *
+   * It also raises itself once for a conversation with nothing selected to
+   * retrieve from; see the effect below.
+   */
   const {
     visible: settingsVisible,
     showModal: showSettings,
     hideModal: hideSettings,
   } = useSetModalState();
+
+  const { addTemporaryConversation } = useTemporaryConversation();
+
+  /**
+   * Datasets the assistant itself answers from — the set a conversation inherits
+   * while it has no binding of its own.
+   */
+  const assistantDatasetIds = useMemo(
+    () => currentDialog?.dataset_ids ?? [],
+    [currentDialog?.dataset_ids],
+  );
+
+  /**
+   * The open conversation's own binding, or `null` when it has none: either it
+   * is a placeholder with no server row yet, or the server stores `null`, which
+   * is exactly what "inherits the assistant's set" looks like on the wire.
+   *
+   * The list row is read first because it is what the rebind request
+   * invalidates; the fetched conversation covers the row being filtered out of
+   * the list by the rail's search box.
+   */
+  const sessionDatasetIds = useMemo(() => {
+    const sessionRow = dialogList.find((x) => x.id === conversationId);
+    if (sessionRow) {
+      return sessionRow.dataset_ids ?? null;
+    }
+
+    return currentConversation.id === conversationId
+      ? (currentConversation.dataset_ids ?? null)
+      : null;
+  }, [
+    dialogList,
+    conversationId,
+    currentConversation.id,
+    currentConversation.dataset_ids,
+  ]);
+
+  /**
+   * What the settings drawer opens pre-checked on, and what the header tags
+   * name: the conversation's binding when it has one, the assistant's set
+   * otherwise.
+   */
+  const effectiveDatasetIds = useMemo(
+    () => sessionDatasetIds ?? assistantDatasetIds,
+    [sessionDatasetIds, assistantDatasetIds],
+  );
+
+  /**
+   * Names for those ids, resolved here rather than in the header's tag row: the
+   * row is a leaf of a presentational header that its own suite renders without
+   * the app shell, so the dataset request (and the router behind it) must not be
+   * reachable from it.
+   */
+  const { data: effectiveDatasets } =
+    useFetchDatasetsByIds(effectiveDatasetIds);
+
+  const datasetTags = useMemo(
+    () => resolveDatasetTags(effectiveDatasetIds, effectiveDatasets),
+    [effectiveDatasetIds, effectiveDatasets],
+  );
+
+  /**
+   * The rail's "+": a conversation the browser only holds a placeholder for.
+   * Its datasets — a binding of its own, or the assistant's set it inherits —
+   * are decided by the first save in the settings drawer, which also creates
+   * the session; the rule below decides whether the drawer has to be raised for
+   * that first.
+   */
+  const handleStartNewConversation = useCallback(() => {
+    addTemporaryConversation();
+  }, [addTemporaryConversation]);
+
+  /**
+   * Every entry point into the conversation's datasets opens this one panel:
+   * the gear in the conversation list, the gear in the chat header, and the
+   * dataset tags. There is no second picker.
+   */
+  const handleOpenSettings = useCallback(() => {
+    showSettings();
+  }, [showSettings]);
 
   // The multi-model comparison view is entered from the settings drawer's model
   // section, not from the header, which keeps that row to one line.
@@ -183,6 +275,70 @@ export default function Chat() {
     isPersistedConversationId(conversationId) &&
     loadState !== 'ready' &&
     loadState !== 'failed';
+
+  /**
+   * Conversations whose empty dataset set has already raised the settings
+   * drawer. Keyed by the conversation the page is on — the open one, or `''`,
+   * the conversation a new session would start — so the rule below fires once
+   * for each of them for the whole visit.
+   */
+  const autoRaisedSettingsFor = useRef(new Set<string>());
+
+  /**
+   * A session the page starts itself — the placeholder the rail's "+" seeds, or
+   * the one a first question creates with nothing open — and the session row it
+   * becomes are one conversation to the user, so a drawer already raised for it
+   * must not come back over the answer they just asked for: the record follows
+   * the route onto the real id.
+   */
+  const previousConversationId = useRef(conversationId);
+
+  useEffect(() => {
+    const previous = previousConversationId.current;
+    if (previous === conversationId) return;
+    previousConversationId.current = conversationId;
+
+    const wasStartedHere =
+      previous === '' || isTemporaryConversationId(previous);
+
+    if (wasStartedHere && autoRaisedSettingsFor.current.has(previous)) {
+      autoRaisedSettingsFor.current.add(conversationId);
+    }
+  }, [conversationId]);
+
+  /**
+   * The one rule behind the drawer raising itself: a conversation with nothing
+   * to retrieve from opens the settings drawer, marked by the notice inside it,
+   * so the selection is guided before the first question. A conversation that
+   * has datasets — its own binding, or the assistant's set it inherits — is left
+   * alone and simply answers from them.
+   *
+   * It fires once per conversation (the set above), which is what also stops it
+   * from looping and from reopening the panel over the user's own close: by the
+   * time they dismiss it the conversation is already recorded. It waits for the
+   * reads it derives the set from — the assistant record, the session list, and
+   * a session's own fetch — so a set still in flight is never read as empty, and
+   * for a list with rows in it to be resolved: the rail is about to open the
+   * first conversation, which may well have datasets of its own.
+   */
+  useEffect(() => {
+    if (!conversationId && dialogList.length > 0) return;
+    if (!chatId || sessionsLoading || chatLoading || isLoadingMessages) return;
+    if (effectiveDatasetIds.length > 0) return;
+    if (autoRaisedSettingsFor.current.has(conversationId)) return;
+
+    autoRaisedSettingsFor.current.add(conversationId);
+    showSettings();
+  }, [
+    chatId,
+    sessionsLoading,
+    chatLoading,
+    isLoadingMessages,
+    dialogList.length,
+    effectiveDatasetIds.length,
+    conversationId,
+    showSettings,
+  ]);
 
   const handleSessionClick = useCallback(
     (id: string, isNew: boolean) => {
@@ -308,7 +464,8 @@ export default function Chat() {
             handleConversationCardClick={handleSessionClick}
             visible={sessionsVisible}
             onVisibleChange={setSessionsVisible}
-            onOpenSettings={showSettings}
+            onOpenSettings={handleOpenSettings}
+            onNewConversation={handleStartNewConversation}
             loadingConversationId={
               isLoadingMessages ? conversationId : undefined
             }
@@ -331,9 +488,10 @@ export default function Chat() {
                   title={currentConversationName}
                   llmId={currentDialog?.llm_id}
                   onModelChange={handleModelChange}
+                  datasets={datasetTags}
                   summarizing={summarizing}
                   onExpandSessions={handleExpandSessions}
-                  onOpenSettings={showSettings}
+                  onOpenSettings={handleOpenSettings}
                 ></ConversationHeader>
               </header>
             )}
@@ -346,12 +504,19 @@ export default function Chat() {
             </div>
           </div>
 
+          {/* The one dataset UI, and the one drawer a conversation's datasets
+              are read and changed in: its field edits the session binding, and
+              it is what the page raises for a conversation with nothing
+              selected. */}
           <ChatSettings
             visible={settingsVisible}
             onVisibleChange={(nextVisible) =>
               nextVisible ? showSettings() : hideSettings()
             }
             onOpenMultiModel={handleOpenMultiModel}
+            sessionId={conversationId}
+            effectiveDatasetIds={effectiveDatasetIds}
+            assistantDatasetIds={assistantDatasetIds}
           ></ChatSettings>
         </article>
       </section>

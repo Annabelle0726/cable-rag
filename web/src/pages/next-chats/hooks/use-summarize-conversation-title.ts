@@ -4,6 +4,7 @@ import chatService from '@/services/next-chat-service';
 import api from '@/utils/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   useChatStreamMessages,
   useIsChatStreaming,
@@ -28,8 +29,10 @@ type SummarizeConversationTitleParams = {
 
 /**
  * Renames a conversation with an AI-summarised title once its first answer has
- * arrived. The title is only replaced while it is still the raw first question,
- * so a name the user typed by hand is never overwritten.
+ * arrived. The title is only replaced while it is still a placeholder — the raw
+ * first question, or the "new conversation" name a session created from the
+ * dataset drawer carries until it has one — so a name the user typed by hand is
+ * never overwritten.
  */
 export const useSummarizeConversationTitle = ({
   chatId,
@@ -41,8 +44,10 @@ export const useSummarizeConversationTitle = ({
   const messages = useChatStreamMessages(sessionId ?? '');
   const isStreaming = useIsChatStreaming(sessionId ?? '');
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [summarizing, setSummarizing] = useState(false);
   const inFlight = useRef(false);
+  const placeholderTitle = t('chat.newConversation');
 
   const firstQuestion =
     messages.find((message) => message.role === MessageType.User)?.content ?? '';
@@ -76,9 +81,11 @@ export const useSummarizeConversationTitle = ({
     ) {
       return;
     }
-    // The placeholder title the first message produced is the only one we may
+    // The placeholder title the first message produced, or the one a session
+    // created from the dataset drawer still carries, is the only title we may
     // replace; anything else means the user renamed the conversation.
-    if (currentTitle && currentTitle.trim() !== firstQuestion.trim()) {
+    const title = currentTitle?.trim();
+    if (title && title !== firstQuestion.trim() && title !== placeholderTitle) {
       return;
     }
 
@@ -114,6 +121,7 @@ export const useSummarizeConversationTitle = ({
     hasAnswer,
     isStreaming,
     llmId,
+    placeholderTitle,
     renameConversation,
     sessionId,
   ]);
