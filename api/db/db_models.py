@@ -1308,7 +1308,7 @@ class Knowledgebase(DataBaseModel):
     # as NULL and restores it to "" when read.
     embd_id = EmptyStringCharField(max_length=128, null=False, help_text="default embedding model ID", index=True)
     tenant_embd_id = CharField(max_length=32, null=True, help_text="id in tenant_model", index=True)
-    permission = CharField(max_length=16, null=False, help_text="me|team", default="me", index=True)
+    permission = CharField(max_length=16, null=False, help_text="me|team|custom", default="me", index=True)
     created_by = CharField(max_length=32, null=False, index=True)
     doc_num = IntegerField(default=0, index=True)
     token_num = IntegerField(default=0, index=True)
@@ -1354,6 +1354,33 @@ class Knowledgebase(DataBaseModel):
 
     class Meta:
         db_table = "knowledgebase"
+
+
+class KnowledgebaseAuthorization(DataBaseModel):
+    """One read grant on a knowledge base, held by a department or a single user.
+
+    Rows exist only for `permission='custom'` knowledge bases: `me` and `team`
+    are decided by the knowledge base row alone, so a subject set for them would
+    be dead data. A `department` row is a standing grant rather than a snapshot
+    of the membership -- the predicate reads the member's current
+    `user_tenant.department_id`, so a member who transfers into that department
+    inherits its access and a member who leaves it loses the access.
+
+    A row here grants reading and retrieval only. Upload, parse, edit and delete
+    stay with the knowledge base creator and the workspace managers, so this
+    table is deliberately never consulted by the write path.
+    """
+
+    id = CharField(max_length=32, primary_key=True)
+    kb_id = CharField(max_length=32, null=False, help_text="knowledge base id", index=True)
+    subject_type = CharField(max_length=16, null=False, help_text="department|user")
+    subject_id = CharField(max_length=32, null=False, help_text="department id or user id", index=True)
+
+    class Meta:
+        db_table = "knowledgebase_authorization"
+        # One grant per subject per knowledge base: the authorization PUT is a
+        # replace, and a duplicate row would make "who can read this" ambiguous.
+        indexes = ((("kb_id", "subject_type", "subject_id"), True),)
 
 
 class Document(DataBaseModel):
