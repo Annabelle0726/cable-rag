@@ -180,6 +180,7 @@ def _load_list_datasets_module(monkeypatch, *, kbs, parsing_status_by_kb):
         deep_merge=MagicMock(),
         get_parser_config=MagicMock(),
         remap_dictionary_keys=_identity_remap,
+        requested_tenant_id=lambda: None,
         verify_embedding_availability=MagicMock(),
         # The service module wraps its permission denials in this, so the stub has
         # to be callable and carry the code the real one carries.

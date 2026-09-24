@@ -241,8 +241,11 @@ async def update_document(tenant_id, dataset_id, document_id):
     if "name" in req and req["name"] is None:
         return get_error_data_result(message="Field: <name> - Message: <Input should be a valid string> - Value: <None>")
 
-    # Verify ownership and existence of dataset and document
-    if not KnowledgebaseService.query(id=dataset_id, tenant_id=tenant_id):
+    # Verify write access to the dataset and existence of dataset and document.
+    # The gate scopes itself to the workspace owning the dataset: the caller's
+    # user id names no tenant for a member, and comparing it to `kb.tenant_id`
+    # also wrongly refused a workspace manager.
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
         return get_error_data_result(message="you don't own the dataset")
     e, kb = KnowledgebaseService.get_by_id(dataset_id)
     if not e:
@@ -290,11 +293,11 @@ async def update_document(tenant_id, dataset_id, document_id):
     # A non-empty pipeline_id selects pipeline parsing; an explicitly empty
     # value clears it and switches back to the direct parser path.
     if "pipeline_id" in req:
-        if error := reset_document_for_reparse(doc, tenant_id, pipeline_id=update_doc_req.pipeline_id or ""):
+        if error := reset_document_for_reparse(doc, kb.tenant_id, pipeline_id=update_doc_req.pipeline_id or ""):
             return error
     # chunk method provided - the update method will check if it's different with existing one
     elif update_doc_req.chunk_method:
-        if error := update_chunk_method(req, doc, tenant_id):
+        if error := update_chunk_method(req, doc, kb.tenant_id):
             return error
 
     if "enabled" in req:  # already checked in UpdateDocumentReq - it's int if present
@@ -1585,6 +1588,10 @@ async def parse_documents(tenant_id, dataset_id):
     """
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
         return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
+    e, kb = KnowledgebaseService.get_by_id(dataset_id)
+    if not e:
+        return get_error_data_result(message="Can't find this dataset!")
+    dataset_tenant_id = kb.tenant_id
 
     req = await get_request_json()
     if req is None:
@@ -1640,12 +1647,12 @@ async def parse_documents(tenant_id, dataset_id):
                 TaskService.filter_delete([Task.doc_id == doc_id])
                 from rag.advanced_rag.knowlege_compile.dataset_nav import remove_dataset_nav_doc_sync
 
-                remove_dataset_nav_doc_sync(tenant_id, doc.kb_id, doc.id)
-                if settings.docStoreConn.index_exist(search.index_name(tenant_id), doc.kb_id):
-                    settings.docStoreConn.delete({"doc_id": doc_id}, search.index_name(tenant_id), doc.kb_id)
+                remove_dataset_nav_doc_sync(dataset_tenant_id, doc.kb_id, doc.id)
+                if settings.docStoreConn.index_exist(search.index_name(dataset_tenant_id), doc.kb_id):
+                    settings.docStoreConn.delete({"doc_id": doc_id}, search.index_name(dataset_tenant_id), doc.kb_id)
 
                 doc_dict = doc.to_dict()
-                DocumentService.run(tenant_id, doc_dict, kb_table_num_map, user_id=llm_user_id)
+                DocumentService.run(dataset_tenant_id, doc_dict, kb_table_num_map, user_id=llm_user_id)
                 success_count += 1
 
             result = {"success_count": success_count}
@@ -1702,6 +1709,10 @@ async def stop_parse_documents(tenant_id, dataset_id):
     """
     if not KnowledgebaseService.writable(dataset_id, tenant_id):
         return get_error_permission_result(f"You don't own the dataset {dataset_id}.")
+    e, kb = KnowledgebaseService.get_by_id(dataset_id)
+    if not e:
+        return get_error_data_result(message="Can't find this dataset!")
+    dataset_tenant_id = kb.tenant_id
 
     req = await get_request_json()
     if req is None:
@@ -1768,7 +1779,7 @@ async def stop_parse_documents(tenant_id, dataset_id):
                     },
                 )
                 logging.debug("Appended cancellation marker to progress_msg on stop-parse for doc %s", doc_id)
-                index_name = search.index_name(tenant_id)
+                index_name = search.index_name(dataset_tenant_id)
                 if settings.docStoreConn.index_exist(index_name, doc.kb_id):
                     settings.docStoreConn.delete({"doc_id": doc.id}, index_name, doc.kb_id)
                 success_count += 1
@@ -2032,8 +2043,8 @@ async def batch_update_document_status(tenant_id, dataset_id):
     if status not in ["0", "1"]:
         return get_error_argument_result(message=f'"Status" must be either 0 or 1:{status}!')
 
-    # Verify dataset ownership
-    if not KnowledgebaseService.query(id=dataset_id, tenant_id=tenant_id):
+    # Verify write access to the dataset, scoped to the workspace that owns it.
+    if not KnowledgebaseService.writable(dataset_id, tenant_id):
         return get_error_data_result(message="you don't own the dataset")
 
     e, kb = KnowledgebaseService.get_by_id(dataset_id)

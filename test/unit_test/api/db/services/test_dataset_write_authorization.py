@@ -288,7 +288,17 @@ def test_a_wrapped_service_denial_reaches_the_caller_as_code_108():
 #: rule cannot be dropped from an endpoint without this test failing.
 WRITE_HANDLERS = {
     "api/apps/restful_apis/chunk_api.py": ["parse", "stop_parsing", "delete_document_structure_graph", "add_chunk", "rm_chunk", "update_chunk", "switch_chunks"],
-    "api/apps/restful_apis/document_api.py": ["upload_document", "metadata_batch_update", "delete_documents", "update_metadata", "update_metadata_config", "parse_documents", "stop_parse_documents"],
+    "api/apps/restful_apis/document_api.py": [
+        "update_document",
+        "batch_update_document_status",
+        "upload_document",
+        "metadata_batch_update",
+        "delete_documents",
+        "update_metadata",
+        "update_metadata_config",
+        "parse_documents",
+        "stop_parse_documents",
+    ],
     "api/apps/restful_apis/dataset_api.py": [
         "delete",
         "update",

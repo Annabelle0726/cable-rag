@@ -106,6 +106,8 @@ def _load_system_module(monkeypatch):
         "data": None,
     }
     api_utils_mod.generate_confirmation_token = lambda: "ragflow-abcdefghijklmnopqrstuvwxyz0123456789"
+    api_utils_mod.get_error_permission_result = lambda message="Permission error": {"code": 108, "message": message, "data": None}
+    api_utils_mod.requested_tenant_id = lambda: None
     monkeypatch.setitem(sys.modules, "api.utils.api_utils", api_utils_mod)
 
     api_service_mod = ModuleType("api.db.services.api_service")
@@ -122,7 +124,8 @@ def _load_system_module(monkeypatch):
     monkeypatch.setitem(sys.modules, "api.db.services.knowledgebase_service", kb_service_mod)
 
     user_service_mod = ModuleType("api.db.services.user_service")
-    user_service_mod.UserTenantService = SimpleNamespace(query=lambda **_kwargs: [SimpleNamespace(role="owner", tenant_id="tenant-1")])
+    user_service_mod.TenantService = SimpleNamespace(resolve_active_tenant_id=lambda _user_id, _requested_tenant_id=None: "tenant-1")
+    user_service_mod.UserTenantService = SimpleNamespace(get_tenants_by_user_id=lambda _user_id: [{"tenant_id": "tenant-1", "role": "owner"}])
     monkeypatch.setitem(sys.modules, "api.db.services.user_service", user_service_mod)
 
     db_models_mod = ModuleType("api.db.db_models")

@@ -46,7 +46,7 @@ def _load_sanitize_function():
     only exposes `math`. Returns the function object ready to call.
     """
     repo_root = Path(__file__).resolve().parents[5]
-    source = (repo_root / "api" / "apps" / "restful_apis" / "chat_api.py").read_text()
+    source = (repo_root / "api" / "apps" / "restful_apis" / "chat_api.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     fn_node = None
     for node in tree.body:

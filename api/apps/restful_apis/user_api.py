@@ -670,7 +670,7 @@ async def set_tenant_info():
           properties:
             tenant_id:
               type: string
-              description: Tenant ID.
+              description: Workspace to update; the caller must hold OWNER or ADMIN on it (see GET /users/me/tenant).
             llm_id:
               type: string
               description: LLM ID.
@@ -692,9 +692,15 @@ async def set_tenant_info():
     req = await get_request_json()
     try:
         tid = req.pop("tenant_id")
-        if tid != current_user.id:
+        # GET /users/me/models answers the caller's ACTIVE workspace, which is
+        # not the caller's own id whenever it is working in a shared one, so the
+        # write accepts any workspace the caller administers -- the same
+        # predicate @require_tenant_admin applies. Comparing against
+        # current_user.id instead refused a legitimate echo of that id with a
+        # permission error and left a shared workspace unconfigurable.
+        if not UserTenantService.can_manage_tenant(current_user.id, tid):
             logging.warning("IDOR attempt blocked: user %s requested tenant_id %s on %s", current_user.id, tid, request.path)
-            return get_json_result(data=False, message="No authorization.", code=RetCode.AUTHENTICATION_ERROR)
+            return get_error_permission_result("admin role required for this tenant")
         update_dict = ensure_tenant_model_ids_for_params(tid, req)
         TenantService.update_by_id(tid, update_dict)
         return get_json_result(data=True)

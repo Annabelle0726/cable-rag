@@ -106,8 +106,16 @@ def _load_module(monkeypatch, *, tenant_model_records, factory_llm_infos=None):
             # Identity stands in for a caller that owns its own tenant; the
             # member fallback is covered by
             # test/unit_test/api/db/services/test_resolve_active_tenant_id.py.
-            resolve_active_tenant_id=lambda tenant_id: tenant_id,
+            # The service resolves the workspace with the caller's X-Tenant-Id
+            # header, which is always absent in a unit test.
+            resolve_active_tenant_id=lambda tenant_id, requested_tenant_id=None: tenant_id,
         ),
+    )
+    _stub(
+        monkeypatch,
+        "api.utils.api_utils",
+        requested_tenant_id=lambda: None,
+        PermissionDeniedMessage=type("PermissionDeniedMessage", (str,), {"code": 108}),
     )
     _stub(
         monkeypatch,

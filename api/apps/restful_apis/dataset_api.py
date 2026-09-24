@@ -21,7 +21,8 @@ from quart import make_response, request
 from api.apps import current_user, login_required
 from api.apps.services import dataset_api_service
 from api.db.services.knowledgebase_service import KnowledgebaseService
-from api.utils.api_utils import add_tenant_id_to_kwargs, get_error_argument_result, get_error_data_result, get_error_permission_result, get_json_result, get_result
+from api.db.services.user_service import TenantService
+from api.utils.api_utils import add_tenant_id_to_kwargs, get_error_argument_result, get_error_data_result, get_error_permission_result, get_json_result, get_result, requested_tenant_id
 from api.utils.pagination_utils import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, validate_rest_api_ids, validate_rest_api_page, validate_rest_api_page_size
 from api.utils.validation_utils import (
     CreateDatasetReq,
@@ -151,7 +152,13 @@ async def create(tenant_id: str = None):
     try:
         if not tenant_id:
             tenant_id = current_user.id
-        success, result = await dataset_api_service.create_dataset(tenant_id, req)
+        # The injected `tenant_id` is the caller's user id under its legacy name.
+        # A member owns no workspace of its own, so the dataset is created in the
+        # workspace the caller holds a membership on (the one named by
+        # `X-Tenant-Id` when it names one), and the caller is recorded as its
+        # author.
+        active_tenant_id = TenantService.resolve_active_tenant_id(tenant_id, requested_tenant_id())
+        success, result = await dataset_api_service.create_dataset(active_tenant_id, req, created_by=tenant_id)
         if success:
             return get_result(data=result)
         else:

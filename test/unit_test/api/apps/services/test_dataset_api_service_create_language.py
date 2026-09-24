@@ -65,8 +65,8 @@ def _load_create_dataset_module(monkeypatch):
     """
     created_kb = SimpleNamespace(to_dict=lambda: {"id": "kb-1", "name": "kb"})
 
-    def _create_with_name(*, name, tenant_id, parser_id=None, **kwargs):
-        return True, {"id": "kb-1", "name": name, "tenant_id": tenant_id, "parser_id": parser_id, **kwargs}
+    def _create_with_name(*, name, tenant_id, parser_id=None, created_by=None, **kwargs):
+        return True, {"id": "kb-1", "name": name, "tenant_id": tenant_id, "created_by": created_by, "parser_id": parser_id, **kwargs}
 
     create_with_name = MagicMock(side_effect=_create_with_name)
 
@@ -83,7 +83,12 @@ def _load_create_dataset_module(monkeypatch):
     _stub(
         monkeypatch,
         "api.db.services.user_service",
-        TenantService=SimpleNamespace(get_by_id=MagicMock(return_value=(True, SimpleNamespace(embd_id="embd-model")))),
+        TenantService=SimpleNamespace(
+            get_by_id=MagicMock(return_value=(True, SimpleNamespace(embd_id="embd-model"))),
+            # The create path resolves the workspace the caller operates in, so a
+            # member's dataset lands in the workspace it joined.
+            resolve_active_tenant_id=MagicMock(side_effect=lambda user_id, requested_tenant_id=None: requested_tenant_id or user_id),
+        ),
         UserService=SimpleNamespace(),
         UserTenantService=SimpleNamespace(),
     )
@@ -138,7 +143,9 @@ def _load_create_dataset_module(monkeypatch):
         "api.utils.api_utils",
         deep_merge=MagicMock(),
         get_parser_config=MagicMock(),
+        PermissionDeniedMessage=str,
         remap_dictionary_keys=lambda source_data, key_aliases=None: dict(source_data),
+        requested_tenant_id=lambda: None,
         verify_embedding_availability=MagicMock(return_value=(True, None)),
     )
     _stub(
@@ -152,6 +159,10 @@ def _load_create_dataset_module(monkeypatch):
         DB=SimpleNamespace(connection_context=lambda: lambda func: func),
         TenantModel=SimpleNamespace(),
         Connector2Kb=SimpleNamespace(kb_id="kb_id"),
+        Department=SimpleNamespace(),
+        Knowledgebase=SimpleNamespace(),
+        KnowledgebaseAuthorization=SimpleNamespace(),
+        UserTenant=SimpleNamespace(),
         Document=SimpleNamespace(kb_id="kb_id"),
         File=SimpleNamespace(source_type="source_type", id="id", type="type", name="name"),
         SyncLogs=SimpleNamespace(kb_id="kb_id", status=SimpleNamespace(in_=lambda _values: None)),

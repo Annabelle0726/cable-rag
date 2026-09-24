@@ -74,6 +74,7 @@ class _KB:
         name="old",
         tenant_id="tenant-1",
         parser_id="naive",
+        pipeline_id=None,
         parser_config=None,
         embd_id="embd-1",
         chunk_num=0,
@@ -85,6 +86,7 @@ class _KB:
         self.name = name
         self.tenant_id = tenant_id
         self.parser_id = parser_id
+        self.pipeline_id = pipeline_id
         self.parser_config = parser_config or {}
         self.embd_id = embd_id
         self.chunk_num = chunk_num
@@ -134,6 +136,7 @@ def _load_dataset_module(monkeypatch):
 
     quart_mod = ModuleType("quart")
     quart_mod.Request = type("Request", (), {})
+    quart_mod.make_response = lambda *_args, **_kwargs: None
     quart_mod.request = SimpleNamespace(args=_DummyArgs())
     monkeypatch.setitem(sys.modules, "quart", quart_mod)
 
@@ -167,10 +170,18 @@ def _load_dataset_module(monkeypatch):
     db_pkg = ModuleType("api.db")
     db_pkg.__path__ = []
     db_pkg.FileType = SimpleNamespace()
+    db_pkg.TenantPermission = SimpleNamespace(ME="me", TEAM="team", CUSTOM="custom")
     monkeypatch.setitem(sys.modules, "api.db", db_pkg)
     api_pkg.db = db_pkg
 
     db_models_mod = ModuleType("api.db.db_models")
+    db_models_mod.Connector2Kb = SimpleNamespace(kb_id="kb_id")
+    db_models_mod.Department = SimpleNamespace()
+    db_models_mod.Document = SimpleNamespace(kb_id="kb_id")
+    db_models_mod.Knowledgebase = SimpleNamespace()
+    db_models_mod.KnowledgebaseAuthorization = SimpleNamespace()
+    db_models_mod.SyncLogs = SimpleNamespace(kb_id="kb_id", status=SimpleNamespace(in_=lambda _values: None))
+    db_models_mod.UserTenant = SimpleNamespace()
     db_models_mod.File = SimpleNamespace(
         source_type=_Field("source_type"),
         id=_Field("id"),
@@ -197,6 +208,10 @@ def _load_dataset_module(monkeypatch):
         @staticmethod
         def get_by_kb_id(**_kwargs):
             return [], 0
+
+        @staticmethod
+        def filter_delete(*_args, **_kwargs):
+            return 0
 
     document_service_mod.DocumentService = _StubDocumentService
     document_service_mod.queue_raptor_o_graphrag_tasks = lambda **_kwargs: "task-queued"
@@ -236,7 +251,21 @@ def _load_dataset_module(monkeypatch):
         def link_connectors(*_args, **_kwargs):
             return []
 
+        @staticmethod
+        def filter_delete(*_args, **_kwargs):
+            return 0
+
+    class _StubSyncLogsService:
+        @staticmethod
+        def filter_update(*_args, **_kwargs):
+            return 0
+
+        @staticmethod
+        def filter_delete(*_args, **_kwargs):
+            return 0
+
     connector_service_mod.Connector2KbService = _StubConnector2KbService
+    connector_service_mod.SyncLogsService = _StubSyncLogsService
     monkeypatch.setitem(sys.modules, "api.db.services.connector_service", connector_service_mod)
     services_pkg.connector_service = connector_service_mod
 
@@ -287,7 +316,12 @@ def _load_dataset_module(monkeypatch):
         def accessible(_dataset_id, _tenant_id):
             return True
 
+        @staticmethod
+        def writable(_dataset_id, _tenant_id):
+            return True
+
     knowledgebase_service_mod.KnowledgebaseService = _StubKnowledgebaseService
+    knowledgebase_service_mod.validate_dataset_embedding_models = lambda _kbs: None
     monkeypatch.setitem(sys.modules, "api.db.services.knowledgebase_service", knowledgebase_service_mod)
     services_pkg.knowledgebase_service = knowledgebase_service_mod
 
@@ -313,6 +347,12 @@ def _load_dataset_module(monkeypatch):
         @staticmethod
         def get_joined_tenants_by_user_id(_tenant_id):
             return [{"tenant_id": "tenant-1"}]
+
+        @staticmethod
+        def resolve_active_tenant_id(user_id, requested_tenant_id=None):
+            # The workspace the caller operates in. Members of the fixture own no
+            # tenant, so the id they hold a membership on is the workspace.
+            return requested_tenant_id or "tenant-1"
 
     class _StubUserService:
         @staticmethod
@@ -348,6 +388,8 @@ def _load_dataset_module(monkeypatch):
     constants_mod.FileSource = _FileSource
     constants_mod.StatusEnum = _StatusEnum
     constants_mod.PAGERANK_FLD = "pagerank"
+    constants_mod.LLMType = SimpleNamespace(EMBEDDING="embedding")
+    constants_mod.TaskStatus = SimpleNamespace(SCHEDULE="schedule", RUNNING="running", CANCEL="cancel")
     monkeypatch.setitem(sys.modules, "common.constants", constants_mod)
 
     common_pkg = ModuleType("common")
@@ -389,16 +431,54 @@ def _load_dataset_module(monkeypatch):
     def _get_error_permission_result(message=""):
         return _get_result(code=_RetCode.AUTHENTICATION_ERROR, message=message)
 
+    def _get_json_result(*, data=None, message="", code=_RetCode.SUCCESS, total=None):
+        return _get_result(data=data, message=message, code=code, total=total)
+
     api_utils_mod.deep_merge = _deep_merge
     api_utils_mod.get_error_argument_result = _get_error_argument_result
     api_utils_mod.get_error_data_result = _get_error_data_result
     api_utils_mod.get_error_permission_result = _get_error_permission_result
+    api_utils_mod.get_json_result = _get_json_result
     api_utils_mod.get_parser_config = lambda _chunk_method, _unused: {"auto": True}
     api_utils_mod.get_result = _get_result
+    api_utils_mod.PermissionDeniedMessage = str
     api_utils_mod.remap_dictionary_keys = lambda data: data
+    api_utils_mod.requested_tenant_id = lambda: None
     api_utils_mod.add_tenant_id_to_kwargs = lambda func: func
     api_utils_mod.verify_embedding_availability = lambda _embd_id, _tenant_id: (True, None)
     monkeypatch.setitem(sys.modules, "api.utils.api_utils", api_utils_mod)
+
+    joint_services_pkg = ModuleType("api.db.joint_services")
+    joint_services_pkg.__path__ = []
+    monkeypatch.setitem(sys.modules, "api.db.joint_services", joint_services_pkg)
+    db_pkg.joint_services = joint_services_pkg
+
+    kb_authorization_service_mod = ModuleType("api.db.joint_services.kb_authorization_service")
+    kb_authorization_service_mod.MEMBER_ROLES = ()
+    kb_authorization_service_mod.SUBJECT_DEPARTMENT = "department"
+    kb_authorization_service_mod.SUBJECT_USER = "user"
+    kb_authorization_service_mod.get_kb_authorizations = lambda *_args, **_kwargs: {}
+    kb_authorization_service_mod.set_dataset_authorization = lambda *_args, **_kwargs: None
+    monkeypatch.setitem(sys.modules, "api.db.joint_services.kb_authorization_service", kb_authorization_service_mod)
+    joint_services_pkg.kb_authorization_service = kb_authorization_service_mod
+
+    joint_tenant_model_service_mod = ModuleType("api.db.joint_services.tenant_model_service")
+    joint_tenant_model_service_mod.get_composite_model_name_by_ids = lambda *_args, **_kwargs: {}
+    joint_tenant_model_service_mod.resolve_model_config = lambda *_args, **_kwargs: None
+    joint_tenant_model_service_mod.resolve_model_id = lambda *_args, **_kwargs: None
+    monkeypatch.setitem(sys.modules, "api.db.joint_services.tenant_model_service", joint_tenant_model_service_mod)
+    joint_services_pkg.tenant_model_service = joint_tenant_model_service_mod
+
+    tenant_model_service_mod = ModuleType("api.db.services.tenant_model_service")
+
+    class _StubTenantModelService:
+        @staticmethod
+        def get_by_id(_model_id):
+            return False, None
+
+    tenant_model_service_mod.TenantModelService = _StubTenantModelService
+    monkeypatch.setitem(sys.modules, "api.db.services.tenant_model_service", tenant_model_service_mod)
+    services_pkg.tenant_model_service = tenant_model_service_mod
 
     async def _parse_json(*_args, **_kwargs):
         return {}, None
@@ -425,6 +505,21 @@ def _load_dataset_module(monkeypatch):
     search_mod.index_name = lambda _tenant_id: "idx"
     monkeypatch.setitem(sys.modules, "rag.nlp.search", search_mod)
     rag_nlp_pkg.search = search_mod
+
+    rag_advanced_pkg = ModuleType("rag.advanced_rag")
+    rag_advanced_pkg.__path__ = []
+    monkeypatch.setitem(sys.modules, "rag.advanced_rag", rag_advanced_pkg)
+    rag_pkg.advanced_rag = rag_advanced_pkg
+
+    rag_knowlege_compile_pkg = ModuleType("rag.advanced_rag.knowlege_compile")
+    rag_knowlege_compile_pkg.__path__ = []
+    monkeypatch.setitem(sys.modules, "rag.advanced_rag.knowlege_compile", rag_knowlege_compile_pkg)
+    rag_advanced_pkg.knowlege_compile = rag_knowlege_compile_pkg
+
+    rag_wiki_mod = ModuleType("rag.advanced_rag.knowlege_compile.wiki")
+    rag_wiki_mod.WIKI_PAGE_COMPILE_KWD = "wiki"
+    monkeypatch.setitem(sys.modules, "rag.advanced_rag.knowlege_compile.wiki", rag_wiki_mod)
+    rag_knowlege_compile_pkg.wiki = rag_wiki_mod
 
     module_name = "test_dataset_sdk_routes_unit_module"
     module_path = repo_root / "api" / "apps" / "restful_apis" / "dataset_api.py"
@@ -478,6 +573,58 @@ def test_create_route_error_matrix_unit(monkeypatch):
 
 
 @pytest.mark.p3
+def test_create_route_uses_the_members_workspace_and_author(monkeypatch):
+    """A NORMAL member owns no tenant of its own.
+
+    The injected `tenant_id` is the caller's user id, so using it as a tenant id
+    found no tenant at all (and raised the `code=101` "Response" serialization
+    error). The dataset has to land in the workspace the member joined -- the one
+    its `X-Tenant-Id` names -- and record the member as its author, otherwise the
+    workspace owns a dataset its own creator can neither read nor edit.
+    """
+    module = _load_dataset_module(monkeypatch)
+    req_state = {"name": "kb"}
+    _patch_json_parser(monkeypatch, module, req_state)
+
+    member_user_id = "member-user"
+    joined_workspace = "workspace-tenant"
+    resolved = []
+    lookups = []
+
+    def _resolve(user_id, requested_tenant_id=None):
+        resolved.append((user_id, requested_tenant_id))
+        # A membership on the named workspace is what makes the header usable.
+        return requested_tenant_id or user_id
+
+    def _get_by_id(tenant_id):
+        lookups.append(tenant_id)
+        return True, SimpleNamespace(embd_id="embd-default")
+
+    created = {}
+
+    def _create_with_name(**kwargs):
+        created.update(kwargs)
+        return True, {"id": "kb-1", "name": kwargs["name"]}
+
+    monkeypatch.setattr(module.TenantService, "resolve_active_tenant_id", staticmethod(_resolve))
+    monkeypatch.setattr(module.TenantService, "get_by_id", _get_by_id)
+    monkeypatch.setattr(module, "requested_tenant_id", lambda: joined_workspace)
+    monkeypatch.setattr(module.dataset_api_service, "requested_tenant_id", lambda: joined_workspace)
+    monkeypatch.setattr(module.KnowledgebaseService, "create_with_name", _create_with_name)
+
+    res = _run(inspect.unwrap(module.create)(member_user_id))
+
+    assert res["code"] == module.RetCode.SUCCESS, res
+    # The caller id is an identity, never a tenant id.
+    assert resolved[0] == (member_user_id, joined_workspace), resolved
+    assert created["tenant_id"] == joined_workspace, created
+    assert created["created_by"] == member_user_id, created
+    assert created["name"] == "kb", created
+    # The default-embedding lookup is scoped to that same workspace.
+    assert lookups == [joined_workspace], lookups
+
+
+@pytest.mark.p3
 def test_delete_route_error_summary_matrix_unit(monkeypatch):
     module = _load_dataset_module(monkeypatch)
     req_state = {"ids": ["kb-1"]}
@@ -511,10 +658,13 @@ def test_update_route_branch_matrix_unit(monkeypatch):
     req_state = {"name": "new"}
     _patch_json_parser(monkeypatch, module, req_state)
 
+    monkeypatch.setattr(module.KnowledgebaseService, "writable", lambda *_args, **_kwargs: False)
     monkeypatch.setattr(module.KnowledgebaseService, "get_or_none", lambda **_kwargs: None)
     res = _run(inspect.unwrap(module.update)("tenant-1", "kb-1"))
-    assert res["code"] == module.RetCode.DATA_ERROR, res
-    assert "lacks permission for dataset" in res["message"], res
+    assert res["code"] == module.RetCode.AUTHENTICATION_ERROR, res
+    assert "You don't own the dataset" in res["message"], res
+
+    monkeypatch.setattr(module.KnowledgebaseService, "writable", lambda *_args, **_kwargs: True)
 
     kb = _KB(kb_id="kb-1", name="old", chunk_num=0)
 
@@ -607,16 +757,16 @@ def test_list_knowledge_graph_delete_kg_matrix_unit(monkeypatch):
     assert res["message"] == "Database operation failed", res
 
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: False)
-    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: False)
-    res = _run(inspect.unwrap(module.knowledge_graph)("tenant-1", "kb-1"))
+    monkeypatch.setattr(module.KnowledgebaseService, "writable", lambda *_args, **_kwargs: False)
+    res = _run(inspect.unwrap(module.get_knowledge_graph)("tenant-1", "kb-1"))
     assert res["code"] == module.RetCode.AUTHENTICATION_ERROR, res
 
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(module.KnowledgebaseService, "writable", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _kb_id: (True, _KB(tenant_id="tenant-1")))
     monkeypatch.setattr(module.search, "index_name", lambda _tenant_id: "idx")
     monkeypatch.setattr(module.settings, "docStoreConn", SimpleNamespace(index_exist=lambda *_args, **_kwargs: False))
-    res = _run(inspect.unwrap(module.knowledge_graph)("tenant-1", "kb-1"))
+    res = _run(inspect.unwrap(module.get_knowledge_graph)("tenant-1", "kb-1"))
     assert res["data"] == {"graph": {}, "mind_map": {}}, res
 
     monkeypatch.setattr(module.settings, "docStoreConn", SimpleNamespace(index_exist=lambda *_args, **_kwargs: True))
@@ -626,7 +776,7 @@ def test_list_knowledge_graph_delete_kg_matrix_unit(monkeypatch):
             return SimpleNamespace(ids=[], field={})
 
     monkeypatch.setattr(module.settings, "retriever", _EmptyRetriever())
-    res = _run(inspect.unwrap(module.knowledge_graph)("tenant-1", "kb-1"))
+    res = _run(inspect.unwrap(module.get_knowledge_graph)("tenant-1", "kb-1"))
     assert res["data"] == {"graph": {}, "mind_map": {}}, res
 
     class _BadRetriever:
@@ -634,7 +784,7 @@ def test_list_knowledge_graph_delete_kg_matrix_unit(monkeypatch):
             return SimpleNamespace(ids=["bad"], field={"bad": {"knowledge_graph_kwd": "graph", "content_with_weight": "{bad"}})
 
     monkeypatch.setattr(module.settings, "retriever", _BadRetriever())
-    res = _run(inspect.unwrap(module.knowledge_graph)("tenant-1", "kb-1"))
+    res = _run(inspect.unwrap(module.get_knowledge_graph)("tenant-1", "kb-1"))
     assert res["code"] == module.RetCode.SUCCESS, res
     assert res["data"]["graph"] == {}, res
 
@@ -652,14 +802,15 @@ def test_list_knowledge_graph_delete_kg_matrix_unit(monkeypatch):
             return SimpleNamespace(ids=["good"], field={"good": {"knowledge_graph_kwd": "graph", "content_with_weight": json.dumps(payload)}})
 
     monkeypatch.setattr(module.settings, "retriever", _GoodRetriever())
-    res = _run(inspect.unwrap(module.knowledge_graph)("tenant-1", "kb-1"))
+    res = _run(inspect.unwrap(module.get_knowledge_graph)("tenant-1", "kb-1"))
     assert res["code"] == module.RetCode.SUCCESS, res
     assert len(res["data"]["graph"]["nodes"]) == 2, res
     assert len(res["data"]["graph"]["edges"]) == 1, res
 
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: False)
-    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: False)
-    res = inspect.unwrap(module.delete_knowledge_graph)("tenant-1", "kb-1")
+    monkeypatch.setattr(module.KnowledgebaseService, "writable", lambda *_args, **_kwargs: False)
+    _set_request_args(monkeypatch, module, {"kind": "graph"})
+    res = inspect.unwrap(module.delete_dataset_structure)("tenant-1", "kb-1")
     assert res["code"] == module.RetCode.AUTHENTICATION_ERROR, res
 
 
@@ -680,16 +831,16 @@ def test_run_index_matrix_unit(monkeypatch):
     res = _run(inspect.unwrap(module.run_index)("tenant-1", ""))
     assert "Dataset ID" in res["message"], res
 
-    # No authorization
+    # No authorization: a write denial carries the permission code.
     _set_request_args(monkeypatch, module, {"type": "graph"})
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: False)
-    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(module.KnowledgebaseService, "writable", lambda *_args, **_kwargs: False)
     res = _run(inspect.unwrap(module.run_index)("tenant-1", "kb-1"))
-    assert res["code"] == module.RetCode.DATA_ERROR, res
+    assert res["code"] == module.RetCode.AUTHENTICATION_ERROR, res
 
     # Invalid dataset ID
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(module.KnowledgebaseService, "writable", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _kb_id: (False, None))
     res = _run(inspect.unwrap(module.run_index)("tenant-1", "kb-1"))
     assert "Invalid Dataset ID" in res["message"], res
@@ -751,13 +902,13 @@ def test_trace_index_matrix_unit(monkeypatch):
     # No authorization
     _set_request_args(monkeypatch, module, {"type": "graph"})
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: False)
-    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(module.KnowledgebaseService, "writable", lambda *_args, **_kwargs: False)
     res = inspect.unwrap(module.trace_index)("tenant-1", "kb-1")
     assert res["code"] == module.RetCode.DATA_ERROR, res
 
     # Invalid dataset ID
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(module.KnowledgebaseService, "writable", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _kb_id: (False, None))
     res = inspect.unwrap(module.trace_index)("tenant-1", "kb-1")
     assert "Invalid Dataset ID" in res["message"], res
@@ -820,7 +971,7 @@ def test_delete_index_wipe_flag_unit(monkeypatch):
 
     kb = _KB(kb_id="kb-1", graphrag_task_id="graph-task", raptor_task_id="raptor-task")
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(module.KnowledgebaseService, "writable", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _kb_id: (True, kb))
     monkeypatch.setattr(module.KnowledgebaseService, "update_by_id", lambda *_args, **_kwargs: True)
 

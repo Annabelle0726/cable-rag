@@ -20,7 +20,7 @@ from api.apps import current_user, login_required
 from api.db.db_models import MCPServer
 from api.db.services.mcp_server_service import MCPServerService
 from api.db.services.user_service import TenantService
-from api.utils.api_utils import get_data_error_result, get_json_result, get_mcp_tools, get_request_json, server_error_response, validate_request
+from api.utils.api_utils import get_data_error_result, get_json_result, get_mcp_tools, get_request_json, requested_tenant_id, server_error_response, validate_request
 from api.utils.pagination_utils import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, validate_rest_api_ids, validate_rest_api_page, validate_rest_api_page_size
 from api.utils.web_utils import get_float, safe_json_parse
 from common.constants import VALID_MCP_SERVER_TYPES
@@ -151,9 +151,17 @@ async def create() -> Response:
 
     try:
         req["id"] = get_uuid()
+        # An MCP server row is USER-scoped: every read path in this module (list,
+        # detail, update, delete, import and export) compares `tenant_id` with
+        # current_user.id, so the column keeps the caller's user id rather than a
+        # workspace id.
         req["tenant_id"] = current_user.id
 
-        e, _ = TenantService.get_by_id(current_user.id)
+        # A NORMAL member owns no tenant, so their user id is not a tenant id. The
+        # workspace that has to exist is the one they are working in, not an
+        # assumption that `user.id` is a tenant.
+        active_tenant_id = TenantService.resolve_active_tenant_id(current_user.id, requested_tenant_id())
+        e, _ = TenantService.get_by_id(active_tenant_id)
         if not e:
             return get_data_error_result(message="Tenant not found.")
 

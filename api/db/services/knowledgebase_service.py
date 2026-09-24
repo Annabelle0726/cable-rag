@@ -25,7 +25,7 @@ from api.db.joint_services.tenant_model_service import get_composite_model_name_
 from api.db.services import duplicate_name
 from api.db.services.common_service import CommonService
 from api.db.services.user_service import TenantService
-from api.utils.api_utils import get_data_error_result, get_parser_config, requested_tenant_id
+from api.utils.api_utils import get_parser_config, requested_tenant_id
 from common.constants import StatusEnum
 from common.misc_utils import get_uuid
 from common.time_utils import current_timestamp, datetime_format
@@ -462,11 +462,21 @@ class KnowledgebaseService(CommonService):
 
     @classmethod
     @DB.connection_context()
-    def create_with_name(cls, *, name: str, tenant_id: str, parser_id: str | None = None, **kwargs):
+    def create_with_name(cls, *, name: str, tenant_id: str, parser_id: str | None = None, created_by: str | None = None, **kwargs):
         """Create a dataset (knowledgebase) by name with kb_app defaults.
 
         This encapsulates the creation logic used in kb_app.create so other callers
         (including RESTFul endpoints) can reuse the same behavior.
+
+        `tenant_id` is the workspace that owns the dataset. `created_by` is the
+        dataset's author, and it equals `tenant_id` only for an owner, whose
+        tenant id IS their user id: a member creating a dataset in a workspace it
+        joined must be recorded as the author by its own user id, otherwise the
+        dataset is attributed to the workspace and the creator cannot read or
+        edit it again.
+
+        Every failure is reported as a plain string message so a route can wrap it
+        in an error result; the caller answers `(False, message)`.
 
         Returns:
             (ok: bool, model_or_msg): On success, returns (True, Knowledgebase model instance);
@@ -474,12 +484,12 @@ class KnowledgebaseService(CommonService):
         """
         # Validate name
         if not isinstance(name, str):
-            return False, get_data_error_result(message="Dataset name must be string.")
+            return False, "Dataset name must be string."
         dataset_name = name.strip()
         if dataset_name == "":
-            return False, get_data_error_result(message="dataset name can't be empty")
+            return False, "dataset name can't be empty"
         if len(dataset_name.encode("utf-8")) > DATASET_NAME_LIMIT:
-            return False, get_data_error_result(message=f"Dataset name length is {len(dataset_name)} which is large than {DATASET_NAME_LIMIT}")
+            return False, f"Dataset name length is {len(dataset_name)} which is large than {DATASET_NAME_LIMIT}"
 
         # Deduplicate name within tenant
         dataset_name = duplicate_name(
@@ -492,17 +502,19 @@ class KnowledgebaseService(CommonService):
         # Verify tenant exists
         ok, _t = TenantService.get_by_id(tenant_id)
         if not ok:
-            return False, get_data_error_result(message="Tenant not found.")
+            return False, "Tenant not found."
 
-        # Build payload
+        # Build payload. The explicit fields come last so the optional fields
+        # carried by `**kwargs` (description, language, permission, avatar,
+        # parser_config, ...) can never override the identity of the dataset.
         kb_id = get_uuid()
         payload = {
+            **kwargs,
             "id": kb_id,
             "name": dataset_name,
             "tenant_id": tenant_id,
-            "created_by": tenant_id,
+            "created_by": created_by or tenant_id,
             "parser_id": (parser_id or "naive"),
-            **kwargs,  # Includes optional fields such as description, language, permission, avatar, parser_config, etc.
         }
 
         # Update parser_config (always override with validated default/merged config)

@@ -16,8 +16,8 @@
 from datetime import datetime, timedelta
 from quart import request
 from api.db.services.api_service import API4ConversationService
-from api.db.services.user_service import UserTenantService
-from api.utils.api_utils import get_data_error_result, get_json_result, server_error_response
+from api.db.services.user_service import TenantService, UserTenantService
+from api.utils.api_utils import get_data_error_result, get_json_result, requested_tenant_id, server_error_response
 from api.apps import login_required, current_user
 
 
@@ -25,11 +25,16 @@ from api.apps import login_required, current_user
 @login_required
 def stats():
     try:
-        tenants = UserTenantService.query(user_id=current_user.id)
-        if not tenants:
+        # The stats belong to the workspace the caller is working in. A NORMAL
+        # member owns no tenant, so their user id is not one: the earlier `user.id
+        # == tenant.id` assumption read the stats of whatever membership row came
+        # first -- a revoked or not yet accepted INVITE workspace included.
+        if not UserTenantService.get_tenants_by_user_id(current_user.id):
             return get_data_error_result(message="Tenant not found!")
+
+        tenant_id = TenantService.resolve_active_tenant_id(current_user.id, requested_tenant_id())
         objs = API4ConversationService.stats(
-            tenants[0].tenant_id,
+            tenant_id,
             request.args.get("from_date", (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d 00:00:00")),
             request.args.get("to_date", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             "agent" if "canvas_id" in request.args else None,

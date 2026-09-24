@@ -73,6 +73,9 @@ def _load_nav_module(monkeypatch, *, accessible=True, index_pack=("idx-1", None)
     kb = SimpleNamespace(tenant_id="tenant-1", id="kb-1")
     knowledgebase_service = SimpleNamespace(
         accessible=MagicMock(return_value=accessible),
+        # The mutating nav paths gate on the write predicate, which the module
+        # resolves from the same membership the read predicate answers for.
+        writable=MagicMock(return_value=accessible),
         get_by_id=MagicMock(return_value=(True, kb)),
     )
 
@@ -93,9 +96,18 @@ def _load_nav_module(monkeypatch, *, accessible=True, index_pack=("idx-1", None)
         StatusEnum=SimpleNamespace(),
         TaskStatus=SimpleNamespace(),
         ModelTypeBinary=_StubModelTypeBinary,
-        # `api.db` imports this at module scope, and the module under test now
-        # reaches `api.db` for the permission modes.
-        PipelineTaskType=SimpleNamespace(),
+        # `api.db` imports this at module scope and builds `VALID_PIPELINE_TASK_TYPES`
+        # from its members, so the stub has to carry the same ones the real enum
+        # does or the import raises on the first member it reads.
+        PipelineTaskType=SimpleNamespace(
+            PARSE="parse",
+            DOWNLOAD="download",
+            RAPTOR="raptor",
+            GRAPH_RAG="graph_rag",
+            MINDMAP="mindmap",
+            ARTIFACT="artifact",
+            SKILL="skill",
+        ),
     )
     _stub(monkeypatch, "common.settings", docStoreConn=doc_store, retriever=retriever, DOC_ENGINE="infinity")
     _stub(
@@ -139,7 +151,10 @@ def _load_nav_module(monkeypatch, *, accessible=True, index_pack=("idx-1", None)
     _stub(
         monkeypatch,
         "api.db.services.user_service",
-        TenantService=SimpleNamespace(get_joined_tenants_by_user_id=lambda user_id: [{"tenant_id": "tenant-1"}]),
+        TenantService=SimpleNamespace(
+            get_joined_tenants_by_user_id=lambda user_id: [{"tenant_id": "tenant-1"}],
+            resolve_active_tenant_id=lambda user_id, requested_tenant_id=None: "tenant-1",
+        ),
         UserService=SimpleNamespace(get_by_ids=lambda ids: []),
         UserTenantService=SimpleNamespace(),
     )
@@ -149,6 +164,7 @@ def _load_nav_module(monkeypatch, *, accessible=True, index_pack=("idx-1", None)
         deep_merge=MagicMock(),
         get_parser_config=MagicMock(),
         remap_dictionary_keys=lambda source_data, key_aliases=None: dict(source_data),
+        requested_tenant_id=lambda: None,
         verify_embedding_availability=MagicMock(),
         # The service module wraps its permission denials in this, so the stub has
         # to be callable and carry the code the real one carries.

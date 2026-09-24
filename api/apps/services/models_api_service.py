@@ -21,6 +21,7 @@ from api.db.services.tenant_model_instance_service import TenantModelInstanceSer
 from api.db.services.tenant_model_provider_service import TenantModelProviderService
 from api.db.services.tenant_model_service import TenantModelService
 from api.db.services.user_service import TenantService
+from api.utils.api_utils import PermissionDeniedMessage, requested_tenant_id
 from api.utils.model_utils import get_model_type_human, calculate_model_type
 from common.constants import ActiveStatusEnum, LLMType
 from common.settings import FACTORY_LLM_INFOS
@@ -62,6 +63,23 @@ def _to_int(v, default=500):
         return int(v)
     except (TypeError, ValueError):
         return default
+
+
+def _active_tenant_id(tenant_id: str) -> str:
+    """The workspace `tenant_id` operates in, for a read and a write alike.
+
+    ``tenant_id`` carries the caller's USER id under the legacy name
+    (``add_tenant_id_to_kwargs``); that is a workspace in its own right only for
+    the tenant the caller created. ``TenantService.resolve_active_tenant_id``
+    resolves the real one -- the workspace named by the ``X-Tenant-Id`` header
+    when the caller is a member of it, otherwise the persisted selection, the
+    tenant the caller joined, or its own id.
+
+    The default-model listing, the added-model listing and the default-model
+    write all resolve here, so an admin editing workspace X reads X's defaults
+    and saves into X instead of into its own tenant.
+    """
+    return TenantService.resolve_active_tenant_id(tenant_id, requested_tenant_id())
 
 
 def _factory_model_types(llm: dict) -> list[str]:
@@ -206,7 +224,7 @@ def list_tenant_default_models(tenant_id: str):
     :param tenant_id: tenant ID
     :return: (success, result_or_error_message)
     """
-    tenant_id = TenantService.resolve_active_tenant_id(tenant_id)
+    tenant_id = _active_tenant_id(tenant_id)
     e, tenant = TenantService.get_by_id(tenant_id)
     if not e:
         return False, "Tenant not found"
@@ -233,6 +251,10 @@ def set_tenant_default_models(tenant_id: str, model_provider: str, model_instanc
     Otherwise falls back to the legacy model_provider/model_instance/model_name triplet.
     If all model selectors are empty, clears the default for the given model type.
 
+    The write lands in the workspace the caller is acting in, resolved exactly
+    as the listings above resolve it, so an admin editing workspace X saves X's
+    default instead of its own tenant's.
+
     :param tenant_id: tenant ID
     :param model_provider: provider name
     :param model_instance: instance name
@@ -246,6 +268,7 @@ def set_tenant_default_models(tenant_id: str, model_provider: str, model_instanc
         return False, f"model type '{model_type}' is invalid"
     tenant_field_name = MODEL_TYPE_TO_TENANT_ID_FIELD.get(model_type)
 
+    tenant_id = _active_tenant_id(tenant_id)
     e, tenant = TenantService.get_by_id(tenant_id)
     if not e:
         return False, "Tenant not found"
@@ -260,7 +283,9 @@ def set_tenant_default_models(tenant_id: str, model_provider: str, model_instanc
         if not provider_ok:
             return False, f"Provider id '{model_obj.provider_id}' not found for model_id '{model_id}'"
         if provider_obj.tenant_id != tenant_id:
-            return False, "Permission denied"
+            # A model of another workspace is a permission denial, not bad data:
+            # it carries code 108 so the client reports it as one.
+            return False, PermissionDeniedMessage("no authorization")
 
         instance_ok, instance_obj = TenantModelInstanceService.get_by_id(model_obj.instance_id)
         if not instance_ok:
@@ -307,7 +332,7 @@ def list_tenant_added_models(tenant_id: str, model_type_filter: str = None):
     :param model_type_filter: model type filter (chat, embedding, rerank, asr, vision, tts, ocr)
     :return: (success, result_or_error_message)
     """
-    tenant_id = TenantService.resolve_active_tenant_id(tenant_id)
+    tenant_id = _active_tenant_id(tenant_id)
     e, tenant = TenantService.get_by_id(tenant_id)
     if not e:
         return False, "Tenant not found"

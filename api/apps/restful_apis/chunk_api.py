@@ -293,7 +293,7 @@ async def parse(tenant_id, dataset_id):
         TaskService.filter_delete([Task.doc_id == id])
         e, doc = DocumentService.get_by_id(id)
         doc = doc.to_dict()
-        DocumentService.run(tenant_id, doc, kb_table_num_map, user_id=llm_user_id)
+        DocumentService.run(dataset_tenant_id, doc, kb_table_num_map, user_id=llm_user_id)
         success_count += 1
     if not_found:
         return get_result(message=f"Documents not found: {not_found}", code=RetCode.DATA_ERROR)
@@ -429,12 +429,20 @@ async def retrieval_test(tenant_id, dataset_id=None):
     if meta_data_filter:
         chat_mdl = None
         if meta_data_filter.get("method") in ["auto", "semi_auto"]:
+            # The metadata filter's chat model is a workspace asset, so it
+            # resolves against the workspace owning the dataset being searched —
+            # the same one the embedding model comes from below. The caller's
+            # user id is not a tenant: for a member it is no workspace at all,
+            # and the tenant lookup would fail the whole request.
+            dataset_tenant_id = _get_dataset_tenant_id(kb_ids[0])
+            if not dataset_tenant_id:
+                return get_error_data_result(message="Dataset not found!")
             chat_id = req.get("chat_id", "")
             if chat_id:
-                chat_model_config = resolve_model_config(tenant_id, LLMType.CHAT, chat_id)
+                chat_model_config = resolve_model_config(dataset_tenant_id, LLMType.CHAT, chat_id)
             else:
-                chat_model_config = get_tenant_default_model_by_type(tenant_id, LLMType.CHAT)
-            chat_mdl = LLMBundle(tenant_id, chat_model_config)
+                chat_model_config = get_tenant_default_model_by_type(dataset_tenant_id, LLMType.CHAT)
+            chat_mdl = LLMBundle(dataset_tenant_id, chat_model_config)
         doc_ids = await apply_meta_data_filter(
             meta_data_filter,
             None,

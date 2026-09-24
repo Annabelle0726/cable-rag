@@ -20,7 +20,21 @@ from langfuse import Langfuse
 
 from api.db.db_models import DB
 from api.db.services.langfuse_service import TenantLangfuseService
-from api.utils.api_utils import get_error_data_result, get_json_result, get_request_json, server_error_response, validate_request
+from api.db.services.user_service import TenantService
+from api.utils.api_utils import get_error_data_result, get_json_result, get_request_json, requested_tenant_id, server_error_response, validate_request
+
+
+def _active_tenant_id() -> str:
+    """The workspace the caller is operating in, resolved exactly as the guard did.
+
+    ``@require_tenant_admin`` admitted the caller by checking
+    ``UserTenantService.can_manage_tenant`` against
+    ``TenantService.resolve_active_tenant_id(user.id, requested_tenant_id())``.
+    The handlers store and look up the keys under that same workspace: keying the
+    row on ``current_user.id`` filed an admin's keys under its own tenant, where
+    ``LLMBundle`` -- which resolves the workspace being used -- never found them.
+    """
+    return TenantService.resolve_active_tenant_id(current_user.id, requested_tenant_id())
 
 
 @manager.route("/langfuse/api-key", methods=["POST", "PUT"])  # noqa: F821
@@ -35,9 +49,9 @@ async def set_api_key():
     if not all([secret_key, public_key, host]):
         return get_error_data_result(message="Missing required fields")
 
-    current_user_id = current_user.id
+    tenant_id = _active_tenant_id()
     langfuse_keys = dict(
-        tenant_id=current_user_id,
+        tenant_id=tenant_id,
         secret_key=secret_key,
         public_key=public_key,
         host=host,
@@ -47,13 +61,13 @@ async def set_api_key():
     if not langfuse.auth_check():
         return get_error_data_result(message="Invalid Langfuse keys")
 
-    langfuse_entry = TenantLangfuseService.filter_by_tenant(tenant_id=current_user_id)
+    langfuse_entry = TenantLangfuseService.filter_by_tenant(tenant_id=tenant_id)
     with DB.atomic():
         try:
             if not langfuse_entry:
                 TenantLangfuseService.save(**langfuse_keys)
             else:
-                TenantLangfuseService.update_by_tenant(tenant_id=current_user_id, langfuse_keys=langfuse_keys)
+                TenantLangfuseService.update_by_tenant(tenant_id=tenant_id, langfuse_keys=langfuse_keys)
             return get_json_result(data=langfuse_keys)
         except Exception as e:
             return server_error_response(e)
@@ -64,8 +78,7 @@ async def set_api_key():
 @validate_request()
 @require_tenant_admin
 def get_api_key():
-    current_user_id = current_user.id
-    langfuse_entry = TenantLangfuseService.filter_by_tenant_with_info(tenant_id=current_user_id)
+    langfuse_entry = TenantLangfuseService.filter_by_tenant_with_info(tenant_id=_active_tenant_id())
     if not langfuse_entry:
         return get_json_result(message="Have not record any Langfuse keys.")
 
@@ -89,8 +102,7 @@ def get_api_key():
 @validate_request()
 @require_tenant_admin
 def delete_api_key():
-    current_user_id = current_user.id
-    langfuse_entry = TenantLangfuseService.filter_by_tenant(tenant_id=current_user_id)
+    langfuse_entry = TenantLangfuseService.filter_by_tenant(tenant_id=_active_tenant_id())
     if not langfuse_entry:
         return get_json_result(message="Have not record any Langfuse keys.")
 

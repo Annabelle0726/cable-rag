@@ -153,7 +153,9 @@ def _load_dataset_module(monkeypatch):
     _install_module(
         monkeypatch,
         "api.db.services.user_service",
-        TenantService=SimpleNamespace(),
+        TenantService=SimpleNamespace(
+            resolve_active_tenant_id=lambda user_id, requested_tenant_id=None: requested_tenant_id or user_id,
+        ),
         UserService=SimpleNamespace(),
         UserTenantService=SimpleNamespace(),
     )
@@ -182,6 +184,7 @@ def _load_dataset_module(monkeypatch):
         deep_merge=lambda base, update: {**(base or {}), **(update or {})},
         get_parser_config=lambda *_args, **_kwargs: {},
         remap_dictionary_keys=lambda value: value,
+        requested_tenant_id=lambda: None,
         verify_embedding_availability=lambda *_args, **_kwargs: (True, ""),
         # The service module wraps its permission denials in this, so the stub has
         # to be callable and carry the code the real one carries.

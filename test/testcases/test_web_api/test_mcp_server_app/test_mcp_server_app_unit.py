@@ -110,6 +110,10 @@ class _DummyTenantService:
     def get_by_id(*_args, **_kwargs):
         return True, SimpleNamespace(id="tenant_1")
 
+    @staticmethod
+    def resolve_active_tenant_id(_user_id, _requested_tenant_id=None):
+        return "tenant_1"
+
 
 class _DummyTool:
     def __init__(self, name):
@@ -233,6 +237,7 @@ def _load_mcp_api(monkeypatch):
     api_utils_mod.get_request_json = _default_request_json
     api_utils_mod.get_json_result = _get_json_result
     api_utils_mod.get_data_error_result = _get_data_error_result
+    api_utils_mod.requested_tenant_id = lambda: None
     api_utils_mod.server_error_response = _server_error_response
     api_utils_mod.validate_request = _validate_request
     api_utils_mod.get_mcp_tools = _get_mcp_tools

@@ -22,14 +22,15 @@ from timeit import default_timer as timer
 from quart import jsonify
 
 from api.apps import login_required, current_user
-from api.utils.api_utils import get_json_result, get_data_error_result, server_error_response, generate_confirmation_token
+from api.utils.api_utils import get_error_permission_result, get_json_result, get_data_error_result, requested_tenant_id, server_error_response, generate_confirmation_token
 from api.utils.health_utils import run_health_checks, get_oceanbase_status, get_gaussdb_status
 from common.versions import get_ragflow_version
 from common.time_utils import current_timestamp, datetime_format
+from api.db import UserTenantRole
 from api.db.db_models import APIToken
 from api.db.services.api_service import APITokenService
 from api.db.services.knowledgebase_service import KnowledgebaseService
-from api.db.services.user_service import UserTenantService
+from api.db.services.user_service import TenantService, UserTenantService
 from common.doc_store.gaussdb_conn_base import mask_gaussdb_text
 from common.log_utils import get_log_levels, set_log_level
 from common import settings
@@ -272,11 +273,28 @@ def healthz():
     return jsonify(result), (200 if all_ok else 500)
 
 
+def _owned_active_tenant_id():
+    """The workspace the caller is working in, only when they OWN it, else None.
+
+    API tokens are the workspace owner's credential: a token authenticates the
+    request as the user whose id the row was written with, so only that owner may
+    read, create or delete one. The workspace is resolved -- a NORMAL member owns
+    no tenant, so `user.id` is not a tenant id -- and the role is read from VALID
+    memberships, so neither a revoked row nor a pending INVITE workspace can be
+    selected or mistaken for the caller's own.
+    """
+    active_tenant_id = TenantService.resolve_active_tenant_id(current_user.id, requested_tenant_id())
+    memberships = UserTenantService.get_tenants_by_user_id(current_user.id)
+    if any(membership["tenant_id"] == active_tenant_id and membership["role"] == UserTenantRole.OWNER for membership in memberships):
+        return active_tenant_id
+    return None
+
+
 @manager.route("/system/tokens", methods=["GET"])  # noqa: F821
 @login_required
 def token_list():
     """
-    List all API tokens for the current user.
+    List the API tokens of the caller's active workspace.
     ---
     tags:
       - API Tokens
@@ -304,11 +322,10 @@ def token_list():
                     description: Token creation time.
     """
     try:
-        tenants = UserTenantService.query(user_id=current_user.id)
-        if not tenants:
-            return get_data_error_result(message="Tenant not found!")
+        tenant_id = _owned_active_tenant_id()
+        if not tenant_id:
+            return get_error_permission_result("owner role required for this workspace")
 
-        tenant_id = [tenant for tenant in tenants if tenant.role == "owner"][0].tenant_id
         objs = APITokenService.query(tenant_id=tenant_id)
         objs = [o.to_dict() for o in objs]
         for o in objs:
@@ -324,7 +341,7 @@ def token_list():
 @login_required
 def new_token():
     """
-    Generate a new API token.
+    Generate a new API token for the caller's active workspace.
     ---
     tags:
       - API Tokens
@@ -347,11 +364,10 @@ def new_token():
               description: The generated API token.
     """
     try:
-        tenants = UserTenantService.query(user_id=current_user.id)
-        if not tenants:
-            return get_data_error_result(message="Tenant not found!")
+        tenant_id = _owned_active_tenant_id()
+        if not tenant_id:
+            return get_error_permission_result("owner role required for this workspace")
 
-        tenant_id = [tenant for tenant in tenants if tenant.role == "owner"][0].tenant_id
         obj = {
             "tenant_id": tenant_id,
             "token": generate_confirmation_token(),
@@ -397,11 +413,10 @@ def rm(token):
               description: Deletion status.
     """
     try:
-        tenants = UserTenantService.query(user_id=current_user.id)
-        if not tenants:
-            return get_data_error_result(message="Tenant not found!")
+        tenant_id = _owned_active_tenant_id()
+        if not tenant_id:
+            return get_error_permission_result("owner role required for this workspace")
 
-        tenant_id = tenants[0].tenant_id
         APITokenService.filter_delete([APIToken.tenant_id == tenant_id, APIToken.token == token])
         return get_json_result(data=True)
     except Exception as e:

@@ -709,6 +709,10 @@ def _load_chat_routes_unit_module(monkeypatch):
             return []
 
         @staticmethod
+        def get_message_counts(*_args, **_kwargs):
+            return {}
+
+        @staticmethod
         def get_by_id(_session_id):
             return False, None
 
@@ -769,6 +773,7 @@ def _load_chat_routes_unit_module(monkeypatch):
     tenant_model_service_mod.get_composite_model_name_by_id = lambda model_id: model_id
     tenant_model_service_mod.resolve_model_config = lambda *_args, **_kwargs: {}
     tenant_model_service_mod.get_tenant_default_model_by_type = lambda *_args, **_kwargs: {}
+    tenant_model_service_mod.get_first_tenant_model_name_by_type = lambda *_args, **_kwargs: None
     tenant_model_service_mod.get_api_key = lambda *_args, **_kwargs: SimpleNamespace(id=1)
     tenant_model_service_mod.split_model_name = lambda model: (model.split("@")[0], "default", "factory")
     monkeypatch.setitem(sys.modules, "api.db.joint_services.tenant_model_service", tenant_model_service_mod)
@@ -779,6 +784,10 @@ def _load_chat_routes_unit_module(monkeypatch):
         @staticmethod
         def get_by_id(_tenant_id):
             return True, SimpleNamespace(llm_id="glm-4", tenant_llm_id="tenant-llm-id")
+
+        @staticmethod
+        def resolve_active_tenant_id(_user_id, _requested_tenant_id=None):
+            return "tenant-1"
 
         @staticmethod
         def get_joined_tenants_by_user_id(_user_id):
@@ -813,8 +822,10 @@ def _load_chat_routes_unit_module(monkeypatch):
 
     api_utils_mod.check_duplicate_ids = _check_duplicate_ids
     api_utils_mod.get_data_error_result = lambda message="": {"code": 102, "data": None, "message": message}
+    api_utils_mod.get_error_data_result = lambda message="", code=102: {"code": getattr(message, "code", code), "data": None, "message": message}
     api_utils_mod.get_json_result = lambda data=None, message="", code=0: {"code": code, "data": data, "message": message}
     api_utils_mod.get_request_json = lambda: _AwaitableValue({})
+    api_utils_mod.requested_tenant_id = lambda: None
     api_utils_mod.server_error_response = lambda ex: {"code": 500, "data": None, "message": str(ex)}
     api_utils_mod.validate_request = lambda *_args, **_kwargs: lambda func: func
     monkeypatch.setitem(sys.modules, "api.utils.api_utils", api_utils_mod)
@@ -1148,7 +1159,6 @@ def test_chat_create_accepts_provider_scoped_rerank_id_unit(monkeypatch):
     monkeypatch.setattr(module.TenantService, "get_by_id", lambda _tid: (True, SimpleNamespace(llm_id="glm-4@CI@ZHIPU-AI", tenant_llm_id="tenant-llm-id")))
     monkeypatch.setattr(module.DialogService, "query", lambda **_kwargs: [])
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
-    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
     monkeypatch.setattr(module.KnowledgebaseService, "query", lambda **_kwargs: [_DummyKB()])
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _id: (True, _DummyKB()))
 
@@ -1224,7 +1234,6 @@ def test_chat_create_uses_direct_chat_fields_unit(monkeypatch):
     monkeypatch.setattr(module.TenantService, "get_by_id", lambda _tid: (True, SimpleNamespace(llm_id="glm-4", tenant_llm_id="tenant-llm-id")))
     monkeypatch.setattr(module.DialogService, "query", lambda **_kwargs: [])
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
-    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
     monkeypatch.setattr(module.KnowledgebaseService, "query", lambda **_kwargs: [_DummyKB()])
     monkeypatch.setattr(module.KnowledgebaseService, "get_by_id", lambda _id: (True, _DummyKB()))
 
@@ -1380,7 +1389,6 @@ def test_patch_chat_drops_response_only_fields_before_update_unit(monkeypatch):
     monkeypatch.setattr(module.DialogService, "get_by_id", lambda _id: (True, _DummyDialogRecord(existing)))
     monkeypatch.setattr(module.TenantService, "get_by_id", lambda _tid: (True, SimpleNamespace(llm_id="glm-4", tenant_llm_id="tenant-llm-id")))
     monkeypatch.setattr(module.KnowledgebaseService, "accessible", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
-    monkeypatch.setattr(module.KnowledgebaseService, "accessible", "writable", lambda **_kwargs: [SimpleNamespace(id="kb-1")])
     monkeypatch.setattr(module.KnowledgebaseService, "query", lambda **_kwargs: [_DummyKB()])
     monkeypatch.setattr(module, "get_api_key", lambda *args, **kwargs: SimpleNamespace(id=1))
 

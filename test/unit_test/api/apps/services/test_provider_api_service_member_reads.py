@@ -58,7 +58,9 @@ def _load_service(monkeypatch, *, resolution, instances):
         instance_lookups=[],
     )
 
-    def _resolve_active_tenant_id(tenant_id):
+    def _resolve_active_tenant_id(tenant_id, requested_tenant_id=None):
+        # The service resolves the workspace with the caller's X-Tenant-Id
+        # header; there is no request context here, so it always arrives None.
         recorded.resolve_calls.append(tenant_id)
         return resolution.get(tenant_id, tenant_id)
 
@@ -69,6 +71,7 @@ def _load_service(monkeypatch, *, resolution, instances):
         "api.db.services.user_service",
         TenantService=SimpleNamespace(resolve_active_tenant_id=_resolve_active_tenant_id),
     )
+    _stub(monkeypatch, "api.utils.api_utils", requested_tenant_id=lambda: None)
     _stub(
         monkeypatch,
         "api.db.joint_services.tenant_model_service",

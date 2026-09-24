@@ -28,25 +28,36 @@ from api.db.services.tenant_model_instance_service import TenantModelInstanceSer
 from api.db.services.tenant_model_service import TenantModelService
 from api.db.services.user_service import TenantService
 from api.utils import model_utils
+from api.utils.api_utils import requested_tenant_id
 from api.utils.masking import client_supplied_secret, mask_secret, resolve_secret_on_write
 from rag.llm import ChatModel, CvModel, EmbeddingModel, ModelMeta, OcrModel, RerankModel, Seq2txtModel, TTSModel
 
 
-def _read_tenant_id(tenant_id: str) -> str:
-    """The model-configuration tenant `tenant_id` reads from.
+def _active_tenant_id(tenant_id: str) -> str:
+    """The workspace `tenant_id` operates in, for a read and a write alike.
 
-    See ``TenantService.resolve_active_tenant_id``: a member with no tenant of
-    its own reads the tenant it joined, everyone else reads its own.
+    ``tenant_id`` carries the caller's USER id under the legacy name
+    (``add_tenant_id_to_kwargs``), which is a workspace of its own only for the
+    tenant it created. ``TenantService.resolve_active_tenant_id`` resolves the
+    real one -- the workspace named by the ``X-Tenant-Id`` header when the caller
+    is a member of it, otherwise the caller's persisted selection, the tenant it
+    joined, or its own id -- so an admin of workspace X reads and writes X while
+    a member with no workspace of its own reads the shared one.
+
+    Every model-configuration read and write goes through this one function:
+    resolving only the reads is what let an admin of X list X's providers and
+    then be told ``Provider 'X' does not exist`` on save, because the write had
+    silently landed in the admin's own tenant.
     """
-    return TenantService.resolve_active_tenant_id(tenant_id)
+    return TenantService.resolve_active_tenant_id(tenant_id, requested_tenant_id())
 
 
 def _get_provider(tenant_id: str, provider_id_or_name: str):
-    """Resolve a configured provider for the tenant the caller reads from."""
-    read_tenant_id = _read_tenant_id(tenant_id)
-    provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(read_tenant_id, provider_id_or_name)
+    """Resolve a configured provider for the workspace the caller is in."""
+    active_tenant_id = _active_tenant_id(tenant_id)
+    provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(active_tenant_id, provider_id_or_name)
     if not provider_obj:
-        provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(read_tenant_id, provider_id_or_name)
+        provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(active_tenant_id, provider_id_or_name)
     return provider_obj
 
 
@@ -196,15 +207,15 @@ def list_providers(tenant_id: str, all_available: bool = False):
         return True, providers
 
     # List tenant-configured providers
-    read_tenant_id = _read_tenant_id(tenant_id)
-    factory_names = TenantModelProviderService.list_provider_names_by_tenant_id(read_tenant_id)
+    active_tenant_id = _active_tenant_id(tenant_id)
+    factory_names = TenantModelProviderService.list_provider_names_by_tenant_id(active_tenant_id)
 
     providers = []
     factory_info_mapping = {f["name"]: f for f in FACTORY_LLM_INFOS}
     for name in factory_names:
         if name not in ["Youdao", "FastEmbed", "BAAI", "Builtin", "siliconflow_intl"] and factory_info_mapping.get(name):
             factory_info = factory_info_mapping[name]
-            provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(read_tenant_id, name)
+            provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(active_tenant_id, name)
             has_instance = bool(provider_obj and TenantModelInstanceService.get_all_by_provider_id(provider_obj.id))
             model_types = sorted(set(model_type for llm in factory_info.get("llm", []) for model_type in _factory_model_types(llm))) if factory_info.get("llm", []) else []
             if name in ["MinerU", "PaddleOCR", "OpenDataLoader", "Mistral OCR"]:
@@ -235,6 +246,7 @@ def add_provider(tenant_id: str, provider_name: str):
     if provider_name not in allowed_factories:
         return False, f"Provider '{provider_name}' is not allowed"
 
+    tenant_id = _active_tenant_id(tenant_id)
     existing = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_name)
     if existing:
         return False, f"Provider {provider_name} already exists"
@@ -251,6 +263,7 @@ def delete_provider(tenant_id: str, provider_id_or_name: str):
     :param provider_id_or_name: provider ID or provider/factory name
     :return: (success, result_or_error_message)
     """
+    tenant_id = _active_tenant_id(tenant_id)
     provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
     if not provider_obj:
         provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)
@@ -421,9 +434,13 @@ async def update_provider_instance(
     if not provider_id_or_name:
         return False, "Provider ID or name is required"
 
-    provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
+    # The workspace the caller is acting in. The raw caller id stays in
+    # `tenant_id`: the insertions below resolve it again themselves, and feeding
+    # a resolved tenant id back into the user-id resolver would re-resolve it.
+    active_tenant_id = _active_tenant_id(tenant_id)
+    provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(active_tenant_id, provider_id_or_name)
     if not provider_obj:
-        provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)
+        provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(active_tenant_id, provider_id_or_name)
     if not provider_obj:
         return False, f"Provider '{provider_id_or_name}' does not exist"
 
@@ -612,9 +629,12 @@ async def create_provider_instance(tenant_id: str, provider_id_or_name: str, ins
     if not provider_id_or_name:
         return False, "Provider ID or name is required"
 
-    provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
+    # See update_provider_instance: the caller's own id is kept for the
+    # insertions below, which resolve the workspace themselves.
+    active_tenant_id = _active_tenant_id(tenant_id)
+    provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(active_tenant_id, provider_id_or_name)
     if not provider_obj:
-        provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)
+        provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(active_tenant_id, provider_id_or_name)
     if not provider_obj:
         return False, f"Provider '{provider_id_or_name}' does not exist"
 
@@ -720,6 +740,7 @@ async def create_name_only_provider_instance(tenant_id: str, provider_name: str,
     if provider_name not in allowed_factories:
         return False, f"Provider '{provider_name}' is not allowed"
 
+    tenant_id = _active_tenant_id(tenant_id)
     provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_name)
     if not provider_obj:
         return False, f"Provider '{provider_name}' does not exist"
@@ -1102,6 +1123,7 @@ def drop_provider_instances(tenant_id: str, provider_id_or_name: str, instance_i
     :param instance_id_or_names: list of instance IDs or names to drop
     :return: (success, result_or_error_message)
     """
+    tenant_id = _active_tenant_id(tenant_id)
     provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
     if not provider_obj:
         provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)
@@ -1303,6 +1325,7 @@ def update_instance_models(tenant_id: str, provider_id_or_name: str, instance_id
     if not model_names or not model_types:
         return False, "model_name and model_type are required"
 
+    tenant_id = _active_tenant_id(tenant_id)
     provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
     if not provider_obj:
         provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)
@@ -1332,6 +1355,7 @@ def update_instance_models(tenant_id: str, provider_id_or_name: str, instance_id
 
 
 def add_model_to_instance(tenant_id: str, provider_id_or_name: str, instance_id_or_name: str, model_name: str, model_type: str | list[str], max_tokens: int = 8192, extra: dict = None):
+    tenant_id = _active_tenant_id(tenant_id)
     provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
     if not provider_obj:
         provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)
@@ -1391,6 +1415,7 @@ def update_model(tenant_id: str, provider_id_or_name: str, instance_id_or_name: 
         return False, f"status must be '{ActiveStatusEnum.ACTIVE.value}' or '{ActiveStatusEnum.INACTIVE.value}'"
 
     # Check if provider exists for this tenant
+    tenant_id = _active_tenant_id(tenant_id)
     provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
     if not provider_obj:
         provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)
@@ -1445,6 +1470,7 @@ async def delete_models_from_instance(tenant_id: str, provider_id_or_name: str, 
     :param model_name: list of model name
     """
     # Check if provider exists for this tenant (by ID first, then by name)
+    tenant_id = _active_tenant_id(tenant_id)
     provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
     if not provider_obj:
         provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)
@@ -1487,6 +1513,7 @@ async def chat_to_model(tenant_id: str, provider_id_or_name: str, instance_id_or
     """
     from api.db.services.llm_service import LLMBundle
 
+    tenant_id = _active_tenant_id(tenant_id)
     provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_id(tenant_id, provider_id_or_name)
     if not provider_obj:
         provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_id_or_name)

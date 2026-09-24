@@ -31,7 +31,7 @@ from api.db.services.knowledgebase_service import KnowledgebaseService, validate
 from api.db.services.task_service import GRAPH_RAPTOR_FAKE_DOC_ID, TaskService
 from api.db.services.tenant_model_service import TenantModelService
 from api.db.services.user_service import TenantService, UserService, UserTenantService
-from api.utils.api_utils import PermissionDeniedMessage, deep_merge, get_parser_config, remap_dictionary_keys, verify_embedding_availability
+from api.utils.api_utils import PermissionDeniedMessage, deep_merge, get_parser_config, remap_dictionary_keys, requested_tenant_id, verify_embedding_availability
 from common import settings
 from common.constants import PAGERANK_FLD, FileSource, LLMType, RetCode, StatusEnum, TaskStatus
 from common.misc_utils import thread_pool_exec, thread_pool_exec_long_time
@@ -89,14 +89,22 @@ _INDEX_TYPE_TO_DISPLAY_NAME = {
 }
 
 
-async def create_dataset(tenant_id: str, req: dict):
+async def create_dataset(tenant_id: str, req: dict, created_by: str | None = None):
     """
     Create a new dataset.
 
-    :param tenant_id: tenant ID
+    :param tenant_id: caller's user id; the workspace it operates in is resolved
+        from it (honouring the ``X-Tenant-Id`` header) and owns the dataset
     :param req: dataset creation request
+    :param created_by: the author's user id, which defaults to `tenant_id` (the
+        author IS the caller, and only an owner's tenant id is their user id)
     :return: (success, result) or (success, error_message)
     """
+    # A member owns no workspace of its own: `tenant_id` arrives as the caller's
+    # user id, so the dataset has to be created in the workspace the caller is
+    # actually working in rather than attributed to a tenant that does not exist.
+    active_tenant_id = TenantService.resolve_active_tenant_id(tenant_id, requested_tenant_id())
+
     # Drop language when not provided so the model/database default applies
     # (the create request is parsed with exclude_unset=False, so the key is
     # always present with a None default when the caller omits it).
@@ -122,19 +130,25 @@ async def create_dataset(tenant_id: str, req: dict):
         parser_cfg["metadata"] = fields
         parser_cfg["enable_metadata"] = auto_meta.get("enabled", True)
         req["parser_config"] = parser_cfg
-    e, create_dict = KnowledgebaseService.create_with_name(name=req.pop("name", None), tenant_id=tenant_id, parser_id=req.pop("parser_id", None), **req)
+    e, create_dict = KnowledgebaseService.create_with_name(
+        name=req.pop("name", None),
+        tenant_id=active_tenant_id,
+        parser_id=req.pop("parser_id", None),
+        created_by=created_by or tenant_id,
+        **req,
+    )
 
     if not e:
         return False, create_dict
 
     # Insert embedding model(embd id)
-    ok, t = TenantService.get_by_id(tenant_id)
+    ok, t = TenantService.get_by_id(active_tenant_id)
     if not ok:
         return False, "Tenant not found"
     if not create_dict.get("embd_id"):
         create_dict["embd_id"] = t.embd_id
     else:
-        ok, err = verify_embedding_availability(create_dict["embd_id"], tenant_id)
+        ok, err = verify_embedding_availability(create_dict["embd_id"], active_tenant_id)
         if not ok:
             return False, err
 
@@ -756,12 +770,19 @@ def get_auto_metadata(dataset_id: str, tenant_id: str):
     Get auto-metadata configuration for a dataset.
 
     :param dataset_id: dataset ID
-    :param tenant_id: tenant ID
+    :param tenant_id: caller's user id
     :return: (success, result) or (success, error_message)
     """
-    kb = KnowledgebaseService.get_or_none(id=dataset_id, tenant_id=tenant_id)
-    if kb is None:
+    # Scoped to what the caller may read -- its own datasets, a workspace it
+    # joined, a department/user grant -- not to the caller's own tenant, which a
+    # member without a tenant of its own does not have.
+    if not KnowledgebaseService.accessible(dataset_id, tenant_id):
         return False, PermissionDeniedMessage(f"User '{tenant_id}' lacks permission for dataset '{dataset_id}'")
+
+    ok, kb = KnowledgebaseService.get_by_id(dataset_id)
+    if not ok:
+        return False, "Invalid Dataset ID"
+
     parser_cfg = kb.parser_config or {}
     return True, {"metadata": parser_cfg.get("metadata") or [], "built_in_metadata": parser_cfg.get("built_in_metadata") or []}
 
@@ -1339,7 +1360,9 @@ def check_embedding(dataset_id: str, tenant_id: str, req: dict):
 
     logging.info("check_embedding: dataset=%s tenant=%s embd_id=%s", dataset_id, tenant_id, embd_id)
 
-    ok, err = verify_embedding_availability(embd_id, tenant_id)
+    # Which embedding models the caller may use is decided by the workspace it
+    # operates in -- a member has no model configuration of its own.
+    ok, err = verify_embedding_availability(embd_id, TenantService.resolve_active_tenant_id(tenant_id, requested_tenant_id()))
     if not ok:
         return False, err
 

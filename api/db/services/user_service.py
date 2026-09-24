@@ -367,11 +367,21 @@ class UserTenantService(CommonService):
     @classmethod
     @DB.connection_context()
     def get_tenants_by_user_id(cls, user_id):
-        fields = [cls.model.tenant_id, cls.model.role, User.nickname, User.email, User.avatar, User.update_date]
+        """Every workspace `user_id` belongs to.
+
+        A row's identity is the WORKSPACE, so `name` is read from the `tenant`
+        row. The `nickname`/`email`/`avatar` beside it belong to the workspace's
+        owner (a membership carries no profile of its own) and are carried for
+        callers that show who runs the workspace; they are not its name, which is
+        what a switcher used to render as the row's identity.
+        """
+        fields = [cls.model.tenant_id, cls.model.role, Tenant.name, User.nickname, User.email, User.avatar, User.update_date]
         return list(
             cls.model.select(*fields)
-            .join(User, on=((cls.model.tenant_id == User.id) & (UserTenant.user_id == user_id) & (UserTenant.status == StatusEnum.VALID.value)))
-            .where(cls.model.status == StatusEnum.VALID.value)
+            .join(Tenant, on=((cls.model.tenant_id == Tenant.id) & (Tenant.status == StatusEnum.VALID.value)))
+            .switch(cls.model)
+            .join(User, on=(cls.model.tenant_id == User.id))
+            .where((cls.model.user_id == user_id) & (cls.model.status == StatusEnum.VALID.value))
             .dicts()
         )
 
