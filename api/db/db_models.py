@@ -185,6 +185,30 @@ class ListField(JSONField):
     default_value = []
 
 
+class NullableJSONField(JSONField):
+    """A JSON column that keeps SQL NULL distinguishable from an empty value.
+
+    ``JSONField`` writes ``{}`` for ``None`` and turns every falsy stored value
+    -- including SQL NULL -- back into its ``default_value``, so a caller can
+    never tell "nothing stored" from "``{}``"/"``[]``". ``Conversation.kb_ids``
+    needs exactly that distinction: NULL means "this session inherits the
+    assistant's datasets", while ``[]`` means "this session is bound to no
+    dataset at all".
+    """
+
+    default_value = None
+
+    def db_value(self, value):
+        if value is None:
+            return None
+        return super().db_value(value)
+
+    def python_value(self, value):
+        if value is None:
+            return None
+        return super().python_value(value)
+
+
 class SerializedField(LongTextField):
     def __init__(self, serialized_type=SerializedType.PICKLE, object_hook=None, object_pairs_hook=None, **kwargs):
         self._serialized_type = serialized_type
@@ -1568,6 +1592,12 @@ class Conversation(DataBaseModel):
     reference = JSONField(null=True, default=[])
     user_id = CharField(max_length=255, null=True, help_text="user_id", index=True)
     is_pinned = BooleanField(null=False, help_text="pin to the top of the conversation list", default=False, index=True)
+    # The datasets THIS session retrieves from. NULL -- the absent value, which
+    # every row created before this column existed carries -- means the session
+    # has no binding of its own and inherits the assistant's `kb_ids`; the empty
+    # list means the user explicitly bound no dataset. Hence nullable and never
+    # defaulted to []: the two cases are different answers, not one.
+    kb_ids = NullableJSONField(null=True, help_text="datasets bound to this session; NULL inherits the assistant's")
 
     class Meta:
         db_table = "conversation"
@@ -2532,6 +2562,10 @@ def migrate_db():
     # backfill and no member silently lands in a department.
     alter_db_add_column(migrator, "user_tenant", "department_id", CharField(max_length=32, null=True, help_text="department id", index=True))
     alter_db_add_column(migrator, "user_tenant", "title", CharField(max_length=64, null=True, help_text="job title"))
+    # The datasets a session retrieves from; see Conversation.kb_ids. NULL -- the
+    # value every existing row gets -- means "inherit the assistant's", so no
+    # backfill is needed and no session changes behaviour.
+    alter_db_add_column(migrator, "conversation", "kb_ids", NullableJSONField(null=True, help_text="datasets bound to this session; NULL inherits the assistant's"))
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_secret_key")
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_public_key")
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_host")

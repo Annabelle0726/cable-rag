@@ -380,6 +380,10 @@ def _load_chat_module(monkeypatch):
         def get_by_id(_tenant_id):
             return True, SimpleNamespace(llm_id="glm-4")
 
+        @staticmethod
+        def resolve_active_tenant_id(_user_id, _requested_tenant_id=None):
+            return "tenant-1"
+
     class _StubUserTenantService:
         @staticmethod
         def query(**_kwargs):
@@ -413,6 +417,7 @@ def _load_chat_module(monkeypatch):
     api_utils_mod.get_data_error_result = lambda message="": {"code": 102, "data": None, "message": message}
     api_utils_mod.get_json_result = lambda data=None, message="", code=0: {"code": code, "data": data, "message": message}
     api_utils_mod.get_request_json = lambda: _AwaitableValue({})
+    api_utils_mod.requested_tenant_id = lambda: None
     api_utils_mod.server_error_response = lambda ex: {"code": 500, "data": None, "message": str(ex)}
     api_utils_mod.validate_request = lambda *_args, **_kwargs: lambda func: func
     monkeypatch.setitem(sys.modules, "api.utils.api_utils", api_utils_mod)

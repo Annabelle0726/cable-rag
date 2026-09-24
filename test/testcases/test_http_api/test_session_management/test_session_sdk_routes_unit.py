@@ -198,6 +198,21 @@ def _load_session_module(monkeypatch):
         FAIL = "4"
         SCHEDULE = "5"
 
+    class _StubPipelineTaskType(StrEnum):
+        # `api/db/__init__.py` builds `VALID_PIPELINE_TASK_TYPES` from these at
+        # module scope, and `chat_api` reaches `api.db`, so the stub has to carry
+        # the members the real enum does or the import raises on the first read.
+        PARSE = "Parse"
+        DOWNLOAD = "Download"
+        RAPTOR = "RAPTOR"
+        GRAPH_RAG = "GraphRAG"
+        MINDMAP = "Mindmap"
+        MEMORY = "Memory"
+        ARTIFACT = "Wiki"
+        SKILL = "Skill"
+        STRUCTURE_GRAPH = "StructureGraph"
+        STRUCTURE_MINDMAP = "StructureMindmap"
+
     class _StubFileSource(StrEnum):
         LOCAL = ""
         KNOWLEDGEBASE = "knowledgebase"
@@ -239,6 +254,7 @@ def _load_session_module(monkeypatch):
     common_constants_mod.MCPServerType = _StubMCPServerType
     common_constants_mod.TaskStatus = _StubTaskStatus
     common_constants_mod.FileSource = _StubFileSource
+    common_constants_mod.PipelineTaskType = _StubPipelineTaskType
     common_constants_mod.SERVICE_CONF = "service_conf.yaml"
     common_constants_mod.RAG_FLOW_SERVICE_NAME = "ragflow"
     common_constants_mod.SVR_QUEUE_NAME = "rag_flow_svr_queue"
@@ -647,6 +663,10 @@ def _load_session_module(monkeypatch):
     conversation_service_mod.ConversationService = SimpleNamespace(query=lambda **_kwargs: [])
     conversation_service_mod.async_iframe_completion = lambda *_args, **_kwargs: None
     conversation_service_mod.async_completion = lambda *_args, **_kwargs: None
+    # `chat_api` imports all three at module scope, so the stub has to provide
+    # them or the module under test cannot be loaded.
+    conversation_service_mod.apply_session_dataset_binding = lambda *_args, **_kwargs: None
+    conversation_service_mod.structure_answer = lambda *_args, **_kwargs: {}
     monkeypatch.setitem(sys.modules, "api.db.services.conversation_service", conversation_service_mod)
 
     dialog_service_mod = ModuleType("api.db.services.dialog_service")
@@ -2345,6 +2365,8 @@ def _load_chat_api_module(monkeypatch):
         get_list=lambda *_a, **_k: [],
     )
     conv_svc_mod.structure_answer = lambda *_a, **_k: {}
+    # Imported at module scope by `chat_api`: see the sibling stub above.
+    conv_svc_mod.apply_session_dataset_binding = lambda *_a, **_k: None
     monkeypatch.setitem(sys.modules, "api.db.services.conversation_service", conv_svc_mod)
 
     dialog_svc_mod = ModuleType("api.db.services.dialog_service")
@@ -2392,6 +2414,7 @@ def _load_chat_api_module(monkeypatch):
     user_svc_mod = ModuleType("api.db.services.user_service")
     user_svc_mod.TenantService = SimpleNamespace(
         get_by_id=lambda _id: (True, SimpleNamespace(id=_id, llm_id="chat-model")),
+        resolve_active_tenant_id=lambda _user_id, _requested_tenant_id=None: "tenant-1",
         get_joined_tenants_by_user_id=lambda _id: [],
     )
     user_svc_mod.UserTenantService = SimpleNamespace(query=lambda **_k: [])
@@ -2402,6 +2425,7 @@ def _load_chat_api_module(monkeypatch):
     api_utils_mod.get_data_error_result = lambda message="Error", code=_RetCode.DATA_ERROR: {"code": code, "message": message}
     api_utils_mod.get_json_result = lambda code=_RetCode.SUCCESS, message="success", data=None: {"code": code, "message": message, "data": data}
     api_utils_mod.get_request_json = lambda: _AwaitableValue({})
+    api_utils_mod.requested_tenant_id = lambda: None
     api_utils_mod.server_error_response = lambda e: {"code": _RetCode.SERVER_ERROR, "message": str(e)}
     api_utils_mod.validate_request = lambda *_a, **_k: lambda func: func
     monkeypatch.setitem(sys.modules, "api.utils.api_utils", api_utils_mod)
