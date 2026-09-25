@@ -102,12 +102,7 @@ def listed_ids(token, tenant_header=None):
 
 def grant_rows(kb_id):
     with DB.connection_context():
-        return sorted(
-            (row.subject_type, row.subject_id)
-            for row in KnowledgebaseAuthorization.select().where(
-                KnowledgebaseAuthorization.kb_id == kb_id
-            )
-        )
+        return sorted((row.subject_type, row.subject_id) for row in KnowledgebaseAuthorization.select().where(KnowledgebaseAuthorization.kb_id == kb_id))
 
 
 def dataset_exists(kb_id):
@@ -150,11 +145,7 @@ def main():
         BorrowedToken(ADMIN) as admin,
     ):
         with DB.connection_context():
-            original_placement = (
-                UserTenant.select(UserTenant.department_id, UserTenant.title)
-                .where((UserTenant.user_id == MEMBER_ID) & (UserTenant.tenant_id == TENANT))
-                .first()
-            )
+            original_placement = UserTenant.select(UserTenant.department_id, UserTenant.title).where((UserTenant.user_id == MEMBER_ID) & (UserTenant.tenant_id == TENANT)).first()
             original_department = original_placement.department_id
             original_title = original_placement.title
 
@@ -183,9 +174,7 @@ def main():
             check("owner may read the authorization", code_of(payload) == 0, f"code={code_of(payload)} msg={payload.get('message')!r}")
             check(
                 "a new dataset starts as team with no subjects",
-                (payload.get("data") or {}).get("permission") == "team"
-                and (payload.get("data") or {}).get("department_ids") == []
-                and (payload.get("data") or {}).get("user_ids") == [],
+                (payload.get("data") or {}).get("permission") == "team" and (payload.get("data") or {}).get("department_ids") == [] and (payload.get("data") or {}).get("user_ids") == [],
                 f"data={payload.get('data')}",
             )
             for label, payload in (
@@ -319,11 +308,7 @@ def main():
             check("the dataset row is gone", not dataset_exists(kb_id), f"exists={dataset_exists(kb_id)}")
             with DB.connection_context():
                 KnowledgebaseAuthorization.delete().where(KnowledgebaseAuthorization.kb_id == kb_id).execute()
-                remaining_admin_rows = (
-                    UserTenant.select()
-                    .where((UserTenant.user_id == ADMIN_ID) & (UserTenant.tenant_id == TENANT))
-                    .count()
-                )
+                remaining_admin_rows = UserTenant.select().where((UserTenant.user_id == ADMIN_ID) & (UserTenant.tenant_id == TENANT)).count()
             check("no grant rows remain", grant_rows(kb_id) == [], f"rows={grant_rows(kb_id)}")
             check(
                 "the administered workspace membership was removed",
@@ -344,18 +329,10 @@ def main():
                 removed = call("DELETE", f"/tenants/{TENANT}/departments/{department_id}", owner)
                 check(f"the temporary department {department_id} is removed", code_of(removed) == 0, f"code={code_of(removed)} msg={removed.get('message')!r}")
             with DB.connection_context():
-                placed_now = (
-                    UserTenant.select(UserTenant.department_id)
-                    .where((UserTenant.user_id == MEMBER_ID) & (UserTenant.tenant_id == TENANT))
-                    .first()
-                    .department_id
-                )
+                placed_now = UserTenant.select(UserTenant.department_id).where((UserTenant.user_id == MEMBER_ID) & (UserTenant.tenant_id == TENANT)).first().department_id
                 # Deleting a department is a soft delete, so the check is on the
                 # ones still in use, not on the rows.
-                active_departments = {
-                    row.id
-                    for row in Department.select(Department.id).where((Department.tenant_id == TENANT) & (Department.status == "1"))
-                }
+                active_departments = {row.id for row in Department.select(Department.id).where((Department.tenant_id == TENANT) & (Department.status == "1"))}
             check("the member is back where they started", placed_now == original_department, f"department_id={placed_now} original={original_department}")
             check(
                 "no temporary department is still in use",

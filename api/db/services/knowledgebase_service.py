@@ -176,10 +176,7 @@ class KnowledgebaseService(CommonService):
         # row, so a department grant never captures a member who was never
         # placed in a department.
         department_in_workspace = UserTenant.select(UserTenant.department_id).where(
-            (UserTenant.user_id == user_id)
-            & (UserTenant.tenant_id == cls.model.tenant_id)
-            & (UserTenant.role.in_(MEMBER_ROLES))
-            & (UserTenant.status == StatusEnum.VALID.value)
+            (UserTenant.user_id == user_id) & (UserTenant.tenant_id == cls.model.tenant_id) & (UserTenant.role.in_(MEMBER_ROLES)) & (UserTenant.status == StatusEnum.VALID.value)
         )
 
         # Membership on the dataset's own workspace. Requiring it instead of
@@ -188,10 +185,7 @@ class KnowledgebaseService(CommonService):
         # nothing out of it. A pending `invite` row is not a membership.
         member_of_workspace = fn.EXISTS(
             UserTenant.select().where(
-                (UserTenant.user_id == user_id)
-                & (UserTenant.tenant_id == cls.model.tenant_id)
-                & (UserTenant.role.in_(MEMBER_ROLES))
-                & (UserTenant.status == StatusEnum.VALID.value)
+                (UserTenant.user_id == user_id) & (UserTenant.tenant_id == cls.model.tenant_id) & (UserTenant.role.in_(MEMBER_ROLES)) & (UserTenant.status == StatusEnum.VALID.value)
             )
         )
 

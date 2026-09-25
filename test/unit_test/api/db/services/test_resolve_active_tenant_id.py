@@ -20,6 +20,7 @@ tests pin the resolution order a request relies on: an explicitly requested
 tenant (the client's ``X-Tenant-Id``), the stored selection, a membership on the
 caller's own id, then the first joined tenant.
 """
+
 from types import SimpleNamespace
 
 import pytest

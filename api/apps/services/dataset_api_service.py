@@ -5621,12 +5621,7 @@ def _normalized_subject_ids(value) -> list[str]:
 def _known_department_ids(tenant_id: str, ids: list[str]) -> set[str]:
     if not ids:
         return set()
-    return {
-        row.id
-        for row in Department.select(Department.id).where(
-            (Department.tenant_id == tenant_id) & (Department.id.in_(ids)) & (Department.status == StatusEnum.VALID.value)
-        )
-    }
+    return {row.id for row in Department.select(Department.id).where((Department.tenant_id == tenant_id) & (Department.id.in_(ids)) & (Department.status == StatusEnum.VALID.value))}
 
 
 def _member_ids(tenant_id: str, ids: list[str]) -> set[str]:

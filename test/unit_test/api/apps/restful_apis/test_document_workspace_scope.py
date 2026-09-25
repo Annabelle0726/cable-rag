@@ -229,7 +229,12 @@ def _load_document_api(monkeypatch, *, payload, writable=True, index_exists=True
     _stub(monkeypatch, "api.db.services.file_service", FileService=SimpleNamespace())
     _stub(monkeypatch, "api.db.services.knowledgebase_service", KnowledgebaseService=knowledgebase_service)
     _stub(monkeypatch, "api.db.services.canvas_service", UserCanvasService=SimpleNamespace())
-    _stub(monkeypatch, "api.db.services.task_service", TaskService=SimpleNamespace(filter_delete=lambda *_a, **_k: None, query=lambda **_k: [SimpleNamespace(progress=0.5)]), cancel_all_task_of=lambda *_a, **_k: None)
+    _stub(
+        monkeypatch,
+        "api.db.services.task_service",
+        TaskService=SimpleNamespace(filter_delete=lambda *_a, **_k: None, query=lambda **_k: [SimpleNamespace(progress=0.5)]),
+        cancel_all_task_of=lambda *_a, **_k: None,
+    )
     _stub(monkeypatch, "api.db.services.llm_service", LLMBundle=lambda *_a, **_k: SimpleNamespace())
     _stub(
         monkeypatch,
@@ -270,7 +275,9 @@ def _load_document_api(monkeypatch, *, payload, writable=True, index_exists=True
         "common.constants",
         ParserType=SimpleNamespace(NAIVE="naive", QA="qa", TABLE="table"),
         RetCode=SimpleNamespace(SUCCESS=0, ARGUMENT_ERROR=101, DATA_ERROR=102, EXCEPTION_ERROR=500, PERMISSION_ERROR=108),
-        TaskStatus=SimpleNamespace(UNSTART=SimpleNamespace(value="0"), RUNNING=SimpleNamespace(value="1"), CANCEL=SimpleNamespace(value="2"), DONE=SimpleNamespace(value="3"), FAIL=SimpleNamespace(value="4")),
+        TaskStatus=SimpleNamespace(
+            UNSTART=SimpleNamespace(value="0"), RUNNING=SimpleNamespace(value="1"), CANCEL=SimpleNamespace(value="2"), DONE=SimpleNamespace(value="3"), FAIL=SimpleNamespace(value="4")
+        ),
         SANDBOX_ARTIFACT_BUCKET="artifact",
     )
     _stub(monkeypatch, "common.llm_request_context", normalize_llm_user_id=lambda value: value)

@@ -165,11 +165,15 @@ def _load_chunk_api(monkeypatch, *, payload, user_id=MEMBER, workspace=WORKSPACE
     _stub(monkeypatch, "api.apps.services.structure_graph_common")
     _stub(monkeypatch, "api.db", cable_defaults=SimpleNamespace(search_config_with_defaults=lambda config: config or {}))
     _stub(monkeypatch, "api.db.db_models", Document=SimpleNamespace(id=None, kb_id=None, run=None), Task=SimpleNamespace(doc_id=None))
-    _stub(monkeypatch, "api.db.joint_services.tenant_model_service", **{
-        "get_tenant_default_model_by_type": lambda tenant_id, model_type: _model_config(tenant_id, f"default:{model_type}"),
-        "resolve_model_config": lambda tenant_id, model_type, model_ref: _model_config(tenant_id, str(model_ref)),
-        "get_default_rerank_model_config": lambda *_a, **_k: None,
-    })
+    _stub(
+        monkeypatch,
+        "api.db.joint_services.tenant_model_service",
+        **{
+            "get_tenant_default_model_by_type": lambda tenant_id, model_type: _model_config(tenant_id, f"default:{model_type}"),
+            "resolve_model_config": lambda tenant_id, model_type, model_ref: _model_config(tenant_id, str(model_ref)),
+            "get_default_rerank_model_config": lambda *_a, **_k: None,
+        },
+    )
     _stub(
         monkeypatch,
         "api.db.services.doc_metadata_service",
@@ -226,7 +230,9 @@ def _load_chunk_api(monkeypatch, *, payload, user_id=MEMBER, workspace=WORKSPACE
         validate_rest_api_page=lambda value: int(value),
         validate_rest_api_page_size=lambda value: int(value),
     )
-    _stub(monkeypatch, "api.utils.reference_metadata_utils", resolve_reference_metadata_preferences=lambda req, _config=None: (False, None), enrich_chunks_with_document_metadata=lambda *_a, **_k: None)
+    _stub(
+        monkeypatch, "api.utils.reference_metadata_utils", resolve_reference_metadata_preferences=lambda req, _config=None: (False, None), enrich_chunks_with_document_metadata=lambda *_a, **_k: None
+    )
     _stub(monkeypatch, "rag.app.tag", label_question=lambda *_a, **_k: {})
     _stub(monkeypatch, "rag.nlp", search=SimpleNamespace(index_name=lambda tenant_id: f"idx-{tenant_id}"))
     _stub(monkeypatch, "rag.nlp.search", search=SimpleNamespace(index_name=lambda tenant_id: f"idx-{tenant_id}"))

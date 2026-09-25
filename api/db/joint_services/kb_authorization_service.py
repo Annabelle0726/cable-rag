@@ -110,10 +110,7 @@ def _can_manage_tenant(user_id, tenant_id) -> bool:
     return (
         UserTenant.select()
         .where(
-            (UserTenant.user_id == user_id)
-            & (UserTenant.tenant_id == tenant_id)
-            & (UserTenant.role.in_([UserTenantRole.OWNER, UserTenantRole.ADMIN]))
-            & (UserTenant.status == StatusEnum.VALID.value)
+            (UserTenant.user_id == user_id) & (UserTenant.tenant_id == tenant_id) & (UserTenant.role.in_([UserTenantRole.OWNER, UserTenantRole.ADMIN])) & (UserTenant.status == StatusEnum.VALID.value)
         )
         .exists()
     )
@@ -129,12 +126,7 @@ def _membership_role(user_id, tenant_id):
         return None
     row = (
         UserTenant.select(UserTenant.role)
-        .where(
-            (UserTenant.user_id == user_id)
-            & (UserTenant.tenant_id == tenant_id)
-            & (UserTenant.role.in_(MEMBER_ROLES))
-            & (UserTenant.status == StatusEnum.VALID.value)
-        )
+        .where((UserTenant.user_id == user_id) & (UserTenant.tenant_id == tenant_id) & (UserTenant.role.in_(MEMBER_ROLES)) & (UserTenant.status == StatusEnum.VALID.value))
         .first()
     )
     return row.role if row else None
@@ -190,12 +182,7 @@ def _department_id_of(user_id, tenant_id):
         return None
     row = (
         UserTenant.select(UserTenant.department_id)
-        .where(
-            (UserTenant.user_id == user_id)
-            & (UserTenant.tenant_id == tenant_id)
-            & (UserTenant.role.in_(MEMBER_ROLES))
-            & (UserTenant.status == StatusEnum.VALID.value)
-        )
+        .where((UserTenant.user_id == user_id) & (UserTenant.tenant_id == tenant_id) & (UserTenant.role.in_(MEMBER_ROLES)) & (UserTenant.status == StatusEnum.VALID.value))
         .first()
     )
     return row.department_id if row else None
@@ -372,9 +359,4 @@ def get_kb_authorizations(kb_id: str) -> list[dict]:
     """
     if not kb_id:
         return []
-    return list(
-        KnowledgebaseAuthorization.select()
-        .where(KnowledgebaseAuthorization.kb_id == kb_id)
-        .order_by(KnowledgebaseAuthorization.subject_type, KnowledgebaseAuthorization.create_time)
-        .dicts()
-    )
+    return list(KnowledgebaseAuthorization.select().where(KnowledgebaseAuthorization.kb_id == kb_id).order_by(KnowledgebaseAuthorization.subject_type, KnowledgebaseAuthorization.create_time).dicts())

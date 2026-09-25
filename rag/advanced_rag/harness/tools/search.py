@@ -143,9 +143,7 @@ def _normalize(kbinfos: dict, tenant_ids: list[str] | str | None) -> dict:
     return kbinfos
 
 
-async def hybrid_search(
-    tools, query: str, kb_ids: list[str] | None = None, top_n: int | None = None, doc_scope: list[str] | None = None, keywords: str = "", use_compiled: bool = False
-) -> dict:
+async def hybrid_search(tools, query: str, kb_ids: list[str] | None = None, top_n: int | None = None, doc_scope: list[str] | None = None, keywords: str = "", use_compiled: bool = False) -> dict:
     top_n = _resolve_top_n(tools, top_n)
     target_ids = _resolve_target_ids(tools, kb_ids)
     if not target_ids:

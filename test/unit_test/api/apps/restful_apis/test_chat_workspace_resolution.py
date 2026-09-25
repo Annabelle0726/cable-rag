@@ -56,17 +56,21 @@ class _AwaitableValue:
 
 class _FakeDialog:
     def __init__(self, data=None):
-        self._data = deepcopy(data) if data else {
-            "id": "chat-1",
-            "tenant_id": MEMBER_ID,
-            "name": "member_chat",
-            "description": "A helpful Assistant",
-            "icon": "",
-            "kb_ids": [],
-            "llm_id": "ws-model",
-            "llm_setting": {},
-            "prompt_config": {"system": "", "prologue": "", "parameters": []},
-        }
+        self._data = (
+            deepcopy(data)
+            if data
+            else {
+                "id": "chat-1",
+                "tenant_id": MEMBER_ID,
+                "name": "member_chat",
+                "description": "A helpful Assistant",
+                "icon": "",
+                "kb_ids": [],
+                "llm_id": "ws-model",
+                "llm_setting": {},
+                "prompt_config": {"system": "", "prologue": "", "parameters": []},
+            }
+        )
 
     def to_dict(self):
         return deepcopy(self._data)

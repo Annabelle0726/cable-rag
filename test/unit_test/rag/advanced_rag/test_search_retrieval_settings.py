@@ -380,4 +380,3 @@ async def test_the_result_cache_is_keyed_by_the_narrowing_keywords(scripted):
     await search_tools.hybrid_search(tools, query="q", keywords="时限")
 
     assert len(rec.thresholds) == 2, "a different keyword hint is a different result"
-
