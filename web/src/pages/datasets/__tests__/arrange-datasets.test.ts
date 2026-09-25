@@ -104,3 +104,19 @@ describe('arrangeDatasets', () => {
     ).toEqual(['a', 'b', 'c', 'd']);
   });
 });
+
+it('orders updates after pinning and never promotes a hidden legacy pin', () => {
+  const rows = [
+    { id: 'a', update_time: 10 },
+    { id: 'b', update_time: 30 },
+    { id: 'c', update_time: 20 },
+  ] as IDataset[];
+  expect(
+    arrangeDatasets({
+      datasets: rows,
+      pinnedIds: ['a', 'c'],
+      hiddenIds: ['c'],
+      showHidden: true,
+    }).map((x) => x.id),
+  ).toEqual(['a', 'b', 'c']);
+});

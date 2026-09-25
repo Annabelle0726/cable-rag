@@ -517,6 +517,8 @@ export default {
       empty: 'No data',
     },
     knowledgeDetails: {
+      collapseSidebar: 'Collapse sidebar',
+      expandSidebar: 'Expand sidebar',
       parentHiddenFile: 'Hidden with dataset',
       hiddenFile: 'Hidden',
       continueUpload: 'Continue upload',

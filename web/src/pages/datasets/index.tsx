@@ -5,10 +5,10 @@ import { FilterPopover } from '@/components/list-filter-bar/filter-popover';
 import { RenameDialog } from '@/components/rename-dialog';
 import { Button } from '@/components/ui/button';
 import { RAGFlowPagination } from '@/components/ui/ragflow-pagination';
-import { ListDeletionKey } from '@/constants/list-deletion';
 import { useDatasetPreferences } from '@/hooks/use-dataset-preferences';
-import { useGoToPreviousPageOnEmpty } from '@/hooks/logic-hooks';
-import { useFetchNextKnowledgeListByPage } from '@/hooks/use-knowledge-request';
+import { useGetPaginationWithRouter } from '@/hooks/logic-hooks';
+import { useDatasetList } from './use-dataset-list';
+import { UserSettingKeys } from '@/hooks/use-user-setting-request';
 import { useQueryClient } from '@tanstack/react-query';
 import { pick } from 'lodash';
 import { Eye, EyeOff, Plus } from 'lucide-react';
@@ -34,18 +34,8 @@ export default function Datasets() {
     loading: creatingLoading,
   } = useSaveKnowledge();
 
-  const {
-    kbs,
-    total_datasets,
-    pagination,
-    setPagination,
-    searchString,
-    setSearchString,
-    filterValue,
-    setFilterValue,
-    handleFilterSubmit,
-    loading,
-  } = useFetchNextKnowledgeListByPage();
+  const { kbs, filterValue, handleFilterSubmit, loading } = useDatasetList();
+  const { pagination, setPagination } = useGetPaginationWithRouter();
 
   const owners = useSelectOwners();
 
@@ -74,7 +64,7 @@ export default function Datasets() {
   const filteredDatasets = useMemo(() => filter(kbs ?? []), [filter, kbs]);
 
   // Pinned datasets come first and hidden ones are dropped, both as this user's
-  // own view of a page the server already narrowed to what they may read.
+  // own view of datasets the server already narrowed to what they may read.
   const datasets = useMemo(
     () =>
       arrangeDatasets({
@@ -84,6 +74,19 @@ export default function Datasets() {
         showHidden,
       }),
     [filteredDatasets, pinnedIds, hiddenIds, showHidden],
+  );
+
+  const hiddenCount = kbs.filter((dataset) =>
+    hiddenIds.includes(dataset.id),
+  ).length;
+  const pageSize = pagination.pageSize ?? 10;
+  const current = Math.min(
+    pagination.current ?? 1,
+    Math.max(1, Math.ceil(datasets.length / pageSize)),
+  );
+  const pageDatasets = datasets.slice(
+    (current - 1) * pageSize,
+    current * pageSize,
   );
 
   const handleToggleShowHidden = useCallback(() => {
@@ -96,40 +99,17 @@ export default function Datasets() {
     },
     [setPagination],
   );
-  useGoToPreviousPageOnEmpty(kbs?.length, loading, {
-    deletionKey: ListDeletionKey.KnowledgeList,
-    searchString,
-    setSearchString,
-    filterValue,
-    setFilterValue,
-  });
   const [searchUrl, setSearchUrl] = useSearchParams();
   const isCreate = searchUrl.get('isCreate') === 'true';
   const queryClient = useQueryClient();
   useEffect(() => {
     if (isCreate) {
-      queryClient.invalidateQueries({ queryKey: ['tenantInfo'] });
+      queryClient.invalidateQueries({ queryKey: UserSettingKeys.tenantInfo() });
       showModal();
       searchUrl.delete('isCreate');
       setSearchUrl(searchUrl);
     }
   }, [isCreate, showModal, searchUrl, setSearchUrl, queryClient]);
-
-  const handleKeywordChange = useCallback(
-    (keyword: string) => {
-      setKeyword(keyword);
-      // The panel's keyword and the list's own search box are one control: the
-      // panel narrows what is on screen, the debounced request behind
-      // `setSearchString` widens the page to every match on the server.
-      setSearchString(keyword);
-    },
-    [setKeyword, setSearchString],
-  );
-
-  const handleReset = useCallback(() => {
-    reset();
-    setSearchString('');
-  }, [reset, setSearchString]);
 
   /** Owner stays a popover filter: it is a tenant-scoped multi-select, not one of
    *  the panel's three single-value conditions. */
@@ -160,7 +140,7 @@ export default function Datasets() {
           {t('header.dataset')}
         </h1>
         <div className="flex shrink-0 items-center gap-2">
-          {hiddenIds.length > 0 && (
+          {hiddenCount > 0 && (
             <Button
               variant="ghost"
               className="h-8 shrink-0 gap-1.5 px-3 text-xs font-medium text-text-secondary"
@@ -172,7 +152,7 @@ export default function Datasets() {
               ) : (
                 <Eye className="size-3.5" />
               )}
-              {t('common.showHidden', { count: hiddenIds.length })}
+              {t('common.showHidden', { count: hiddenCount })}
             </Button>
           )}
 
@@ -198,17 +178,17 @@ export default function Datasets() {
         className="page-gutter mb-3 border-x-0 border-t-0"
         query={query}
         onCategoryChange={setCategory}
-        onKeywordChange={handleKeywordChange}
+        onKeywordChange={setKeyword}
         onCreatedFromChange={setCreatedFrom}
         onCreatedToChange={setCreatedTo}
-        onReset={handleReset}
+        onReset={reset}
       />
 
-      {kbs?.length || searchString ? (
+      {kbs.length || query.keyword ? (
         <>
           <div className="page-gutter min-h-0 flex-1 overflow-auto">
             <DatasetTable
-              datasets={datasets}
+              datasets={pageDatasets}
               loading={loading}
               hiddenDatasetIds={showHidden ? hiddenIds : []}
               showDatasetRenameModal={showDatasetRenameModal}
@@ -217,8 +197,9 @@ export default function Datasets() {
 
           <footer className="page-gutter py-3">
             <RAGFlowPagination
-              {...pick(pagination, 'current', 'pageSize')}
-              total={total_datasets}
+              {...pick(pagination, 'pageSize')}
+              current={current}
+              total={datasets.length}
               onChange={handlePageChange}
             />
           </footer>

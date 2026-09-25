@@ -1,7 +1,9 @@
 import { RenameDialog } from '@/components/rename-dialog';
 import { Button } from '@/components/ui/button';
 import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
-import { useFetchNextKnowledgeListByPage } from '@/hooks/use-knowledge-request';
+import { useDatasetPreferences } from '@/hooks/use-dataset-preferences';
+import { useDatasetList } from '../datasets/use-dataset-list';
+import { arrangeDatasets } from '../datasets/arrange-datasets';
 import { Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +15,7 @@ import { SectionHeading } from './home-layout';
 
 export function Datasets() {
   const { t } = useTranslation();
-  const { kbs, loading } = useFetchNextKnowledgeListByPage();
+  const { kbs, loading } = useDatasetList();
   const {
     datasetRenameLoading,
     initialDatasetName,
@@ -34,7 +36,17 @@ export function Datasets() {
     filter,
   } = useDatasetQuery();
 
-  const datasets = useMemo(() => filter(kbs ?? []), [filter, kbs]);
+  const { pinnedIds, hiddenIds } = useDatasetPreferences();
+  const datasets = useMemo(
+    () =>
+      arrangeDatasets({
+        datasets: filter(kbs),
+        pinnedIds,
+        hiddenIds,
+        showHidden: false,
+      }),
+    [filter, kbs, pinnedIds, hiddenIds],
+  );
 
   return (
     <section>

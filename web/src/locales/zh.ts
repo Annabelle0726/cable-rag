@@ -474,6 +474,8 @@ export default {
       empty: '暂无数据',
     },
     knowledgeDetails: {
+      collapseSidebar: '收起侧边栏',
+      expandSidebar: '展开侧边栏',
       parentHiddenFile: '跟随知识库已隐藏',
       hiddenFile: '已隐藏',
       continueUpload: '继续上传',

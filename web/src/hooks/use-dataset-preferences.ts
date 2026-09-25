@@ -67,12 +67,14 @@ export const useDatasetPreferencesStore = create<DatasetPreferencesState>()(
       togglePinned: (userId, datasetId) =>
         set((state) => {
           const current = preferencesFor(state.byUser, userId);
+          if (!userId) return state;
           return {
             byUser: {
               ...state.byUser,
               [userId]: {
                 ...current,
                 pinned: toggleId(current.pinned, datasetId),
+                hidden: current.hidden.filter((id) => id !== datasetId),
               },
             },
           };
@@ -80,12 +82,14 @@ export const useDatasetPreferencesStore = create<DatasetPreferencesState>()(
       toggleHidden: (userId, datasetId) =>
         set((state) => {
           const current = preferencesFor(state.byUser, userId);
+          if (!userId) return state;
           return {
             byUser: {
               ...state.byUser,
               [userId]: {
                 ...current,
                 hidden: toggleId(current.hidden, datasetId),
+                pinned: current.pinned.filter((id) => id !== datasetId),
               },
             },
           };
@@ -93,6 +97,24 @@ export const useDatasetPreferencesStore = create<DatasetPreferencesState>()(
     }),
     {
       name: 'ragflow-dataset-preferences',
+      version: 1,
+      migrate: (persisted) => {
+        const state = persisted as DatasetPreferencesState;
+        return {
+          ...state,
+          byUser: Object.fromEntries(
+            Object.entries(state.byUser ?? {}).map(([id, preference]) => [
+              id,
+              {
+                ...preference,
+                pinned: preference.pinned.filter(
+                  (key) => !preference.hidden.includes(key),
+                ),
+              },
+            ]),
+          ),
+        };
+      },
       storage: createJSONStorage(() => localStorage),
     },
   ),
@@ -126,7 +148,8 @@ export const useDatasetPreferences = () => {
     hiddenIds: hidden,
     showHidden,
     setShowHidden,
-    isPinned: (datasetId: string) => pinned.includes(datasetId),
+    isPinned: (datasetId: string) =>
+      pinned.includes(datasetId) && !hidden.includes(datasetId),
     isHidden: (datasetId: string) => hidden.includes(datasetId),
     togglePin: (datasetId: string) => togglePinned(userId, datasetId),
     toggleHide: (datasetId: string) => toggleHidden(userId, datasetId),

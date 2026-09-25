@@ -51,12 +51,12 @@ describe('dataset list preferences', () => {
     expect(preferencesFor(state().byUser, 'user-1').pinned).toEqual(['kb-2']);
   });
 
-  it('keeps pinning and hiding independent', () => {
+  it('hiding cancels a personal pin', () => {
     state().togglePinned('user-1', 'kb-1');
     state().toggleHidden('user-1', 'kb-1');
 
     const preference = preferencesFor(state().byUser, 'user-1');
-    expect(preference.pinned).toEqual(['kb-1']);
+    expect(preference.pinned).toEqual([]);
     expect(preference.hidden).toEqual(['kb-1']);
   });
 
@@ -88,5 +88,32 @@ describe('dataset list preferences', () => {
     state().setShowHidden(true);
 
     expect(state().showHidden).toBe(true);
+  });
+});
+
+it('pinning a hidden dataset restores it', () => {
+  state().toggleHidden('user-1', 'kb-1');
+  state().togglePinned('user-1', 'kb-1');
+  expect(preferencesFor(state().byUser, 'user-1')).toEqual({
+    pinned: ['kb-1'],
+    hidden: [],
+  });
+});
+
+it('removes conflicting old pins when persisted preferences migrate', async () => {
+  localStorage.setItem(
+    'ragflow-dataset-preferences',
+    JSON.stringify({
+      version: 0,
+      state: {
+        byUser: { 'old-user': { pinned: ['a', 'b'], hidden: ['a'] } },
+        showHidden: false,
+      },
+    }),
+  );
+  await useDatasetPreferencesStore.persist.rehydrate();
+  expect(preferencesFor(state().byUser, 'old-user')).toEqual({
+    pinned: ['b'],
+    hidden: ['a'],
   });
 });

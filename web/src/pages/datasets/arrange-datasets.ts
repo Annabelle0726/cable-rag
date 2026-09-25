@@ -17,12 +17,8 @@
 import { IDataset } from '@/interfaces/database/dataset';
 
 /**
- * Apply the viewer's own ordering to a page of datasets.
- *
- * Hidden datasets are dropped unless the viewer asked to see them, and pinned
- * ones move to the top. The order the server returned is preserved inside both
- * groups, so the page's sort stays the user's chosen one and pinning only
- * promotes a subset of it.
+ * Apply personal visibility and pinning to accessible datasets, before pagination.
+ * Within each group use the latest update first. A hidden row cannot be pinned.
  *
  * Hiding is a per-user preference, never an authorization decision: the rows the
  * server sends are already the ones this user may read, so dropping one here
@@ -45,12 +41,10 @@ export const arrangeDatasets = ({
     ? datasets
     : datasets.filter((dataset) => !hidden.has(dataset.id));
 
-  if (pinned.size === 0) {
-    return visible;
-  }
-
-  return [
-    ...visible.filter((dataset) => pinned.has(dataset.id)),
-    ...visible.filter((dataset) => !pinned.has(dataset.id)),
-  ];
+  return [...visible].sort((a, b) => {
+    const pinOrder =
+      Number(pinned.has(b.id) && !hidden.has(b.id)) -
+      Number(pinned.has(a.id) && !hidden.has(a.id));
+    return pinOrder || (b.update_time ?? 0) - (a.update_time ?? 0);
+  });
 };

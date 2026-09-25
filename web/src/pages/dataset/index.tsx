@@ -33,10 +33,12 @@ export default function DatasetWrapper() {
 
   return (
     <KnowledgeBaseProvider knowledgeBase={data} loading={loading}>
-      <article className="pt-3 size-full grid grid-cols-[auto_1fr] grid-rows-1">
+      <article className="pt-3 size-full grid grid-cols-[auto_minmax(0,1fr)] grid-rows-1">
         <SideBar dataset={data} />
 
-        <Outlet />
+        <div className="min-w-0 min-h-0 overflow-auto">
+          <Outlet />
+        </div>
       </article>
     </KnowledgeBaseProvider>
   );
