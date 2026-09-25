@@ -79,14 +79,16 @@ def _load_search_api(monkeypatch, query_result, accessible=True, request_json=No
     _stub(
         monkeypatch,
         "api.db.services.user_service",
-        TenantService=SimpleNamespace(get_by_id=lambda *_a, **_k: (True, SimpleNamespace())),
+        # `_active_workspace_id()` resolves the workspace through the same
+        # resolver the routes use; a member's own user id is not a tenant.
+        TenantService=SimpleNamespace(get_by_id=lambda *_a, **_k: (True, SimpleNamespace()), resolve_active_tenant_id=lambda user_id, _requested=None: user_id),
         UserTenantService=SimpleNamespace(query=lambda **_kwargs: []),
     )
     _stub(monkeypatch, "common.misc_utils", get_uuid=lambda: "uuid")
     _stub(
         monkeypatch,
         "common.constants",
-        RetCode=SimpleNamespace(DATA_ERROR=102, AUTHENTICATION_ERROR=401),
+        RetCode=SimpleNamespace(DATA_ERROR=102, AUTHENTICATION_ERROR=401, PERMISSION_ERROR=108),
         StatusEnum=SimpleNamespace(VALID=SimpleNamespace(value="1")),
     )
     _stub(
@@ -95,6 +97,7 @@ def _load_search_api(monkeypatch, query_result, accessible=True, request_json=No
         get_data_error_result=lambda message="Sorry": {"code": 102, "message": message, "data": None},
         get_json_result=lambda code=0, message="", data=None: {"code": code, "message": message, "data": data},
         get_request_json=_get_request_json,
+        requested_tenant_id=lambda: None,
         server_error_response=lambda exc: {"code": 500, "message": str(exc)},
         validate_request=lambda *_a, **_k: lambda func: func,
     )

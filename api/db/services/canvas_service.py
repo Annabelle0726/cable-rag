@@ -67,12 +67,26 @@ class UserCanvasService(CommonService):
         return list(agents.dicts())
 
     @classmethod
+    def _visible_to(cls, joined_tenant_ids, user_id):
+        """The agents a caller may SEE.
+
+        Two kinds are visible: an agent the caller owns, and a TEAM agent of a
+        workspace it belongs to that has been RELEASED. `permission=team` is an
+        intention to share the agent with the workspace; `release` is the act of
+        sharing it, so an unpublished agent stays its creator's alone - a draft
+        must not appear in a colleague's list (nor be runnable by them) before it
+        is published. `release == 1` is how this schema stores the boolean, the
+        same way `User.is_superuser` is compared.
+        """
+        return (cls.model.user_id.in_(joined_tenant_ids) & (cls.model.permission == TenantPermission.TEAM.value) & (cls.model.release == 1)) | (cls.model.user_id == user_id)
+
+    @classmethod
     @DB.connection_context()
     def get_all_agents_by_tenant_ids(cls, tenant_ids, user_id):
         # will get all permitted agents, be cautious
         fields = [cls.model.id, cls.model.avatar, cls.model.title, cls.model.permission, cls.model.canvas_type, cls.model.canvas_category]
-        # find team agents and owned agents
-        agents = cls.model.select(*fields).where((cls.model.user_id.in_(tenant_ids) & (cls.model.permission == TenantPermission.TEAM.value)) | (cls.model.user_id == user_id))
+        # find released team agents and owned agents
+        agents = cls.model.select(*fields).where(cls._visible_to(tenant_ids, user_id))
         # sort by create_time, asc
         agents = agents.order_by(cls.model.create_time.asc())
         # maybe cause slow query by deep paginate, optimize later
@@ -104,6 +118,7 @@ class UserCanvasService(CommonService):
                 cls.model.create_date,
                 cls.model.update_date,
                 cls.model.canvas_category,
+                cls.model.release,
                 User.nickname,
                 User.avatar.alias("tenant_avatar"),
             ]
@@ -149,7 +164,7 @@ class UserCanvasService(CommonService):
             cls.model.canvas_category,
             cls.model.tags,
         ]
-        owner_filter = cls.model.user_id.in_(joined_tenant_ids) & ((cls.model.permission == TenantPermission.TEAM.value) | (cls.model.user_id == user_id))
+        owner_filter = cls._visible_to(joined_tenant_ids, user_id)
         if keywords:
             agents = (
                 cls.model.select(*fields)
@@ -201,7 +216,7 @@ class UserCanvasService(CommonService):
     @classmethod
     @DB.connection_context()
     def get_owner_filter(cls, joined_tenant_ids, user_id):
-        owner_filter = cls.model.user_id.in_(joined_tenant_ids) & ((cls.model.permission == TenantPermission.TEAM.value) | (cls.model.user_id == user_id))
+        owner_filter = cls._visible_to(joined_tenant_ids, user_id)
         owners = (
             cls.model.select(
                 cls.model.user_id.alias("id"),
@@ -233,7 +248,7 @@ class UserCanvasService(CommonService):
     @classmethod
     @DB.connection_context()
     def get_category_filter(cls, joined_tenant_ids, user_id):
-        category_filter = cls.model.user_id.in_(joined_tenant_ids) & ((cls.model.permission == TenantPermission.TEAM.value) | (cls.model.user_id == user_id))
+        category_filter = cls._visible_to(joined_tenant_ids, user_id)
         categories = (
             cls.model.select(
                 cls.model.canvas_category.alias("id"),
@@ -259,7 +274,7 @@ class UserCanvasService(CommonService):
     @DB.connection_context()
     def list_tags(cls, joined_tenant_ids, user_id, canvas_category=None):
         """Return {tag: agent_count} aggregated across agents visible to the user."""
-        query = cls.model.select(cls.model.tags).where(((cls.model.user_id.in_(joined_tenant_ids)) & (cls.model.permission == TenantPermission.TEAM.value)) | (cls.model.user_id == user_id))
+        query = cls.model.select(cls.model.tags).where(cls._visible_to(joined_tenant_ids, user_id))
         if canvas_category:
             query = query.where(cls.model.canvas_category == canvas_category)
 
@@ -332,7 +347,10 @@ class UserCanvasService(CommonService):
             return False
         if c["permission"] != TenantPermission.TEAM.value:
             return False
-        return True
+        # Reachable only when it has been published: `permission=team` states the
+        # intention to share an agent, `release` performs it, so an unpublished
+        # draft is the creator's alone.
+        return bool(c.get("release"))
 
     @classmethod
     def get_agent_dsl_with_release(cls, agent_id, release_mode=False, tenant_id=None):

@@ -118,6 +118,9 @@ class _FakeDialogService:
         self.dialog = SimpleNamespace(
             id=chat_id,
             tenant_id=MEMBER_ID,
+            # The caller created it: chat is personally private, so `created_by`
+            # is what every per-assistant route authorizes against.
+            created_by=MEMBER_ID,
             status="1",
             icon="",
             kb_ids=list(ASSISTANT_DATASETS),

@@ -14,26 +14,25 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-"""An assistant belongs to a WORKSPACE, and every member of it may use one.
+"""An assistant consumes its workspace's MODELS and belongs to its CREATOR alone.
 
-A NORMAL member owns no tenant, so their user id is not a tenant id: only the
-creator of a workspace has `tenant.id == user.id`. Two consequences, and this
-file pins both:
+Two subjects, two jobs, and conflating them is what broke this twice:
 
-* an assistant must be bound to the workspace resolved from `X-Tenant-Id` /
-  membership, because that is the tenant its chat, rerank and TTS models are
-  resolved in and the tenant its sessions are read through. Bound to the
-  creator's user id instead, the assistant could not be read back (`GET
-  /chats/<id>` answered `109 no authorization`), no model could be saved into it
-  (``llm_id … doesn't exist``, code 102) and a turn could not resolve a model at
-  all;
-* access is "creator OR member of the owning workspace". Both halves are needed:
-  the creator half keeps a personal workspace (which IS the user id) and every
-  assistant created before this change working, and the membership half is what
-  lets an administrator or a member use the workspace's assistants.
+* the workspace supplies the MODELS. `tenant_id` is the workspace the caller is
+  working in, because that is the tenant its chat, rerank and TTS models are
+  resolved in. A NORMAL member owns no tenant, so binding the assistant to the
+  member's user id (as `create` used to) made `GET /chats/<id>` answer 109,
+  `PATCH` with an `llm_id` answer 102 and `/chat/title` answer 101;
+* the CREATOR owns the DATA. `created_by` is the caller's user id and both the
+  listing and every per-assistant route read it. A workspace shares its models
+  and its datasets, never the assistants built on them - a colleague, including
+  an administrator of the same workspace, must not see, edit, chat with or
+  delete another member's assistant. Reading the assistant back through
+  membership (`chat.tenant_id` is a workspace the caller belongs to) is exactly
+  the isolation defect these tests pin.
 
-A caller who is neither is refused with code **108** (a permission denial). 109
-is the authentication code, and it used to be the answer for an assistant the
+A caller who is not the creator is refused with code **108**: 109 means "not
+authenticated", and it is what these routes once answered for an assistant the
 caller had just created itself.
 """
 
@@ -46,25 +45,14 @@ import pytest
 from api.apps.restful_apis import chat_api
 
 MEMBER_ID = "member-1"
+COLLEAGUE_ID = "colleague-1"
 WORKSPACE_ID = "ws-1"
-OTHER_WORKSPACE_ID = "ws-2"
 CHAT_ID = "chat-1"
-
-
-class _AwaitableValue:
-    def __init__(self, value):
-        self._value = value
-
-    def __await__(self):
-        async def _co():
-            return self._value
-
-        return _co().__await__()
-
 
 _DEFAULT_CHAT = {
     "id": CHAT_ID,
     "tenant_id": WORKSPACE_ID,
+    "created_by": MEMBER_ID,
     "status": "1",
     "name": "member_chat",
     "description": "A helpful Assistant",
@@ -124,20 +112,29 @@ class _FakeDialogService:
         return True
 
     def get_by_tenant_ids(self, joined_tenant_ids, user_id, *args, **kwargs):
-        self.list_calls.append((list(joined_tenant_ids), user_id))
+        self.list_calls.append((list(joined_tenant_ids), user_id, kwargs.get("created_by")))
         return [], 0
+
+
+class _AwaitableValue:
+    def __init__(self, value):
+        self._value = value
+
+    def __await__(self):
+        async def _co():
+            return self._value
+
+        return _co().__await__()
 
 
 @pytest.fixture
 def workspace(monkeypatch):
-    """A member with no tenant of its own, working in `ws-1`."""
+    """The caller `member-1`, working in `ws-1`, whose assistants it created."""
     state = SimpleNamespace(
         resolved=[],
         tenant_lookups=[],
-        membership_lookups=[],
         normalizations=[],
         dialogs=_FakeDialogService(),
-        memberships=[SimpleNamespace(tenant_id=WORKSPACE_ID, user_id=MEMBER_ID)],
     )
 
     def resolve_active_tenant_id(user_id, requested_tenant_id=None):
@@ -151,17 +148,7 @@ def workspace(monkeypatch):
         # The member's own id is not a tenant: this is what answered 102 before.
         return False, None
 
-    def user_tenant_query(**kwargs):
-        state.membership_lookups.append(kwargs)
-        tenant_id = kwargs.get("tenant_id")
-        return [row for row in state.memberships if row.tenant_id == tenant_id and row.user_id == kwargs.get("user_id")]
-
-    async def thread_pool_exec(func, *args, **kwargs):
-        return func(*args, **kwargs)
-
     def get_model_config_by_id(tenant_id, model_type, _model_id):
-        # A model id lookup is only meaningful inside the tenant that owns the
-        # model, so the tenant it was asked about is the subject under test.
         state.normalizations.append((tenant_id, model_type))
         raise LookupError("not a tenant model id")
 
@@ -169,15 +156,24 @@ def workspace(monkeypatch):
         state.normalizations.append((tenant_id, model_type))
         return model_name
 
+    async def thread_pool_exec(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setattr(chat_api, "current_user", SimpleNamespace(id=MEMBER_ID))
     monkeypatch.setattr(chat_api, "requested_tenant_id", lambda: WORKSPACE_ID)
     monkeypatch.setattr(chat_api, "TenantService", SimpleNamespace(resolve_active_tenant_id=resolve_active_tenant_id, get_by_id=get_by_id))
-    monkeypatch.setattr(chat_api, "UserTenantService", SimpleNamespace(query=user_tenant_query))
     monkeypatch.setattr(chat_api, "DialogService", state.dialogs)
     monkeypatch.setattr(chat_api, "thread_pool_exec", thread_pool_exec)
     monkeypatch.setattr(chat_api, "get_model_config_by_id", get_model_config_by_id)
     monkeypatch.setattr(chat_api, "resolve_model_id", resolve_model_id)
     return state
+
+
+@pytest.fixture
+def colleague(workspace):
+    """The same workspace, but the assistant was created by somebody else."""
+    workspace.dialogs._existing = _FakeDialog(_chat_payload(created_by=COLLEAGUE_ID))
+    return workspace
 
 
 def _set_request(monkeypatch, payload):
@@ -199,7 +195,7 @@ def _set_query(monkeypatch, args=None):
 
 
 # ---------------------------------------------------------------------------
-# Creating: bound to the workspace whose models it uses
+# Creating: the workspace's models, the caller's data
 # ---------------------------------------------------------------------------
 
 
@@ -219,18 +215,29 @@ def test_member_creates_an_assistant_in_the_resolved_workspace(workspace, monkey
     assert workspace.dialogs.saved["name"] == "member_chat"
 
 
-def test_the_created_assistant_is_bound_to_that_workspace(workspace, monkeypatch):
-    """The workspace owns the models, so the workspace is what the row names.
+def test_the_created_assistant_is_bound_to_the_workspace_and_owned_by_the_caller(workspace, monkeypatch):
+    """Models come from the workspace; ownership is the creator's alone.
 
-    Keyed on the creator's user id instead, the tenant of this row is a user id
-    that is not a tenant at all: `GET /chats/<id>` then matched none of the
-    caller's memberships and answered 109 for the assistant it had just made.
+    Keyed on the creator's user id for BOTH, the tenant of this row is a user id
+    that is not a tenant at all (109 on read, 102 on a model save, no answer at
+    all). Keyed on the workspace for BOTH, every colleague can see it - the
+    isolation defect. The two columns are two different answers.
     """
     _set_request(monkeypatch, {"name": "member_chat"})
 
     asyncio.run(chat_api.create.__wrapped__())
 
     assert workspace.dialogs.saved["tenant_id"] == WORKSPACE_ID
+    assert workspace.dialogs.saved["created_by"] == MEMBER_ID
+
+
+def test_a_client_cannot_choose_its_own_creator(workspace, monkeypatch):
+    """`created_by` is server-set: the readonly strip runs before it is written."""
+    _set_request(monkeypatch, {"name": "member_chat", "created_by": COLLEAGUE_ID})
+
+    asyncio.run(chat_api.create.__wrapped__())
+
+    assert workspace.dialogs.saved["created_by"] == MEMBER_ID
 
 
 def test_the_model_pair_is_validated_in_the_workspace_not_the_caller(workspace, monkeypatch):
@@ -255,78 +262,85 @@ def test_a_member_without_a_workspace_is_refused_cleanly(workspace, monkeypatch)
 
 
 # ---------------------------------------------------------------------------
-# Reading and updating: creator OR member of the owning workspace
+# Reading and updating: the creator alone
 # ---------------------------------------------------------------------------
 
 
-def test_a_member_of_the_owning_workspace_can_read_the_assistant(workspace):
-    """The reported defect: this answered `109 no authorization`."""
+def test_the_creator_can_read_its_own_assistant(workspace):
     res = asyncio.run(chat_api.get_chat.__wrapped__(CHAT_ID))
 
     assert res["code"] == 0, res
     assert res["data"]["id"] == CHAT_ID
-    assert workspace.membership_lookups == [{"user_id": MEMBER_ID, "tenant_id": WORKSPACE_ID}]
 
 
-def test_a_member_of_the_owning_workspace_can_save_a_model_into_it(workspace, monkeypatch):
-    """The other half of the defect: this answered 102 `llm_id … doesn't exist`."""
-    _set_request(monkeypatch, {"llm_id": "ws-model", "name": "renamed"})
-
-    res = asyncio.run(chat_api.patch_chat.__wrapped__(CHAT_ID))
-
-    assert res["code"] == 0, res
-    assert workspace.dialogs.updated["name"] == "renamed"
-    # The model is resolved in the assistant's own workspace -- the member's user
-    # id owns no models at all.
-    assert [tenant_id for tenant_id, _field in workspace.normalizations] == [WORKSPACE_ID, WORKSPACE_ID]
-
-
-def test_an_assistant_owned_by_the_caller_needs_no_membership(workspace, monkeypatch):
-    """A personal workspace IS the user id, and pre-change rows carry it too."""
-    workspace.dialogs._existing = _FakeDialog(_chat_payload(tenant_id=MEMBER_ID))
-
-    res = asyncio.run(chat_api.get_chat.__wrapped__(CHAT_ID))
-
-    assert res["code"] == 0, res
-    assert workspace.membership_lookups == [], "the creator branch answers without a membership lookup"
-
-
-def test_a_stranger_is_refused_as_a_permission_error(workspace, monkeypatch):
-    """Not 109: 109 means the session is not authenticated, and it is."""
-    workspace.memberships = []
-    workspace.dialogs._existing = _FakeDialog(_chat_payload(tenant_id=OTHER_WORKSPACE_ID))
-
+def test_a_colleague_of_the_same_workspace_cannot_read_it(colleague):
+    """The reported defect: the workspace's assistants were visible to everyone."""
     res = asyncio.run(chat_api.get_chat.__wrapped__(CHAT_ID))
 
     assert res["code"] == 108, res
     assert res["message"] == "no authorization"
 
 
-def test_a_deleted_assistant_is_not_accessible(workspace, monkeypatch):
-    workspace.dialogs._existing = _FakeDialog(_chat_payload(status="0"))
+def test_a_colleague_cannot_save_settings_on_it(colleague, monkeypatch):
+    _set_request(monkeypatch, {"name": "hijacked"})
+
+    res = asyncio.run(chat_api.patch_chat.__wrapped__(CHAT_ID))
+
+    assert res["code"] == 108, res
+    assert colleague.dialogs.updated == {}
+
+
+def test_a_colleague_cannot_chat_with_it(colleague, monkeypatch):
+    _set_request(monkeypatch, {"chat_id": CHAT_ID, "messages": [{"role": "user", "content": "hi"}]})
+
+    res = asyncio.run(chat_api.session_completion.__wrapped__())
+
+    assert res["code"] == 108, res
+
+
+def test_a_colleague_cannot_list_its_sessions(colleague, monkeypatch):
+    _set_query(monkeypatch)
+
+    res = asyncio.run(chat_api.list_sessions.__wrapped__(CHAT_ID))
+
+    assert res["code"] == 108, res
+
+
+def test_a_colleague_cannot_delete_it(colleague):
+    res = asyncio.run(chat_api.delete_chat.__wrapped__(CHAT_ID))
+
+    assert res["code"] == 108, res
+    assert colleague.dialogs.updated == {}
+
+
+def test_the_creator_can_save_a_model_and_it_resolves_in_the_workspace(workspace, monkeypatch):
+    _set_request(monkeypatch, {"llm_id": "ws-model", "name": "renamed"})
+
+    res = asyncio.run(chat_api.patch_chat.__wrapped__(CHAT_ID))
+
+    assert res["code"] == 0, res
+    assert workspace.dialogs.updated["name"] == "renamed"
+    # The member's user id owns no models at all; the assistant's workspace does.
+    assert [tenant_id for tenant_id, _field in workspace.normalizations] == [WORKSPACE_ID, WORKSPACE_ID]
+
+
+def test_an_assistant_without_a_creator_belongs_to_nobody(workspace):
+    """Legacy rows are covered by the migration, not by a fallback grant.
+
+    `created_by` NULL means the backfill has not claimed this row yet; granting
+    access on that basis would re-open the hole for exactly the rows nobody owns.
+    """
+    workspace.dialogs._existing = _FakeDialog(_chat_payload(created_by=None))
 
     res = asyncio.run(chat_api.get_chat.__wrapped__(CHAT_ID))
 
     assert res["code"] == 108, res
 
 
-def test_a_stranger_cannot_save_settings_on_someone_elses_assistant(workspace, monkeypatch):
-    workspace.memberships = []
-    workspace.dialogs._existing = _FakeDialog(_chat_payload(tenant_id=OTHER_WORKSPACE_ID))
-    _set_request(monkeypatch, {"name": "hijacked"})
+def test_a_deleted_assistant_is_not_accessible(workspace):
+    workspace.dialogs._existing = _FakeDialog(_chat_payload(status="0"))
 
-    res = asyncio.run(chat_api.patch_chat.__wrapped__(CHAT_ID))
-
-    assert res["code"] == 108, res
-    assert workspace.dialogs.updated == {}
-
-
-def test_a_stranger_cannot_chat_with_someone_elses_assistant(workspace, monkeypatch):
-    workspace.memberships = []
-    workspace.dialogs._existing = _FakeDialog(_chat_payload(tenant_id=OTHER_WORKSPACE_ID))
-    _set_request(monkeypatch, {"chat_id": CHAT_ID, "messages": [{"role": "user", "content": "hi"}]})
-
-    res = asyncio.run(chat_api.session_completion.__wrapped__())
+    res = asyncio.run(chat_api.get_chat.__wrapped__(CHAT_ID))
 
     assert res["code"] == 108, res
 
@@ -336,10 +350,18 @@ def test_a_stranger_cannot_chat_with_someone_elses_assistant(workspace, monkeypa
 # ---------------------------------------------------------------------------
 
 
-def test_the_chat_list_is_scoped_to_the_workspace_and_the_caller(workspace, monkeypatch):
-    """The workspace's assistants, plus the caller's own (personal / legacy)."""
+def test_the_chat_list_is_scoped_to_the_caller_and_its_workspace(workspace, monkeypatch):
+    """Personally private, inside the workspace whose models it consumes."""
     _set_query(monkeypatch)
 
     asyncio.run(chat_api.list_chats.__wrapped__())
 
-    assert workspace.dialogs.list_calls == [([WORKSPACE_ID], MEMBER_ID)]
+    assert workspace.dialogs.list_calls == [([WORKSPACE_ID], MEMBER_ID, MEMBER_ID)]
+
+
+def test_the_list_still_honours_an_explicit_owner_filter(workspace, monkeypatch):
+    _set_query(monkeypatch, {"owner_ids": WORKSPACE_ID})
+
+    asyncio.run(chat_api.list_chats.__wrapped__())
+
+    assert workspace.dialogs.list_calls == [([WORKSPACE_ID], MEMBER_ID, MEMBER_ID)]

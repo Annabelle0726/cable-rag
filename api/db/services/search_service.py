@@ -79,7 +79,7 @@ class SearchService(CommonService):
 
     @classmethod
     @DB.connection_context()
-    def get_by_tenant_ids(cls, joined_tenant_ids, user_id, page_number, items_per_page, orderby, desc, keywords):
+    def get_by_tenant_ids(cls, joined_tenant_ids, user_id, page_number, items_per_page, orderby, desc, keywords, created_by=None):
         fields = [
             cls.model.id,
             cls.model.avatar,
@@ -99,6 +99,12 @@ class SearchService(CommonService):
             .where(((cls.model.tenant_id.in_(joined_tenant_ids)) | (cls.model.tenant_id == user_id)) & (cls.model.status == StatusEnum.VALID.value))
         )
 
+        # A search app is PERSONALLY private - the workspace shares its models
+        # and datasets, not the apps built on them - so a caller that names a
+        # creator gets only that creator's rows. `None` keeps the historical
+        # workspace-wide behaviour for callers that do not ask for isolation.
+        if created_by is not None:
+            query = query.where(cls.model.created_by == created_by)
         if keywords:
             query = query.where(fn.LOWER(cls.model.name).contains(keywords.lower()))
         if desc:

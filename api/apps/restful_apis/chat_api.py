@@ -46,7 +46,7 @@ from api.db.services.dialog_service import DialogService, gen_mindmap, rag_agent
 from api.db.services.knowledgebase_service import KnowledgebaseService, validate_dataset_embedding_models
 from api.db.services.llm_service import LLMBundle
 from api.db.services.search_service import SearchService
-from api.db.services.user_service import TenantService, UserTenantService
+from api.db.services.user_service import TenantService
 from api.utils.api_utils import (
     check_duplicate_ids,
     get_data_error_result,
@@ -208,19 +208,13 @@ def _build_session_response(conv: dict) -> dict:
 
 
 async def _accessible_chat(chat_id):
-    """The assistant row when the caller may use it, or ``None``.
+    """The assistant row when the CALLER created it, or ``None``.
 
-    Two shapes are accessible, and both are needed:
-
-    * the caller CREATED it - the assistant's ``tenant_id`` is the caller's own
-      user id. That is the ordinary single-user case (a personal workspace *is*
-      the user id) and the shape every assistant created before assistants were
-      bound to the workspace they are used in carries;
-    * the caller is a MEMBER of the workspace that owns it - a ``user_tenant``
-      row for the assistant's tenant. An administrator or a member of a team
-      workspace uses that workspace's assistants; refusing here is what answered
-      ``109 no authorization`` for an assistant the caller had just created,
-      because the row was bound to a user id that is not a tenant at all.
+    Chat is personally private. A workspace shares its models - resolved in the
+    assistant's own ``tenant_id`` - and its datasets, never the assistants built
+    on top of them, so ownership is the creator alone and there is no membership
+    branch: showing a member the assistants of the workspace (let alone letting
+    it edit or chat with them) is a data-isolation defect, not sharing.
 
     A row (rather than a bool) is returned so a route can read the assistant's
     own tenant, which is the subject its models must be resolved in.
@@ -228,19 +222,18 @@ async def _accessible_chat(chat_id):
     ok, chat = await thread_pool_exec(DialogService.get_by_id, chat_id)
     if not ok or not chat or chat.status != StatusEnum.VALID.value:
         return None
-    if chat.tenant_id == current_user.id:
-        return chat
-    membership = await thread_pool_exec(UserTenantService.query, user_id=current_user.id, tenant_id=chat.tenant_id)
-    return chat if membership else None
+    if chat.created_by != current_user.id:
+        return None
+    return chat
 
 
 def _chat_denied():
     """A refusal the client reports as an authorization failure: code 108.
 
     109 is the AUTHENTICATION code, and it is what these routes used to answer
-    for an assistant the caller had created itself. A caller who is neither the
-    creator nor a member of the owning workspace is refused with 108, which is
-    what a permission denial means everywhere else in this API.
+    for an assistant the caller had created itself. A caller who did not create
+    the assistant is refused with 108, which is what a permission denial means
+    everywhere else in this API.
     """
     return get_json_result(data=False, message="no authorization", code=RetCode.PERMISSION_ERROR)
 
@@ -638,18 +631,22 @@ async def create():
         if DialogService.query(
             name=req["name"],
             tenant_id=workspace_id,
+            created_by=current_user.id,
             status=StatusEnum.VALID.value,
         ):
             return get_data_error_result(message="duplicated chat name in creating chat")
 
         req["id"] = get_uuid()
-        # The assistant belongs to the workspace it is used in: that is the
-        # tenant its chat/rerank models resolve in, the tenant its sessions are
-        # read through, and the tenant `_accessible_chat` authorizes against.
-        # The creator is recorded on the SESSION rows instead (see
-        # `create_session`), which is where "whose conversation is this" is
-        # actually asked.
+        # Two different things, and both are needed. The assistant is BOUND to
+        # the workspace it is used in, because that is the tenant its chat,
+        # rerank and TTS models are resolved in and the tenant its sessions are
+        # read through. The creator is recorded separately, because chat is
+        # PERSONALLY private: `tenant_id` names the whole team, so it cannot
+        # answer "whose assistant is this" - the list and `_accessible_chat`
+        # both read `created_by` for that. Set after the `_READONLY_FIELDS` strip
+        # above, so a request can never name its own creator.
         req["tenant_id"] = workspace_id
+        req["created_by"] = current_user.id
         if not DialogService.save(**req):
             return get_data_error_result(message="Failed to create chat.")
 
@@ -698,6 +695,7 @@ async def list_chats():
                 orderby,
                 desc,
                 keywords,
+                created_by=current_user.id,
                 **exact_filters,
             )
             chats = [chat for chat in chats if chat["tenant_id"] in owner_ids]
@@ -706,11 +704,14 @@ async def list_chats():
                 start = (page_number - 1) * items_per_page
                 chats = chats[start : start + items_per_page]
         else:
-            # Assistants live in the workspace they are used in, so the listing
-            # is that workspace's set. The caller's own id is passed alongside
-            # it because a personal workspace IS the user id, and because rows
-            # created before assistants were workspace-bound carry the creator's
-            # id: a member must keep seeing the assistants it already had.
+            # Assistants are PERSONALLY private, so the listing is the caller's
+            # own set. It is scoped to the workspace being used as well, because
+            # that is the tenant whose models the assistants consume (and a
+            # personal workspace IS the caller's own id, so a single-account
+            # deployment is unaffected). The caller's own id still rides along
+            # in the service's tenant predicate: rows created before assistants
+            # were workspace-bound carry the creator's user id as their tenant,
+            # and their owner must keep seeing them.
             workspace_id = _active_workspace_id()
             chats, total = await thread_pool_exec(
                 DialogService.get_by_tenant_ids,
@@ -721,6 +722,7 @@ async def list_chats():
                 orderby,
                 desc,
                 keywords,
+                created_by=current_user.id,
                 **exact_filters,
             )
 
@@ -938,12 +940,13 @@ async def bulk_delete_chats():
     ids = req.get("ids")
     if not ids:
         if req.get("delete_all") is True:
-            # "All" means the same set the listing shows: the caller's workspace,
-            # plus its own id (a personal workspace and the pre-workspace-bound
-            # rows both live there).
+            # "All" means the same set the listing shows: the caller's OWN
+            # assistants, in the workspace it is using. The caller's own id rides
+            # along in the tenant scope because rows created before assistants
+            # were workspace-bound carry it.
             workspace_id = _active_workspace_id()
             scope = {workspace_id, current_user.id} - {None}
-            ids = [chat.id for chat in DialogService.query(tenant_id=scope, status=StatusEnum.VALID.value)]
+            ids = [chat.id for chat in DialogService.query(tenant_id=scope, created_by=current_user.id, status=StatusEnum.VALID.value)]
             if not ids:
                 return get_json_result(data={})
         else:
@@ -951,6 +954,11 @@ async def bulk_delete_chats():
             chat_id = req.get("chat_id")
             if chat_id:
                 try:
+                    # The ownership guard is not optional on this path either: a
+                    # chat id alone must never be enough to delete someone
+                    # else's assistant.
+                    if not await _accessible_chat(chat_id):
+                        return _chat_denied()
                     if not DialogService.update_by_id(chat_id, {"status": StatusEnum.INVALID.value}):
                         return get_data_error_result(message=f"Failed to delete chat {chat_id}")
                     return get_json_result(data=True)

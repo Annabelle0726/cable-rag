@@ -23,7 +23,7 @@ import os
 import sys
 import time
 import typing
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from functools import wraps
 
@@ -1220,6 +1220,21 @@ class UserTenant(DataBaseModel):
         db_table = "user_tenant"
 
 
+class TenantInvite(DataBaseModel):
+    id = CharField(max_length=32, primary_key=True)
+    tenant_id = CharField(max_length=32, null=False, index=True)
+    email = CharField(max_length=255, null=False, index=True)
+    role = CharField(max_length=32, null=False, default="normal")
+    department_id = CharField(max_length=32, null=True)
+    token = CharField(max_length=32, null=False, unique=True)
+    status = CharField(max_length=16, null=False, default="pending")
+    invited_by = CharField(max_length=32, null=False)
+    expires_at = DateTimeField(null=False, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=72))
+
+    class Meta:
+        db_table = "tenant_invite"
+
+
 class Department(DataBaseModel):
     """An organisational unit inside one tenant.
 
@@ -1546,6 +1561,14 @@ class Task(DataBaseModel):
 class Dialog(DataBaseModel):
     id = CharField(max_length=32, primary_key=True)
     tenant_id = CharField(max_length=32, null=False, index=True)
+    # The CREATOR. Chat is personally private: a workspace shares its models
+    # (resolved in `tenant_id`) and its datasets, never the assistants built on
+    # top of them, so `tenant_id` alone cannot answer "whose assistant is this"
+    # - after assistants were bound to the workspace it names the whole team.
+    # Nullable only because rows predating this column carry no creator; the
+    # migration backfills them from `tenant_id`, which used to BE the creator's
+    # user id.
+    created_by = CharField(max_length=32, null=True, help_text="creator user id", index=True)
     name = CharField(max_length=255, null=True, help_text="dialog application name", index=True)
     description = EmptyStringTextField(null=True, help_text="Dialog description")
     icon = EmptyStringTextField(null=True, help_text="icon base64 string")
@@ -2569,6 +2592,15 @@ def migrate_db():
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_secret_key")
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_public_key")
     alter_db_drop_index(migrator, "tenant_langfuse", "idx_tenant_langfuse_host")
+    # Chat is personally private. `dialog` carried no creator at all: its
+    # `tenant_id` was the only ownership it had, and that column now names the
+    # WORKSPACE the assistant is used in (it is the tenant its models resolve
+    # in), so it can no longer be read as "who made this".
+    alter_db_add_column(migrator, "dialog", "created_by", CharField(max_length=32, null=True, help_text="creator user id", index=True))
+    # The invitation column lives here with the other compatible additions
+    # rather than next to the table it belongs to: every alter_db_* call must
+    # precede the relax below (see the comment on it).
+    alter_db_add_column(migrator, "tenant_invite", "department_id", CharField(max_length=32, null=True))
     # Run after all alter_db_* calls so newly added compatible columns, such as
     # user_canvas.tags, exist before their GaussDB NOT NULL constraints relax.
     relax_gaussdb_empty_string_compatible_columns()
@@ -2611,7 +2643,38 @@ def migrate_db():
     # this is after re-enabling logging to allow logging changed user emails
     migrate_add_unique_email(migrator)
     migrate_model_type_names()
+    migrate_dialog_created_by()
     ensure_model_indexes(migrator)
+
+    # P2: append-only invitation migration; existing tables are not recreated.
+    # (Its `department_id` column is added with the other alters above, before
+    # the relax.)
+    TenantInvite.create_table(safe=True)
+
+
+def migrate_dialog_created_by():
+    """Give every assistant that predates `dialog.created_by` a creator.
+
+    `tenant_id` is the right answer for both historical shapes, and it is exact
+    for the original one: before assistants were bound to a workspace,
+    `dialog.tenant_id` WAS the creator's user id (a personal workspace is the
+    user's own id), so the creator is recoverable rather than guessed. Rows
+    created in the short window since - bound to the workspace, whose owner is
+    the workspace's creator - land on the workspace owner, which is the only
+    defensible single owner: leaving them NULL would hide an assistant from
+    whoever made it, and the alternative (the one account that has chatted in
+    it) would hand ownership to a reader rather than its author.
+
+    Idempotent: it only touches rows that still have no creator.
+    """
+    if not DB.table_exists("dialog"):
+        return
+    try:
+        cursor = DB.execute_sql("UPDATE dialog SET created_by = tenant_id WHERE created_by IS NULL")
+        if cursor.rowcount:
+            logging.info("Backfilled dialog.created_by for %s assistant(s) from their tenant", cursor.rowcount)
+    except Exception as ex:  # noqa: BLE001 - a failed backfill must not block startup
+        logging.warning("Failed to backfill dialog.created_by: %s", ex)
 
 
 def migrate_model_type_names():

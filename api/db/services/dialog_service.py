@@ -209,12 +209,14 @@ class DialogService(CommonService):
         keywords,
         id=None,
         name=None,
+        created_by=None,
     ):
         from api.db.db_models import User
 
         fields = [
             cls.model.id,
             cls.model.tenant_id,
+            cls.model.created_by,
             cls.model.name,
             cls.model.description,
             cls.model.language,
@@ -244,6 +246,12 @@ class DialogService(CommonService):
                 (cls.model.tenant_id.in_(joined_tenant_ids) | (cls.model.tenant_id == user_id)) & (cls.model.status == StatusEnum.VALID.value),
             )
         )
+        # Assistant lists are PERSONALLY private: a workspace shares its models
+        # and datasets, never the assistants built on them. Callers that pass a
+        # creator get only that creator's rows; `None` keeps the historical
+        # workspace-wide behaviour for callers that do not ask for isolation.
+        if created_by is not None:
+            dialogs = dialogs.where(cls.model.created_by == created_by)
         if id:
             dialogs = dialogs.where(cls.model.id == id)
         if name:
