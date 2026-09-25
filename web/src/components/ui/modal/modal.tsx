@@ -2,7 +2,7 @@
 import { cn } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { AlertCircle, CheckCircle, Info, Loader, X } from 'lucide-react';
-import React, { FC, ReactNode, useCallback, useEffect, useMemo } from 'react';
+import React, { FC, ReactNode, useCallback, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
 import { DialogDescription } from '../dialog';
@@ -99,15 +99,21 @@ const Modal: ModalType = ({
   };
 
   const { t } = useTranslation();
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && maskClosable) {
-        onOpenChange?.(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [maskClosable, onOpenChange]);
+  const handleInteractOutside = useCallback<
+    NonNullable<
+      React.ComponentProps<typeof DialogPrimitive.Content>['onInteractOutside']
+    >
+  >((event) => {
+    const target = event.detail.originalEvent.target;
+    // Select options live in a body portal, outside this dialog's DOM subtree.
+    // Keep the parent open while Radix handles the nested floating layer.
+    if (
+      target instanceof Element &&
+      target.closest('[data-radix-select-viewport], [role="listbox"]')
+    ) {
+      event.preventDefault();
+    }
+  }, []);
 
   const handleCancel = useCallback(() => {
     onOpenChange?.(false);
@@ -222,7 +228,6 @@ const Modal: ModalType = ({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
           className="fixed inset-0 z-[1000] bg-bg-card backdrop-blur-[1px] flex items-center justify-center p-4"
-          onClick={() => maskClosable && onOpenChange?.(false)}
           style={{ zIndex: zIndex }}
         >
           <DialogPrimitive.Content
@@ -230,6 +235,7 @@ const Modal: ModalType = ({
               `relative w-[700px] ${full ? 'max-w-full' : sizeClasses[size]} ${className} bg-bg-base rounded-lg shadow-lg border border-border-default transition-all focus-visible:!outline-none`,
               { 'pt-10': closable && !title && !type },
             )}
+            onInteractOutside={handleInteractOutside}
             data-testid={testId}
             style={style}
             onClick={(e) => e.stopPropagation()}

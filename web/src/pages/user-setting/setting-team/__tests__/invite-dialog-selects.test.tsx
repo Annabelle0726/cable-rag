@@ -89,4 +89,16 @@ describe('invite dialog pickers', () => {
     expect(within(dialog).getByText('Role')).toBeInTheDocument();
     expect(within(dialog).queryByText('State')).toBeNull();
   });
+
+  it('Escape closes only the role popup before closing the parent dialog', async () => {
+    const user = userEvent.setup();
+    const { roleTrigger } = await renderDialog();
+    await user.click(roleTrigger);
+    expect(await screen.findByRole('listbox')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(hideModal).not.toHaveBeenCalled();
+    await user.keyboard('{Escape}');
+    expect(hideModal).toHaveBeenCalledTimes(1);
+  });
 });
