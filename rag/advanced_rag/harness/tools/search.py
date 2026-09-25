@@ -53,6 +53,21 @@ _DEFAULT_TOP_N = 12
 _DEFAULT_RERANK_CANDIDATES = 64
 _DEFAULT_TOP_K = 1024
 
+# Gate a hybrid search falls back to when the caller's own threshold returned
+# nothing. An absolute similarity threshold is only comparable inside ONE
+# corpus/embedding pair, because the fused score is
+# ``vector_weight * cosine + term_weight * term_recall`` and both legs' scales are
+# properties of the deployed models: on the cable corpus the embedding leg alone
+# contributes ~0.45 for EVERY chunk (measured cosines 0.88-0.92), so a threshold
+# calibrated on a setup with a wider cosine spread can sit above the entire
+# candidate pool. When that happens the knowledge base was searched and the gate,
+# not the corpus, produced the empty result — an answer layer that reads "no
+# chunks" as "the knowledge base cannot answer this" then refuses a question the
+# corpus answers verbatim. The floor is the long-standing hybrid default, and it
+# is applied ONLY when the configured threshold returned nothing, so a threshold
+# that does discriminate keeps its effect on the tail.
+_THRESHOLD_RESCUE_FLOOR = _DEFAULT_SIMILARITY_THRESHOLD
+
 
 def _setting(tools, name: str, default):
     """Read a retrieval setting off ``tools``. ``None`` means unset; 0.0 is a valid value."""
@@ -95,17 +110,21 @@ def _resolve_target_ids(tools, kb_ids) -> list:
     return target_ids
 
 
-def _search_cache_key(effective_query: str, target_ids, top_n: int, doc_scope) -> tuple:
+def _search_cache_key(effective_query: str, target_ids, top_n: int, doc_scope, keywords: str = "") -> tuple:
     """Key a retrieval by what actually determines its result.
 
     Includes the scope/limits so semantically different searches are never
     collapsed together — only a genuinely identical query is served from cache.
+    ``keywords`` is part of the key because the cached value is the NARROWED
+    pool: two calls over the same query with different keyword hints return
+    different passage text.
     """
     return (
         " ".join((effective_query or "").split()).lower(),
         tuple(sorted(target_ids or ())),
         int(top_n),
         tuple(sorted(doc_scope or ())),
+        " ".join((keywords or "").split()).lower(),
     )
 
 
@@ -125,7 +144,7 @@ def _normalize(kbinfos: dict, tenant_ids: list[str] | str | None) -> dict:
 
 
 async def hybrid_search(
-    tools, query: str, kb_ids: list[str] | None = None, top_n: int | None = None, doc_scope: list[str] | None = None, keywords: str = "", retrieval_query: str = "", use_compiled: bool = False
+    tools, query: str, kb_ids: list[str] | None = None, top_n: int | None = None, doc_scope: list[str] | None = None, keywords: str = "", use_compiled: bool = False
 ) -> dict:
     top_n = _resolve_top_n(tools, top_n)
     target_ids = _resolve_target_ids(tools, kb_ids)
@@ -135,20 +154,26 @@ async def hybrid_search(
         doc_scope = tools.scoped_doc_ids(doc_scope)
     _LOG.info(f'[Hybrid search] Searching the knowledge base for "{query}" (keywords: {keywords})')
 
-    # Query expansion: append the entity-weighted ``retrieval_query`` (entity
-    # terms repeated so BM25 weights them up inside the same query) — the plain
-    # keyword union or the compact formalize keywords fall back when none is
-    # supplied. ``keywords`` is always used only to narrow retrieved chunks.
-    if retrieval_query:
-        effective_query = f"{query} {retrieval_query}".strip()[:400]
-    else:
-        effective_query = f"{query} {keywords}".strip() if keywords else query
+    # The scored query is the caller's own text. The extracted keyword /
+    # entity-weighted expansion is deliberately NOT concatenated onto it: the
+    # fused score's text leg is a query-RECALL RATIO (``Qryr.token_similarity``
+    # divides the matched term weight by the query's TOTAL term weight), so every
+    # appended term that a passage does not contain lowers that passage's score.
+    # Measured on the cable corpus with the question "检测机构完成 A、B、C 类检测任务
+    # 的时限分别是多少": the chunk carrying the answer (5.8.11 "…A、B、C类检测任务应
+    # 分别在收样后20、15、10个工作日内完成") scores 0.6085 on the question alone and
+    # 0.5283 with the weighted expansion appended — the same chunk, same rank 1,
+    # pushed under a 0.55 threshold it otherwise clears. ``keywords`` still drives
+    # narrowing below, and the BM25-only legs keep taking a keyword hint: that is
+    # where exact-surface recall belongs, and they have no absolute gate for a
+    # hint to trip.
+    effective_query = " ".join(str(query or "").split())[:400]
 
     # Per-request dedup: an identical query+scope is retrieved at most once, so
     # e.g. pre_search and a claim search asking the same question don't repeat
     # the ES round-trip, child fetch and narrowing.
     cache = getattr(tools, "search_cache", None)
-    cache_key = _search_cache_key(effective_query, target_ids, top_n, doc_scope)
+    cache_key = _search_cache_key(effective_query, target_ids, top_n, doc_scope, keywords)
     if cache is not None and cache_key in cache:
         cached = cache[cache_key]
         _LOG.info(f"[Hybrid search] Already searched this — reusing the {len(cached.get('chunks', []))} passage(s) found earlier.")
@@ -169,24 +194,43 @@ async def hybrid_search(
         knn_top_k,
         rerank_candidates_count,
     )
-    kbinfos = await settings.retriever.retrieval(
-        effective_query,
-        embd_mdl,
-        tools.tenant_ids,
-        target_ids,
-        1,
-        top_n,
-        similarity_threshold,
-        vector_similarity_weight=vector_weight,
-        knn_top_k=knn_top_k,
-        aggs=True,
-        highlight=False,
-        doc_ids=doc_scope,
-        must_not={"exists": "compile_kwd"},  # plain retrieval = document chunks only; compiled products have their own tools
-        rerank_candidates_count=rerank_candidates_count,
-        allow_dense_fallback=False,
-    )
-    kbinfos = _normalize(kbinfos, tools.tenant_ids)
+
+    async def _retrieve(threshold: float) -> dict:
+        res = await settings.retriever.retrieval(
+            effective_query,
+            embd_mdl,
+            tools.tenant_ids,
+            target_ids,
+            1,
+            top_n,
+            threshold,
+            vector_similarity_weight=vector_weight,
+            knn_top_k=knn_top_k,
+            aggs=True,
+            highlight=False,
+            doc_ids=doc_scope,
+            must_not={"exists": "compile_kwd"},  # plain retrieval = document chunks only; compiled products have their own tools
+            rerank_candidates_count=rerank_candidates_count,
+            allow_dense_fallback=False,
+        )
+        return _normalize(res, tools.tenant_ids)
+
+    kbinfos = await _retrieve(similarity_threshold)
+    if not (kbinfos.get("chunks") or []) and float(similarity_threshold or 0.0) > _THRESHOLD_RESCUE_FLOOR:
+        # The threshold emptied a pool the corpus can fill (see the floor's
+        # comment). Retry once below it rather than reporting an empty knowledge
+        # base: the answer layer treats "no chunks" as "cannot be answered".
+        _LOG.warning(
+            '[Hybrid search] "%s" -> 0 chunk(s) at the configured threshold=%s (vector_weight=%s); re-running with the %.2f recall floor.',
+            effective_query[:80],
+            similarity_threshold,
+            vector_weight,
+            _THRESHOLD_RESCUE_FLOOR,
+        )
+        rescued = await _retrieve(_THRESHOLD_RESCUE_FLOOR)
+        if rescued.get("chunks"):
+            kbinfos = rescued
+            similarity_threshold = _THRESHOLD_RESCUE_FLOOR
     # Preserve the RAW retrieved chunks in the central memory store BEFORE any
     # narrowing. search is cheap and the raw corpus may hold a fact the LLM's
     # report/grounded extraction later compresses away — a gap-driven grep over

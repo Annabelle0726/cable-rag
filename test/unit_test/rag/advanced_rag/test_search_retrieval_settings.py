@@ -23,6 +23,13 @@ fields; the agentic search framework (#16859) reimplemented retrieval without th
 
 `vector_search` and `bm25_search` keep their own weights and thresholds: those are
 what those tools mean, not a default standing in for configuration.
+
+The second half covers the two ways the caller's threshold used to silence a
+knowledge base that could answer: appending the extracted keyword expansion to the
+scored query lowered every passage's score (the text leg is a query-RECALL ratio),
+and applying the raw threshold as a hard cut then emptied the pool. Both are
+reproduced from the cable assistant, whose retrieved answer chunk scored 0.6085 on
+its question and 0.5283 with the expansion appended, under a 0.55 threshold.
 """
 
 import logging
@@ -48,14 +55,23 @@ class _Tools:
 
 
 class _Recorder:
-    """Captures the arguments of the single retrieval call a search tool makes."""
+    """Captures the arguments of every retrieval call a search tool makes.
+
+    ``args``/``kwargs`` expose the FIRST call — the one made with the caller's own
+    settings — because a search may legitimately issue a second call (the
+    threshold rescue), and "which settings did this tool ask for" is a question
+    about the first. ``calls`` keeps them all.
+    """
 
     def __init__(self):
         self.args = None
         self.kwargs = None
+        self.calls = []
 
     async def retrieval(self, *args, **kwargs):
-        self.args, self.kwargs = args, kwargs
+        self.calls.append((args, kwargs))
+        if self.args is None:
+            self.args, self.kwargs = args, kwargs
         return {"chunks": [], "doc_aggs": []}
 
     @staticmethod
@@ -241,3 +257,127 @@ async def test_hybrid_search_reports_a_zero_result_search(recorder, caplog):
         await search_tools.hybrid_search(_Tools(), query="q")
 
     assert "0 chunk(s)" in caplog.text
+
+
+class _ThresholdScript:
+    """Retriever that answers per similarity threshold — the gate is the subject.
+
+    Records every threshold it was called with so a test can tell "the configured
+    threshold was used" from "it was replaced" and from "the search ran twice".
+    """
+
+    def __init__(self, by_threshold):
+        self.by_threshold = by_threshold
+        self.thresholds = []
+
+    async def retrieval(self, *args, **kwargs):
+        threshold = args[6]
+        self.thresholds.append(threshold)
+        return {"chunks": list(self.by_threshold.get(threshold, [])), "doc_aggs": []}
+
+    @staticmethod
+    def retrieval_by_children(chunks, _tenant_ids):
+        return chunks
+
+
+@pytest.fixture
+def scripted(monkeypatch):
+    def _install(by_threshold):
+        rec = _ThresholdScript(by_threshold)
+        monkeypatch.setattr(search_tools.settings, "retriever", rec)
+        monkeypatch.setattr(search_tools, "_normalize", lambda kbinfos, tenant_ids: kbinfos)
+        return rec
+
+    return _install
+
+
+async def test_hybrid_search_scores_the_question_alone(recorder):
+    """The keyword expansion is a narrowing hint, never extra query text.
+
+    `Qryr.token_similarity` divides the matched term weight by the query's TOTAL
+    term weight, so appending extracted terms a passage does not contain lowers
+    that passage's score — which is how a retrieved answer chunk fell from 0.6085
+    to 0.5283 and under the assistant's 0.55 threshold.
+    """
+    await search_tools.hybrid_search(
+        _Tools(),
+        query="检测机构完成 A、B、C 类检测任务的时限分别是多少",
+        keywords="检测机构, 时限, 工作日, A类, B类, C类",
+    )
+
+    assert recorder.args[0] == "检测机构完成 A、B、C 类检测任务的时限分别是多少"
+
+
+async def test_hybrid_search_normalises_the_scored_query(scripted):
+    """Whitespace in the query must not cost a cache hit on the same question."""
+    rec = scripted({0.2: [{"chunk_id": "c1"}]})
+    tools = _Tools(search_cache={})
+
+    await search_tools.hybrid_search(tools, query="  a\n b  ")
+    await search_tools.hybrid_search(tools, query="a b")
+
+    assert len(rec.thresholds) == 1, "the same question must be retrieved once"
+
+
+async def test_hybrid_search_rescues_a_pool_the_threshold_emptied(scripted):
+    """A threshold above every candidate is a mis-set gate, not an empty corpus.
+
+    The fused score is ``vector_weight * cosine + term_weight * term_recall``, and
+    both legs' scales belong to the deployed models — on the cable corpus the
+    embedding leg alone gives every chunk ~0.45 — so a threshold tuned elsewhere
+    can sit above the whole pool. An answer layer reading "no chunks" as "cannot be
+    answered" then refuses a question the corpus answers verbatim, so the search
+    re-runs once at the recall floor instead.
+    """
+    rec = scripted({search_tools._THRESHOLD_RESCUE_FLOOR: [{"chunk_id": "answer"}]})
+    tools = _Tools(similarity_threshold=0.55, vector_similarity_weight=0.5, top_n=12, rerank_candidates_count=30)
+
+    res = await search_tools.hybrid_search(tools, query="q")
+
+    assert rec.thresholds == [0.55, search_tools._THRESHOLD_RESCUE_FLOOR]
+    assert [c["chunk_id"] for c in res["chunks"]] == ["answer"]
+
+
+async def test_hybrid_search_logs_the_rescue(scripted, caplog):
+    """The substitution is visible in the transcript, or the tuning looks applied."""
+    scripted({search_tools._THRESHOLD_RESCUE_FLOOR: [{"chunk_id": "answer"}]})
+
+    with caplog.at_level(logging.WARNING):
+        await search_tools.hybrid_search(_Tools(similarity_threshold=0.55), query="q")
+
+    assert "recall floor" in caplog.text
+
+
+async def test_hybrid_search_keeps_a_threshold_that_discriminates(scripted):
+    """A threshold that returns anything keeps its effect on the tail untouched."""
+    rec = scripted({0.55: [{"chunk_id": "kept"}], search_tools._THRESHOLD_RESCUE_FLOOR: [{"chunk_id": "tail"}]})
+    tools = _Tools(similarity_threshold=0.55, top_n=12, rerank_candidates_count=30)
+
+    res = await search_tools.hybrid_search(tools, query="q")
+
+    assert rec.thresholds == [0.55]
+    assert [c["chunk_id"] for c in res["chunks"]] == ["kept"]
+
+
+async def test_hybrid_search_does_not_retry_at_or_below_the_floor(scripted):
+    """Nothing to fall back TO below the floor: a bare default reports an empty result."""
+    rec = scripted({})
+    tools = _Tools(similarity_threshold=search_tools._THRESHOLD_RESCUE_FLOOR)
+
+    res = await search_tools.hybrid_search(tools, query="q")
+
+    assert rec.thresholds == [search_tools._THRESHOLD_RESCUE_FLOOR]
+    assert res["chunks"] == []
+
+
+async def test_the_result_cache_is_keyed_by_the_narrowing_keywords(scripted):
+    """The cached entry is the NARROWED pool, so the hint is part of the key."""
+    rec = scripted({0.2: [{"chunk_id": "c1"}]})
+    tools = _Tools(search_cache={})
+
+    await search_tools.hybrid_search(tools, query="q", keywords="时限")
+    await search_tools.hybrid_search(tools, query="q", keywords="工作日")
+    await search_tools.hybrid_search(tools, query="q", keywords="时限")
+
+    assert len(rec.thresholds) == 2, "a different keyword hint is a different result"
+

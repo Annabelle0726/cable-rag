@@ -496,7 +496,12 @@ class RAGTools:
         user_msgs = [m for m in messages if (isinstance(m, str) or m.get("role", "user") == "user")]
         multi_turn = len(user_msgs) > 1
         if not multi_turn and last_user:
-            _LOG.info("[Formalize] Single-turn self-contained question — kept verbatim (no rewrite): %s", last_user.strip()[:120])
+            # No rewrite pass, but NOT "no query preprocessing": the question is
+            # already standalone, while the entity/keyword extraction below is
+            # still what feeds chunk narrowing and the BM25 legs. The log line
+            # says so explicitly — the previous wording ("no rewrite") read in the
+            # transcript as if query preprocessing had been skipped entirely.
+            _LOG.info("[Formalize] Single-turn question is already self-contained — kept verbatim, extracting search keywords instead: %s", last_user.strip()[:120])
             try:
                 keywords = await self.extract_keywords(last_user)
             except Exception as exc:
