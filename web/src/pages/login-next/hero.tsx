@@ -57,7 +57,7 @@ export function LoginHero() {
         <section className="relative hidden min-w-0 flex-col gap-6 lg:col-span-5 lg:flex">
             <div className="flex flex-col gap-3">
                 <span
-                    className="flex h-12 w-fit items-center justify-center bg-transparent dark:rounded-lg dark:bg-white dark:px-3 dark:py-1.5">
+                    className="flex h-12 w-fit items-center justify-center bg-transparent dark:rounded-lg dark:py-1.5">
   <BrandLogo variant="lockup" className="h-9 w-auto"/>
 </span>
 

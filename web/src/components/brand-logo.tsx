@@ -1,38 +1,27 @@
-import brandLockup from '@/assets/icon/brand-lockup.png';
+/*
+ *  Copyright 2026 The InfiniFlow Authors. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 import brandMark from '@/assets/icon/brand-mark.png';
 import brandPoster from '@/assets/icon/brand-poster.jpg';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
-/**
- * The company artwork, in the three shapes the console needs.
- *
- * `brand-mark.png` and `brand-lockup.png` are the assets rendered from the
- * supplied artwork (`芯导logo.jpg`, which sits beside them untouched) and
- * `brand-poster.jpg` is its tall companion (`芯导logo2.jpg`). All three are
- * company marks, so the product name (`文若RAG` / `Wenruo RAG`) stays real text
- * next to them rather than being baked in.
- *
- * `object-contain` is part of the contract: the slots these land in are square
- * (avatars, icon tiles) or short rails, so fitting — never filling — is what
- * keeps the artwork undistorted. The artwork is drawn on white, so a caller that
- * puts it on a coloured surface has to give it a light tile, which is what the
- * app bar does.
- */
 export type BrandLogoVariant = 'mark' | 'lockup' | 'poster';
 
-const brandSources: Record<BrandLogoVariant, string> = {
-  mark: brandMark,
-  lockup: brandLockup,
-  poster: brandPoster,
-};
-
 type BrandLogoProps = {
-  /**
-   * `mark` is the graphic alone, for small slots; `lockup` is the wide company
-   * mark-and-wordmark, for the app bar; `poster` is the tall artwork, for the
-   * sign-in column where there is room to read it.
-   */
   variant?: BrandLogoVariant;
   className?: string;
   alt?: string;
@@ -45,9 +34,39 @@ export function BrandLogo({
 }: BrandLogoProps) {
   const { t } = useTranslation();
 
+  if (variant === 'lockup') {
+    return (
+      <div className={cn('inline-flex items-center gap-3 bg-transparent', className)}>
+        <img
+          src={brandMark}
+          alt={alt ?? t('header.brandShort')}
+          className="h-9 w-auto shrink-0 object-contain"
+        />
+        <div className="flex flex-col justify-center leading-none">
+          <span className="text-lg font-bold tracking-tight text-text-primary">
+            芯导软件
+          </span>
+          <span className="mt-1 text-[10px] font-semibold tracking-wider text-text-tertiary">
+            XINDAO SOFTWARE
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 'poster') {
+    return (
+      <img
+        src={brandPoster}
+        alt={alt ?? t('header.brandShort')}
+        className={cn('object-contain', className)}
+      />
+    );
+  }
+
   return (
     <img
-      src={brandSources[variant]}
+      src={brandMark}
       alt={alt ?? t('header.brandShort')}
       className={cn('object-contain', className)}
     />
