@@ -2314,7 +2314,7 @@ export default {
       apiVersionMessage: 'Please input API version',
       add: 'Add',
       updateDate: 'Date',
-      role: 'State',
+      role: 'Role',
       invite: 'Invite member',
       inviteTip:
         'Only registered users can be invited. Please register the account before sending an invitation.',

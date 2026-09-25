@@ -1925,7 +1925,7 @@ export default {
       apiVersionMessage: '请输入API版本!',
       add: '添加',
       updateDate: '日期',
-      role: '状态',
+      role: '角色',
       invite: '邀请成员',
       inviteTip: '仅支持邀请已注册用户，请先完成注册。',
       inviteRoleTip: '角色即时生效。管理员可以管理成员与模型配置。',
