@@ -39,9 +39,20 @@ export const useAddUser = () => {
       departmentId?: string | null;
       title?: string | null;
     }) => {
-      const code = await addTenantUser(values);
-      if (code === 0) {
-        hideAddingTenantModal();
+      // A refused invite (the address is already a member, or has no account) is
+      // reported by the request layer with the server's own message and resolves
+      // with `code !== 0`, which keeps the dialog open. A transport failure
+      // REJECTS instead, and this callback is async: without this catch the
+      // rejection escapes as an unhandled one, which is what turns a failed
+      // invite into a broken page rather than a closed dialog.
+      try {
+        const code = await addTenantUser(values);
+        if (code === 0) {
+          hideAddingTenantModal();
+        }
+      } catch {
+        // Already toasted by the request layer; the dialog stays open so the
+        // invitation can be retried without retyping it.
       }
     },
     [addTenantUser, hideAddingTenantModal],
@@ -69,8 +80,14 @@ export const useHandleAgreeTenant = () => {
   const handleAgree = (tenantId: string, isAgree: boolean) => () => {
     if (isAgree) {
       agreeTenant(tenantId);
-    } else {
-      deleteTenantUser({ tenantId, userId: user.id });
+      return;
+    }
+    // Declining an invitation removes the caller's own membership row, so it
+    // needs the caller's id: `/users/me` has not answered yet on a fast click,
+    // and a DELETE carrying `undefined` is a request that cannot succeed.
+    const userId = user?.id;
+    if (userId) {
+      deleteTenantUser({ tenantId, userId });
     }
   };
 

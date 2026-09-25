@@ -417,11 +417,20 @@ export const useAddTenantUser = () => {
       departmentId?: string | null;
       title?: string | null;
     }) => {
-      const { data } = await addTenantUser(tenantInfo.tenant_id, email, role, {
+      const tenantId = tenantInfo.tenant_id;
+      if (!tenantId) {
+        // `/users/me/models` has not answered yet, so there is no workspace to
+        // invite into: posting anyway would build `/tenants/undefined/users`.
+        return undefined;
+      }
+      const { data } = await addTenantUser(tenantId, email, role, {
         departmentId,
         title,
       });
-      if (data.code === 0) {
+      // `data?.code`: a reply with no body leaves `data` undefined, and reading
+      // `.code` off it would throw inside the mutation and surface as an
+      // unhandled rejection rather than a refused invitation.
+      if (data?.code === 0) {
         queryClient.invalidateQueries({
           queryKey: UserSettingKeys.tenantRoster(),
         });
