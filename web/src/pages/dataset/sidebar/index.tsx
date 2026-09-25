@@ -69,7 +69,7 @@ export function SideBar({ dataset: data }: PropType) {
       },
       {
         icon: <LucideBookText className="size-[1em]" />,
-        label: 'Artifacts',
+        label: t('knowledgeDetails.artifacts'),
         key: Routes.Compilation,
       },
     ];
@@ -80,87 +80,86 @@ export function SideBar({ dataset: data }: PropType) {
   return (
     <aside
       className={cn(
-        'flex shrink-0 flex-col relative min-h-0 transition-[width] duration-200 ease-in-out motion-reduce:transition-none',
+        'flex h-full shrink-0 flex-col relative min-h-0 overflow-hidden transition-[width] duration-200 ease-in-out motion-reduce:transition-none',
         collapsed ? 'w-16' : 'w-64',
       )}
       data-collapsed={Boolean(collapsed)}
     >
-      <div className="flex justify-end px-3 pb-3">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleCollapsed}
-              aria-expanded={!collapsed}
-              aria-label={t(
+      <header className="shrink-0 px-3 pb-3">
+        <div className="flex min-w-0 items-center justify-end gap-2">
+          {!collapsed && (
+            <h3
+              className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary"
+              title={data.name}
+            >
+              {data.name}
+            </h3>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                onClick={toggleCollapsed}
+                aria-expanded={!collapsed}
+                aria-label={t(
+                  collapsed
+                    ? 'knowledgeDetails.expandSidebar'
+                    : 'knowledgeDetails.collapseSidebar',
+                )}
+              >
+                {collapsed ? (
+                  <PanelLeftOpen className="size-4" />
+                ) : (
+                  <PanelLeftClose className="size-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {t(
                 collapsed
                   ? 'knowledgeDetails.expandSidebar'
                   : 'knowledgeDetails.collapseSidebar',
               )}
-            >
-              {collapsed ? (
-                <PanelLeftOpen className="size-4" />
-              ) : (
-                <PanelLeftClose className="size-4" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {t(
-              collapsed
-                ? 'knowledgeDetails.expandSidebar'
-                : 'knowledgeDetails.collapseSidebar',
-            )}
-          </TooltipContent>
-        </Tooltip>
-      </div>
-      {!collapsed && (
-        <header
-          className="px-5 pb-4 grid grid-cols-[auto_1fr] grid-rows-[auto_auto] gap-x-3"
-          style={{
-            gridTemplateAreas: '"avatar title" "avatar stats"',
-          }}
-        >
-          {/* The same mark the knowledge-base card shows: the owner's uploaded image
-            when there is one, the class icon otherwise — never the first character
-            of the name. */}
-          <DatasetIdentityMark
-            dataset={data}
-            className="size-16"
-            iconClassName="size-7"
-            style={{ gridArea: 'avatar' }}
-          />
-
-          <h3
-            className="text-lg font-semibold line-clamp-1 text-text-primary text-ellipsis overflow-hidden"
-            style={{ gridArea: 'title' }}
-          >
-            {data.name}
-          </h3>
-
-          <div
-            className="self-end text-text-secondary text-xs overflow-hidden"
-            style={{ gridArea: 'stats' }}
-          >
-            <div className="flex justify-between">
-              <span>
-                {data.document_count} {t('knowledgeDetails.files')}
-              </span>
-              <span>{data.size ? formatBytes(data.size) : ''}</span>
-            </div>
-
-            <div className="mt-0.5">
-              {t('knowledgeDetails.created')} {formatPureDate(data.create_time)}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        {!collapsed && (
+          <div className="mt-2 flex min-w-0 items-center gap-2">
+            <DatasetIdentityMark
+              dataset={data}
+              className="size-8 shrink-0"
+              iconClassName="size-4"
+            />
+            <div className="min-w-0 text-xs leading-5 text-text-secondary">
+              <div className="flex flex-wrap items-center gap-x-1">
+                <span>
+                  {data.document_count} {t('knowledgeDetails.files')}
+                </span>
+                {data.size !== undefined && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>{formatBytes(data.size)}</span>
+                  </>
+                )}
+              </div>
+              <div>
+                {t('knowledgeDetails.created')}{' '}
+                {formatPureDate(data.create_time)}
+              </div>
             </div>
           </div>
-        </header>
-      )}
+        )}
+      </header>
 
       <nav
-        className={cn('pt-1 pb-5 overflow-y-auto', collapsed ? 'px-2' : 'px-5')}
+        className={cn(
+          'min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth pt-1 pb-4',
+          collapsed ? 'px-2' : 'px-3',
+        )}
       >
-        <ul className="space-y-5">
+        <ul className="space-y-1">
           {items.map((item) => {
             const active = '/' + pathName === item.key;
 
@@ -175,7 +174,7 @@ export function SideBar({ dataset: data }: PropType) {
                       block
                       variant="ghost"
                       className={cn(
-                        'justify-start gap-2.5 px-3 relative h-10 text-base',
+                        'justify-start gap-2 px-2 py-2 relative h-9 text-sm',
                         collapsed && 'justify-center px-0',
                         active && 'bg-bg-card text-text-primary',
                       )}

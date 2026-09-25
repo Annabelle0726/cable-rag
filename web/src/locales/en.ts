@@ -517,6 +517,7 @@ export default {
       empty: 'No data',
     },
     knowledgeDetails: {
+      artifacts: 'Artifacts',
       collapseSidebar: 'Collapse sidebar',
       expandSidebar: 'Expand sidebar',
       parentHiddenFile: 'Hidden with dataset',

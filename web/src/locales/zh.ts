@@ -474,6 +474,7 @@ export default {
       empty: '暂无数据',
     },
     knowledgeDetails: {
+      artifacts: 'Artifacts',
       collapseSidebar: '收起侧边栏',
       expandSidebar: '展开侧边栏',
       parentHiddenFile: '跟随知识库已隐藏',

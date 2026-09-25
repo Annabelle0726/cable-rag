@@ -45,6 +45,7 @@ The tenant role hierarchy is strictly enforced as:
 Preserve and build upon these established milestones:
 
 ### Completed Milestones
+- **Dataset Sidebar Compact Layout & i18n**: Dataset detail sidebar uses a two-row header: a truncated name beside the toggle, then a 32px identity icon beside compact file metadata. Menu rows are 36px with 4px gaps; a full-height flex column gives navigation its own scroll area and 16px bottom clearance. Artifacts uses the `knowledgeDetails.artifacts` translation key in Chinese and English. Collapse persistence and icon tooltips are preserved; shared UI and Chat modules are unchanged.
 - **Dataset Sidebar & Personal List Sync**: Dataset detail sidebar collapses to a 64px icon rail with menu tooltips, a 200ms width transition, and `dataset_sidebar_collapsed` localStorage persistence. Home and Dataset lists share the SQL-authorized dataset listing, with user/workspace-scoped query keys and no previous-workspace placeholder rows. Personal preferences apply before pagination: hidden datasets are omitted on Home, pins sort first then `update_time` descending. Hiding cancels a pin; pinning restores a hidden dataset; persisted overlapping pins are migrated away. Pins never expand access or affect RAG retrieval weights. Chat/Conversation modules are unchanged.
 - **P1-01**: Disabled public registration (`REGISTER_ENABLED=0`).
 - **P1-02**: Role hierarchy definition & `can_manage_tenant` helper.

@@ -51,6 +51,9 @@ it('collapses to accessible navigation icons, remembers the state and expands ag
     name: 'knowledgeDetails.subbarFiles',
   });
   expect(link).toHaveAttribute('href');
+  expect(
+    screen.getByRole('link', { name: 'knowledgeDetails.artifacts' }),
+  ).toBeInTheDocument();
   fireEvent.focus(link);
   expect(await screen.findByRole('tooltip')).toHaveTextContent(
     'knowledgeDetails.subbarFiles',

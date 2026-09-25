@@ -63,6 +63,8 @@ All divergence between the two backends is funneled through dispatch points. Bus
 
 ### CSS and Layout Debugging
 
+* **Dataset detail sidebar**: Keep the name and collapse toggle on one row, with a 32px identity icon and compact metadata below. Use a full-height flex column with a non-shrinking header and a `flex-1 min-h-0 overflow-y-auto` navigation area, 36px menu rows, 4px gaps, and 16px bottom padding. Menu labels must use i18n keys; preserve collapsed icon tooltips. This is local to `pages/dataset/sidebar/`, not a shared sidebar rule.
+
 When fixing CSS/layout issues (especially flex truncation, ellipsis, or element sizing), **always inspect the full parent hierarchy** for `flex-shrink`, `min-width`, and `overflow` constraints before applying fixes like `min-w-0`. Do not repeatedly apply the same fix without verifying the root cause.
 
 * Before editing, explain: (1) the full flex/container hierarchy from the target element up to the nearest non-flex ancestor, (2) what constraint is actually causing the bug, and (3) how the proposed fix addresses that root cause.
