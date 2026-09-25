@@ -129,8 +129,8 @@ export function DatasetTable({
       <Table
         rootClassName={
           bulkOperateBarVisible
-            ? 'border border-table-border max-h-[calc(100vh-320px)]'
-            : 'border border-table-border max-h-[calc(100vh-280px)]'
+            ? 'max-h-[calc(100vh-320px)]'
+            : 'max-h-[calc(100vh-280px)]'
         }
       >
         <TableHeader className="bg-table-header [&_tr]:border-b [&_tr]:border-table-border">

@@ -78,28 +78,32 @@ export function ParseDropdownButton({
     showChangeParserModal(record);
   }, [record, showChangeParserModal]);
 
+  // `pipeline_name` is free text of unbounded length, and this button sits in a
+  // table cell: without a bound it sets the table's min-content width and the
+  // whole view scrolls sideways. The label therefore truncates inside the cell
+  // and the tooltip beside it carries the full name.
+  const parserLabel = pipeline_id
+    ? pipeline_name || pipeline_id
+    : chunk_method === 'naive'
+      ? 'general'
+      : chunk_method;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <div>
+        <div className="min-w-0 max-w-full">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="static" size="auto" className="capitalize">
-                {pipeline_id
-                  ? pipeline_name || pipeline_id
-                  : chunk_method === 'naive'
-                    ? 'general'
-                    : chunk_method}
+              <Button
+                variant="static"
+                size="auto"
+                className="capitalize max-w-full min-w-0"
+              >
+                <span className="truncate">{parserLabel}</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p className="capitalize">
-                {pipeline_id
-                  ? pipeline_name || pipeline_id
-                  : chunk_method === 'naive'
-                    ? 'general'
-                    : chunk_method}
-              </p>
+              <p className="capitalize">{parserLabel}</p>
             </TooltipContent>
           </Tooltip>
         </div>

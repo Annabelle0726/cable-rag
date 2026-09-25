@@ -240,11 +240,17 @@ export function useDatasetTableColumns({
         accessorKey: 'run',
         header: t('Parse'),
         cell: ({ row }) => {
+          // `pipeline_name` is free text with no length limit, so this cell is
+          // the column's min-content floor: capping it here keeps a long
+          // ingestion-pipeline name from widening the whole table. The dropdown
+          // already carries the full name in its tooltip.
           return (
-            <ParseDropdownButton
-              record={row.original}
-              showChangeParserModal={showChangeParserModal}
-            />
+            <div className="max-w-[12rem] truncate">
+              <ParseDropdownButton
+                record={row.original}
+                showChangeParserModal={showChangeParserModal}
+              />
+            </div>
           );
         },
       },

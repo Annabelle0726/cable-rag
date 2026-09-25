@@ -146,9 +146,9 @@ export default function Dataset() {
   return (
     <Card
       as="article"
-      className="mb-5 mr-5 min-w-[880px] bg-transparent shadow-none"
+      className="mb-5 mr-5 border-0 bg-transparent shadow-none"
     >
-      <CardHeader as="header" className="p-5 space-y-0">
+      <CardHeader as="header" className="px-6 py-4 space-y-0">
         <ListFilterBar
           searchVariant="capsule"
           onSearchChange={handleInputChange}
@@ -198,7 +198,7 @@ export default function Dataset() {
         )}
       </CardHeader>
 
-      <CardContent className="px-5 py-0">
+      <CardContent className="px-6 py-0">
         <DatasetTable
           documents={documents}
           pagination={pagination}
