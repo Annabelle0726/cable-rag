@@ -291,29 +291,29 @@
 
   .dark {
     /* --- 工业哑光防疲劳暗色配色 (Industrial Low-Contrast Dark) --- */
-    --background: 220 15% 13%;
-    --foreground: 220 10% 80%;
+    --background: 220 14% 16%;
+    --foreground: 220 14% 84%;
 
-    --muted: 220 12% 18%;
-    --muted-foreground: 220 8% 58%;
+    --muted: 220 13% 22%;
+    --muted-foreground: 220 12% 64%;
 
-    --accent: 220 12% 19%;
-    --accent-foreground: 220 10% 88%;
+    --accent: 220 13% 22%;
+    --accent-foreground: 220 13% 89%;
 
-    --popover: 220 15% 15%;
-    --popover-foreground: 220 10% 80%;
+    --popover: 220 13% 19%;
+    --popover-foreground: 220 14% 84%;
 
-    --border: 220 10% 22%;
-    --input: 220 10% 22%;
+    --border: 220 13% 27%;
+    --input: 220 13% 27%;
 
-    --card: 220 15% 16%;
-    --card-foreground: 220 10% 80%;
+    --card: 220 13% 19%;
+    --card-foreground: 220 14% 84%;
 
     --primary: 161 45% 38%;
     --primary-foreground: 0 0% 95%;
 
-    --secondary: 220 12% 18%;
-    --secondary-foreground: 220 10% 80%;
+    --secondary: 220 13% 22%;
+    --secondary-foreground: 220 14% 84%;
 
     --destructive: 0 45% 45%;
     --destructive-foreground: 0 0% 95%;
@@ -323,84 +323,84 @@
     --radius: 2px;
 
     --background-inverse-standard: rgba(255, 255, 255, 0.05);
-    --background-inverse-standard-foreground: #c5cbd3;
+    --background-inverse-standard-foreground: #d0d4dc;
 
     --background-inverse-strong: rgba(255, 255, 255, 0.08);
-    --background-inverse-strong-foreground: #ffffff;
+    --background-inverse-strong-foreground: #e5e7eb;
 
-    --text-badge: #818995;
+    --text-badge: #98a0ae;
 
-    --colors-background-neutral-standard: #1c1f26;
+    --colors-background-neutral-standard: #23272f;
 
     --colors-outline-sentiment-primary: #26a67b;
-    --colors-outline-neutral-strong: #2f3440;
-    --colors-outline-neutral-standard: #282d37;
+    --colors-outline-neutral-strong: #3c424e;
+    --colors-outline-neutral-standard: #363b45;
 
-    --colors-text-neutral-strong: #c5cbd3;
-    --colors-text-neutral-standard: #818995;
+    --colors-text-neutral-strong: #d0d4dc;
+    --colors-text-neutral-standard: #98a0ae;
 
-    --sidebar-background: 220 15% 15%;
-    --sidebar-foreground: 220 10% 78%;
+    --sidebar-background: 220 13% 19%;
+    --sidebar-foreground: 220 14% 84%;
     --sidebar-primary: 161 45% 38%;
     --sidebar-primary-foreground: 0 0% 95%;
-    --sidebar-accent: 220 12% 18%;
-    --sidebar-accent-foreground: 220 10% 85%;
-    --sidebar-border: 220 10% 22%;
+    --sidebar-accent: 220 13% 22%;
+    --sidebar-accent-foreground: 220 13% 86%;
+    --sidebar-border: 220 13% 27%;
     --sidebar-ring: 161 45% 38%;
 
-    --text-title: #c5cbd3;
-    --text-sub-title: #818995;
-    --text-sub-title-invert: #9da4b0;
+    --text-title: #d0d4dc;
+    --text-sub-title: #98a0ae;
+    --text-sub-title-invert: #afb5c0;
 
     /* 核心修改 1：顶栏暗化为低调的墨绿，不再刺眼 */
     --background-header-bar: #14382c;
 
-    --text-title-invert: #1c1f26;
+    --text-title-invert: #23272f;
 
-    --background-card: #232730;
+    --background-card: #2a2e37;
 
     --background-highlight: rgba(38, 166, 123, 0.12);
 
-    --input-border: #2f3440;
+    --input-border: #3c424e;
 
-    --metallic: #3a3f4a;
+    --metallic: #494f5a;
 
-    --bg-title: #232730;
+    --bg-title: #2a2e37;
 
-    /* 核心修改 2：底色与卡片采用极微小梯度（1c1f26 -> 232730），零强烈对比 */
-    --bg-base: #1c1f26;
-    --bg-card: #232730;
-    --bg-component: #232730;
-    --bg-input: #282c37;
-    --bg-canvas: 220 15% 13%;
-    --bg-list: 220 15% 16%;
+    /* 核心修改 2：底色与卡片采用极微小梯度（23272f -> 2a2e37），零强烈对比 */
+    --bg-base: #23272f;
+    --bg-card: #2a2e37;
+    --bg-component: #2a2e37;
+    --bg-input: #31363f;
+    --bg-canvas: 220 14% 16%;
+    --bg-list: 220 13% 19%;
 
-    --text-primary: 197 203 211; /* #c5cbd3 柔和哑光文字 */
-    --text-secondary: 129 137 149; /* #818995 暗淡次要文字 */
-    --text-disabled: #4e5460;
-    --border-default: #2f3440;
+    --text-primary: 208 212 220; /* #d0d4dc 柔和哑光文字 */
+    --text-secondary: 152 160 174; /* #98a0ae 暗淡次要文字 */
+    --text-disabled: #606876;
+    --border-default: #3c424e;
     --border-accent: #26a67b;
-    --border-button: #2f3440;
+    --border-button: #3c424e;
 
     --team-group: #26a67b;
     --team-member: #26a67b;
     --team-department: #d9923b;
     --bg-member: rgba(38, 166, 123, 0.12);
 
-    --text-primary-inverse: 28 31 38;
-    --text-secondary-inverse: 129 137 149;
+    --text-primary-inverse: 35 39 47;
+    --text-secondary-inverse: 152 160 174;
 
-    --content-primary: #c5cbd3;
-    --content-secondary: #818995;
-    --content-tertiary: #606773;
+    --content-primary: #d0d4dc;
+    --content-secondary: #98a0ae;
+    --content-tertiary: #717b8e;
 
-    --cable-page-from: #1c1f26;
-    --cable-page-to: #1c1f26;
-    --cable-page-edge: #1c1f26;
+    --cable-page-from: #23272f;
+    --cable-page-to: #23272f;
+    --cable-page-edge: #23272f;
 
-    --cable-surface: #232730;
-    --cable-surface-muted: #282c37;
-    --cable-surface-border: #2f3440;
+    --cable-surface: #2a2e37;
+    --cable-surface-muted: #31363f;
+    --cable-surface-border: #3c424e;
     --cable-surface-border-hover: #26a67b;
 
     --cable-brand: #26a67b;
@@ -409,9 +409,9 @@
     --cable-copper: #d9923b;
     --cable-icon-surface: rgba(38, 166, 123, 0.12);
     --cable-icon-foreground: #26a67b;
-    --cable-divider: #2a2e38;
+    --cable-divider: #363b45;
     --cable-muted: var(--content-tertiary);
-    --cable-hairline: #2f3440;
+    --cable-hairline: #3c424e;
     --cable-shadow: none;
     --cable-shadow-hover: none;
 
@@ -419,47 +419,47 @@
     --accent-color-strong: #1d8260;
     --accent-color-soft: rgba(38, 166, 123, 0.12);
 
-    --glass-bg: #232730;
-    --glass-border: #2f3440;
+    --glass-bg: #2a2e37;
+    --glass-border: #3c424e;
 
-    --hero-title-from: #c5cbd3;
-    --hero-title-via: #c5cbd3;
-    --hero-title-to: #c5cbd3;
-    --hero-card-bg: #232730;
-    --hero-card-bg-hover: #282c37;
-    --hero-card-border: #2f3440;
+    --hero-title-from: #d0d4dc;
+    --hero-title-via: #d0d4dc;
+    --hero-title-to: #d0d4dc;
+    --hero-card-bg: #2a2e37;
+    --hero-card-bg-hover: #31363f;
+    --hero-card-border: #3c424e;
     --hero-icon: #26a67b;
     --hero-badge-bg: rgba(38, 166, 123, 0.12);
     --hero-badge-border: #26a67b;
     --hero-badge-text: #26a67b;
 
-    --login-card-edge: #2f3440;
+    --login-card-edge: #3c424e;
 
-    --ceramic-surface: #232730;
-    --ceramic-border: #2f3440;
+    --ceramic-surface: #2a2e37;
+    --ceramic-border: #3c424e;
     --ceramic-border-hover: #26a67b;
-    --ceramic-pill-surface: #282c37;
-    --ceramic-pill-edge: #2f3440;
-    --ceramic-track-surface: #282c37;
-    --ceramic-track-border: #2f3440;
-    --ceramic-hover-surface: #2a2e38;
+    --ceramic-pill-surface: #31363f;
+    --ceramic-pill-edge: #3c424e;
+    --ceramic-track-surface: #31363f;
+    --ceramic-track-border: #3c424e;
+    --ceramic-hover-surface: #31363f;
 
     --badge-surface: rgba(38, 166, 123, 0.12);
     --badge-border: #26a67b;
     --badge-ink: #26a67b;
     --badge-surface-hover: rgba(38, 166, 123, 0.2);
-    --field-border: #2f3440;
+    --field-border: #3c424e;
     --field-border-focus: #26a67b;
 
-    --scrollbar-thumb: #3a3f4a;
-    --scrollbar-thumb-hover: #4a505e;
+    --scrollbar-thumb: #494f5a;
+    --scrollbar-thumb-hover: #5c6370;
 
-    --table-header-bg: #232730;
-    --table-row-hover: #293e36;
-    --table-row-base: #1b2220;
-    --table-row-alternate: #202e28;
+    --table-header-bg: #2a2e37;
+    --table-row-hover: #2f413b;
+    --table-row-base: #232f2b;
+    --table-row-alternate: #273430;
 
-    --surface-hover-bg: #2a2e38;
+    --surface-hover-bg: #31363f;
     --surface-hover-border: #26a67b;
 
     /* 核心修改 3：顶栏配置同步修改为沉稳暗绿 */
@@ -468,16 +468,16 @@
     --gov-header-fg: #c5cbd3;
     --gov-header-border: #1d4d3d;
 
-    --panel-border: #2f3440;
+    --panel-border: #3c424e;
     --table-border: #3a5146;
-    --table-head-ink: #c5cbd3;
+    --table-head-ink: #d0d4dc;
 
     --status-available-surface: rgba(38, 166, 123, 0.12);
     --status-available-ink: #26a67b;
     --status-available-border: #26a67b;
 
-    --cable-nav-text: #818995;
-    --cable-nav-text-hover: #c5cbd3;
+    --cable-nav-text: #98a0ae;
+    --cable-nav-text-hover: #d0d4dc;
     --cable-nav-active-text: #26a67b;
     --cable-nav-active-bg: rgba(38, 166, 123, 0.12);
     --cable-nav-indicator: #26a67b;
