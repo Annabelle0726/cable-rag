@@ -207,8 +207,42 @@ def _build_session_response(conv: dict) -> dict:
     return conv
 
 
-async def _ensure_owned_chat(chat_id):
-    return await thread_pool_exec(DialogService.query, tenant_id=current_user.id, id=chat_id, status=StatusEnum.VALID.value)
+async def _accessible_chat(chat_id):
+    """The assistant row when the caller may use it, or ``None``.
+
+    Two shapes are accessible, and both are needed:
+
+    * the caller CREATED it - the assistant's ``tenant_id`` is the caller's own
+      user id. That is the ordinary single-user case (a personal workspace *is*
+      the user id) and the shape every assistant created before assistants were
+      bound to the workspace they are used in carries;
+    * the caller is a MEMBER of the workspace that owns it - a ``user_tenant``
+      row for the assistant's tenant. An administrator or a member of a team
+      workspace uses that workspace's assistants; refusing here is what answered
+      ``109 no authorization`` for an assistant the caller had just created,
+      because the row was bound to a user id that is not a tenant at all.
+
+    A row (rather than a bool) is returned so a route can read the assistant's
+    own tenant, which is the subject its models must be resolved in.
+    """
+    ok, chat = await thread_pool_exec(DialogService.get_by_id, chat_id)
+    if not ok or not chat or chat.status != StatusEnum.VALID.value:
+        return None
+    if chat.tenant_id == current_user.id:
+        return chat
+    membership = await thread_pool_exec(UserTenantService.query, user_id=current_user.id, tenant_id=chat.tenant_id)
+    return chat if membership else None
+
+
+def _chat_denied():
+    """A refusal the client reports as an authorization failure: code 108.
+
+    109 is the AUTHENTICATION code, and it is what these routes used to answer
+    for an assistant the caller had created itself. A caller who is neither the
+    creator nor a member of the owning workspace is refused with 108, which is
+    what a permission denial means everywhere else in this API.
+    """
+    return get_json_result(data=False, message="no authorization", code=RetCode.PERMISSION_ERROR)
 
 
 def _active_workspace_tenant():
@@ -217,7 +251,7 @@ def _active_workspace_tenant():
     A NORMAL member owns no tenant, so their user id is not a tenant id: only the
     creator of a workspace has `tenant.id == user.id`. Reading the workspace
     through the resolver -- the `X-Tenant-Id` the client asked for, then the
-    caller's own selection -- is what lets a member create and update an
+    caller's own selection -- is what lets a member create, read and update an
     assistant with the model defaults of the workspace they are in, instead of
     answering `Tenant not found`.
     """
@@ -225,9 +259,16 @@ def _active_workspace_tenant():
     return TenantService.get_by_id(active_tenant_id)
 
 
-def _build_default_completion_dialog():
+def _active_workspace_id():
+    """The id of the workspace the caller is working in, or ``None`` when there
+    is none. The single subject every assistant's models are resolved in."""
+    ok, tenant = _active_workspace_tenant()
+    return tenant.id if ok else None
+
+
+def _build_default_completion_dialog(tenant_id=None):
     return SimpleNamespace(
-        tenant_id=current_user.id,
+        tenant_id=tenant_id or current_user.id,
         llm_id="",
         tenant_llm_id=None,
         llm_setting={},
@@ -531,6 +572,14 @@ async def create():
         ok, tenant = _active_workspace_tenant()
         if not ok:
             return get_data_error_result(message="Tenant not found!")
+        # Every model of this assistant is resolved in the workspace it is used
+        # in, so that workspace is what it is bound to. Storing the CREATOR's
+        # user id instead (as this route used to) is only the same value for a
+        # member who owns a personal workspace: for a member of a team
+        # workspace it is not a tenant at all, and the assistant then cannot be
+        # read back (`GET /chats/<id>` answered 109), cannot have a model saved
+        # into it (102), and cannot answer.
+        workspace_id = tenant.id
 
         # Validate tenant_id should not be provided
         if req.get("tenant_id"):
@@ -552,10 +601,10 @@ async def create():
         if "rerank_id" not in req and "tenant_rerank_id" not in req:
             req["rerank_id"] = ""
 
-        err = await _normalize_model_pair(req, current_user.id, "llm_id", "tenant_llm_id", _llm_model_type(req.get("llm_setting")))
+        err = await _normalize_model_pair(req, workspace_id, "llm_id", "tenant_llm_id", _llm_model_type(req.get("llm_setting")))
         if err:
             return get_data_error_result(message=err)
-        err = await _normalize_model_pair(req, current_user.id, "rerank_id", "tenant_rerank_id", "rerank")
+        err = await _normalize_model_pair(req, workspace_id, "rerank_id", "tenant_rerank_id", "rerank")
         if err:
             return get_data_error_result(message=err)
 
@@ -588,16 +637,19 @@ async def create():
 
         if DialogService.query(
             name=req["name"],
-            tenant_id=current_user.id,
+            tenant_id=workspace_id,
             status=StatusEnum.VALID.value,
         ):
             return get_data_error_result(message="duplicated chat name in creating chat")
 
         req["id"] = get_uuid()
-        # The assistant belongs to its creator: `_ensure_owned_chat`, the chat
-        # list and the completion path all read this column as the creator's user
-        # id, so the workspace resolved above supplies the model defaults only.
-        req["tenant_id"] = current_user.id
+        # The assistant belongs to the workspace it is used in: that is the
+        # tenant its chat/rerank models resolve in, the tenant its sessions are
+        # read through, and the tenant `_accessible_chat` authorizes against.
+        # The creator is recorded on the SESSION rows instead (see
+        # `create_session`), which is where "whose conversation is this" is
+        # actually asked.
+        req["tenant_id"] = workspace_id
         if not DialogService.save(**req):
             return get_data_error_result(message="Failed to create chat.")
 
@@ -654,9 +706,15 @@ async def list_chats():
                 start = (page_number - 1) * items_per_page
                 chats = chats[start : start + items_per_page]
         else:
+            # Assistants live in the workspace they are used in, so the listing
+            # is that workspace's set. The caller's own id is passed alongside
+            # it because a personal workspace IS the user id, and because rows
+            # created before assistants were workspace-bound carry the creator's
+            # id: a member must keep seeing the assistants it already had.
+            workspace_id = _active_workspace_id()
             chats, total = await thread_pool_exec(
                 DialogService.get_by_tenant_ids,
-                [],
+                [workspace_id] if workspace_id else [],
                 current_user.id,
                 page_number,
                 items_per_page,
@@ -675,25 +733,9 @@ async def list_chats():
 @login_required
 async def get_chat(chat_id):
     try:
-        tenants = await thread_pool_exec(UserTenantService.query, user_id=current_user.id)
-        for tenant in tenants:
-            if await thread_pool_exec(
-                DialogService.query,
-                tenant_id=tenant.tenant_id,
-                id=chat_id,
-                status=StatusEnum.VALID.value,
-            ):
-                break
-        else:
-            return get_json_result(
-                data=False,
-                message="no authorization",
-                code=RetCode.AUTHENTICATION_ERROR,
-            )
-
-        ok, chat = await thread_pool_exec(DialogService.get_by_id, chat_id)
-        if not ok:
-            return get_data_error_result(message="Chat not found!")
+        chat = await _accessible_chat(chat_id)
+        if not chat:
+            return _chat_denied()
         return get_json_result(data=_build_chat_response(chat))
     except Exception as ex:
         return server_error_response(ex)
@@ -702,8 +744,9 @@ async def get_chat(chat_id):
 @manager.route("/chats/<chat_id>", methods=["PUT"])  # noqa: F821
 @login_required
 async def update_chat(chat_id):
-    if not await _ensure_owned_chat(chat_id):
-        return get_json_result(data=False, message="no authorization", code=RetCode.AUTHENTICATION_ERROR)
+    chat_row = await _accessible_chat(chat_id)
+    if not chat_row:
+        return _chat_denied()
 
     try:
         req = await get_request_json()
@@ -711,10 +754,12 @@ async def update_chat(chat_id):
         if not ok:
             return get_data_error_result(message="Tenant not found!")
 
-        ok, current_chat = DialogService.get_by_id(chat_id)
-        if not ok:
-            return get_data_error_result(message="Chat not found!")
-        current_chat = current_chat.to_dict()
+        current_chat = chat_row.to_dict()
+        # The assistant's own workspace is the tenant its models belong to. A
+        # member saving a model into a team assistant would otherwise have it
+        # resolved against the member's user id, which owns no models at all --
+        # which is what answered "`llm_id` ... doesn't exist" (code 102).
+        model_tenant_id = current_chat.get("tenant_id") or current_user.id
 
         if req.get("tenant_id"):
             return get_data_error_result(message="`tenant_id` must not be provided")
@@ -731,10 +776,10 @@ async def update_chat(chat_id):
                 return get_data_error_result(message=err)
 
         effective_llm_setting = req.get("llm_setting", current_chat.get("llm_setting", {}))
-        err = await _normalize_model_pair(req, current_user.id, "llm_id", "tenant_llm_id", _llm_model_type(effective_llm_setting))
+        err = await _normalize_model_pair(req, model_tenant_id, "llm_id", "tenant_llm_id", _llm_model_type(effective_llm_setting))
         if err:
             return get_data_error_result(message=err)
-        err = await _normalize_model_pair(req, current_user.id, "rerank_id", "tenant_rerank_id", "rerank")
+        err = await _normalize_model_pair(req, model_tenant_id, "rerank_id", "tenant_rerank_id", "rerank")
         if err:
             return get_data_error_result(message=err)
 
@@ -763,7 +808,7 @@ async def update_chat(chat_id):
             and req["name"].lower() != current_chat["name"].lower()
             and DialogService.query(
                 name=req["name"],
-                tenant_id=current_user.id,
+                tenant_id=model_tenant_id,
                 status=StatusEnum.VALID.value,
             )
         ):
@@ -783,8 +828,9 @@ async def update_chat(chat_id):
 @manager.route("/chats/<chat_id>", methods=["PATCH"])  # noqa: F821
 @login_required
 async def patch_chat(chat_id):
-    if not await _ensure_owned_chat(chat_id):
-        return get_json_result(data=False, message="no authorization", code=RetCode.AUTHENTICATION_ERROR)
+    chat_row = await _accessible_chat(chat_id)
+    if not chat_row:
+        return _chat_denied()
 
     try:
         req = await get_request_json()
@@ -792,10 +838,9 @@ async def patch_chat(chat_id):
         if not ok:
             return get_data_error_result(message="Tenant not found!")
 
-        ok, current_chat = DialogService.get_by_id(chat_id)
-        if not ok:
-            return get_data_error_result(message="Chat not found!")
-        current_chat = current_chat.to_dict()
+        current_chat = chat_row.to_dict()
+        # Same subject as `update_chat`: the workspace that owns the assistant.
+        model_tenant_id = current_chat.get("tenant_id") or current_user.id
 
         if "name" in req:
             name, err = _validate_name(req.get("name"), required=False)
@@ -817,10 +862,10 @@ async def patch_chat(chat_id):
             req["llm_setting"] = llm_setting
 
         effective_llm_setting = req.get("llm_setting", current_chat.get("llm_setting", {}))
-        err = await _normalize_model_pair(req, current_user.id, "llm_id", "tenant_llm_id", _llm_model_type(effective_llm_setting))
+        err = await _normalize_model_pair(req, model_tenant_id, "llm_id", "tenant_llm_id", _llm_model_type(effective_llm_setting))
         if err:
             return get_data_error_result(message=err)
-        err = await _normalize_model_pair(req, current_user.id, "rerank_id", "tenant_rerank_id", "rerank")
+        err = await _normalize_model_pair(req, model_tenant_id, "rerank_id", "tenant_rerank_id", "rerank")
         if err:
             return get_data_error_result(message=err)
 
@@ -852,7 +897,7 @@ async def patch_chat(chat_id):
             and req["name"].lower() != current_chat["name"].lower()
             and DialogService.query(
                 name=req["name"],
-                tenant_id=current_user.id,
+                tenant_id=model_tenant_id,
                 status=StatusEnum.VALID.value,
             )
         ):
@@ -872,8 +917,8 @@ async def patch_chat(chat_id):
 @manager.route("/chats/<chat_id>", methods=["DELETE"])  # noqa: F821
 @login_required
 async def delete_chat(chat_id):
-    if not await _ensure_owned_chat(chat_id):
-        return get_json_result(data=False, message="no authorization", code=RetCode.AUTHENTICATION_ERROR)
+    if not await _accessible_chat(chat_id):
+        return _chat_denied()
 
     try:
         if not DialogService.update_by_id(chat_id, {"status": StatusEnum.INVALID.value}):
@@ -893,7 +938,12 @@ async def bulk_delete_chats():
     ids = req.get("ids")
     if not ids:
         if req.get("delete_all") is True:
-            ids = [chat.id for chat in DialogService.query(tenant_id=current_user.id, status=StatusEnum.VALID.value)]
+            # "All" means the same set the listing shows: the caller's workspace,
+            # plus its own id (a personal workspace and the pre-workspace-bound
+            # rows both live there).
+            workspace_id = _active_workspace_id()
+            scope = {workspace_id, current_user.id} - {None}
+            ids = [chat.id for chat in DialogService.query(tenant_id=scope, status=StatusEnum.VALID.value)]
             if not ids:
                 return get_json_result(data={})
         else:
@@ -913,7 +963,7 @@ async def bulk_delete_chats():
     unique_ids, duplicate_messages = check_duplicate_ids(ids, "chat")
 
     for chat_id in unique_ids:
-        if not await _ensure_owned_chat(chat_id):
+        if not await _accessible_chat(chat_id):
             errors.append(f"Chat({chat_id}) not found.")
             continue
         success_count += DialogService.update_by_id(chat_id, {"status": StatusEnum.INVALID.value})
@@ -938,13 +988,11 @@ async def create_session(chat_id):
     An optional `dataset_ids` binds the session to its own datasets. Left out
     (or `null`), the session carries no binding and inherits the assistant's.
     """
-    if not await _ensure_owned_chat(chat_id):
-        return get_json_result(data=False, message="no authorization", code=RetCode.AUTHENTICATION_ERROR)
+    dia = await _accessible_chat(chat_id)
+    if not dia:
+        return _chat_denied()
     try:
         req = await get_request_json()
-        ok, dia = DialogService.get_by_id(chat_id)
-        if not ok:
-            return get_data_error_result(message="Chat not found!")
         binding, error = await _session_dataset_binding(req, current_user.id)
         if error:
             return get_data_error_result(message=error)
@@ -978,12 +1026,8 @@ async def create_session(chat_id):
 @login_required
 async def list_sessions(chat_id):
     try:
-        if not await _ensure_owned_chat(chat_id):
-            return get_json_result(
-                data=False,
-                message="no authorization",
-                code=RetCode.AUTHENTICATION_ERROR,
-            )
+        if not await _accessible_chat(chat_id):
+            return _chat_denied()
         # Invalid or negative pagination values fall back to defaults
         # instead of leaking internal conversion/SQL errors.
         page_number = validate_rest_api_page(request.args.get("page", DEFAULT_PAGE))
@@ -1006,16 +1050,16 @@ async def list_sessions(chat_id):
 @manager.route("/chats/<chat_id>/sessions/<session_id>", methods=["GET"])  # noqa: F821
 @login_required
 async def get_session(chat_id, session_id):
-    if not await _ensure_owned_chat(chat_id):
-        return get_json_result(data=False, message="no authorization", code=RetCode.AUTHENTICATION_ERROR)
+    dialog = await _accessible_chat(chat_id)
+    if not dialog:
+        return _chat_denied()
     try:
         ok, conv = await thread_pool_exec(ConversationService.get_by_id, session_id)
         if not ok:
             return get_data_error_result(message="Session not found!")
         if conv.dialog_id != chat_id:
             return get_data_error_result(message="Session does not belong to this chat!")
-        dialog = await _ensure_owned_chat(chat_id)
-        avatar = dialog[0].icon if dialog else ""
+        avatar = dialog.icon or ""
         for ref in conv.reference:
             if isinstance(ref, list):
                 continue
@@ -1033,8 +1077,8 @@ async def update_session(chat_id, session_id):
     """Update a session. `dataset_ids` rebinds it: a list (including `[]`) is the
     session's own set, `null` clears the binding so the session inherits the
     assistant's datasets again, and leaving the field out changes nothing."""
-    if not await _ensure_owned_chat(chat_id):
-        return get_json_result(data=False, message="no authorization", code=RetCode.AUTHENTICATION_ERROR)
+    if not await _accessible_chat(chat_id):
+        return _chat_denied()
     try:
         req = await get_request_json()
         if not ConversationService.query(id=session_id, dialog_id=chat_id):
@@ -1072,8 +1116,8 @@ async def update_session(chat_id, session_id):
 @manager.route("/chats/<chat_id>/sessions", methods=["DELETE"])  # noqa: F821
 @login_required
 async def delete_sessions(chat_id):
-    if not await _ensure_owned_chat(chat_id):
-        return get_json_result(data=False, message="no authorization", code=RetCode.AUTHENTICATION_ERROR)
+    if not await _accessible_chat(chat_id):
+        return _chat_denied()
     try:
         try:
             req = await get_request_json()
@@ -1126,8 +1170,8 @@ async def delete_sessions(chat_id):
 @manager.route("/chats/<chat_id>/sessions/<session_id>/messages/<msg_id>", methods=["DELETE"])  # noqa: F821
 @login_required
 async def delete_session_message(chat_id, session_id, msg_id):
-    if not await _ensure_owned_chat(chat_id):
-        return get_json_result(data=False, message="no authorization", code=RetCode.AUTHENTICATION_ERROR)
+    if not await _accessible_chat(chat_id):
+        return _chat_denied()
     try:
         ok, conv = ConversationService.get_by_id(session_id)
         if not ok or conv.dialog_id != chat_id:
@@ -1151,9 +1195,8 @@ async def delete_session_message(chat_id, session_id, msg_id):
 @manager.route("/chats/<chat_id>/sessions/<session_id>/messages/<msg_id>/feedback", methods=["PUT"])  # noqa: F821
 @login_required
 async def update_message_feedback(chat_id, session_id, msg_id):
-    owned = await _ensure_owned_chat(chat_id)
-    if not owned:
-        return get_json_result(data=False, message="no authorization", code=RetCode.AUTHENTICATION_ERROR)
+    if not await _accessible_chat(chat_id):
+        return _chat_denied()
     try:
         req = await get_request_json()
         ok, conv = ConversationService.get_by_id(session_id)
@@ -1221,12 +1264,16 @@ async def tts():
     req = await get_request_json()
     text = req["text"]
 
+    # Speech and transcription run on the workspace's models, like the answer
+    # itself. A member of a team workspace owns no tenant of its own, so reading
+    # the model off `current_user.id` found none at all.
+    model_tenant_id = _active_workspace_id() or current_user.id
     try:
-        default_tts_model_config = get_tenant_default_model_by_type(current_user.id, LLMType.TTS)
+        default_tts_model_config = get_tenant_default_model_by_type(model_tenant_id, LLMType.TTS)
     except Exception as e:
         return get_data_error_result(message=str(e))
 
-    tts_mdl = LLMBundle(current_user.id, default_tts_model_config)
+    tts_mdl = LLMBundle(model_tenant_id, default_tts_model_config)
 
     def stream_audio():
         try:
@@ -1276,11 +1323,11 @@ async def transcription():
     await uploaded.save(temp_audio_path)
 
     try:
-        default_asr_model_config = get_tenant_default_model_by_type(current_user.id, LLMType.ASR)
+        default_asr_model_config = get_tenant_default_model_by_type(_active_workspace_id() or current_user.id, LLMType.ASR)
     except Exception as e:
         return get_data_error_result(message=str(e))
 
-    asr_mdl = LLMBundle(current_user.id, default_asr_model_config)
+    asr_mdl = LLMBundle(_active_workspace_id() or current_user.id, default_asr_model_config)
     if not stream_mode:
         text = asr_mdl.transcription(temp_audio_path)
         try:
@@ -1325,7 +1372,10 @@ async def mindmap():
         if not await thread_pool_exec(KnowledgebaseService.accessible, kb_id=kb_id, user_id=current_user.id):
             return get_error_data_result(message=f"You don't own the dataset {kb_id}", code=RetCode.PERMISSION_ERROR)
 
-    mind_map = await gen_mindmap(req["question"], kb_ids, search_app.get("tenant_id", current_user.id), search_config)
+    # The mind map is summarised with models, so the subject is the search app's
+    # own workspace when there is one, and otherwise the workspace the caller is
+    # working in -- never the caller's user id, which owns no models for a member.
+    mind_map = await gen_mindmap(req["question"], kb_ids, search_app.get("tenant_id") or _active_workspace_id() or current_user.id, search_config)
     if "error" in mind_map:
         return server_error_response(Exception(mind_map["error"]))
     return get_json_result(data=mind_map)
@@ -1346,11 +1396,16 @@ async def recommendation():
     question = req["question"]
 
     chat_id = search_config.get("chat_id", "")
+    # The workspace the caller works in owns the models, so it is the subject for
+    # both the model reference and the bundle that carries its API key. A member
+    # that owns no tenant of its own had neither, which answered "No chat model
+    # is available" on every related-question request.
+    model_tenant_id = _active_workspace_id() or current_user.id
     if chat_id:
-        chat_model_config = resolve_model_config(current_user.id, LLMType.CHAT, chat_id)
+        chat_model_config = resolve_model_config(model_tenant_id, LLMType.CHAT, chat_id)
     else:
-        chat_model_config = get_tenant_default_model_by_type(current_user.id, LLMType.CHAT)
-    chat_mdl = LLMBundle(current_user.id, chat_model_config)
+        chat_model_config = get_tenant_default_model_by_type(model_tenant_id, LLMType.CHAT)
+    chat_mdl = LLMBundle(model_tenant_id, chat_model_config)
 
     gen_conf = resolve_llm_setting(search_config.get("llm_setting"))
     if "parameter" in gen_conf:
@@ -1384,7 +1439,12 @@ async def conversation_title():
     if not question:
         return get_json_result(data={"title": ""})
 
-    chat_model_config = _resolve_title_model_config(current_user.id, (req.get("llm_id") or "").strip())
+    # Titling runs on the workspace's models, like every other model use in a
+    # turn. A member of a team workspace owns no tenant of its own, so reading
+    # the model off `current_user.id` found none and answered "No chat model is
+    # available to title this conversation" for a workspace that has one.
+    model_tenant_id = _active_workspace_id() or current_user.id
+    chat_model_config = _resolve_title_model_config(model_tenant_id, (req.get("llm_id") or "").strip())
     if chat_model_config is None:
         # Naming a conversation is a cosmetic task, so a missing model must not look
         # like a broken page — but it must be tellable apart from "the model had
@@ -1395,7 +1455,7 @@ async def conversation_title():
             message=("No chat model is available to title this conversation. " "Set a default chat model in Model settings, or pass `llm_id`."),
         )
 
-    chat_mdl = LLMBundle(current_user.id, chat_model_config)
+    chat_mdl = LLMBundle(model_tenant_id, chat_model_config)
 
     answer = await chat_mdl.async_chat(
         load_prompt("conversation_title"),
@@ -1469,15 +1529,9 @@ async def session_completion(chat_id_in_arg=""):
             return get_data_error_result(message="`chat_id` is required when `session_id` is provided.")
 
         if chat_id:
-            if not await _ensure_owned_chat(chat_id):
-                return get_json_result(
-                    data=False,
-                    message="no authorization",
-                    code=RetCode.AUTHENTICATION_ERROR,
-                )
-            e, dia = await thread_pool_exec(DialogService.get_by_id, chat_id)
-            if not e:
-                return get_data_error_result(message="Chat not found!")
+            dia = await _accessible_chat(chat_id)
+            if not dia:
+                return _chat_denied()
             if session_id:
                 e, conv = await thread_pool_exec(ConversationService.get_by_id, session_id)
                 if not e:
@@ -1503,7 +1557,10 @@ async def session_completion(chat_id_in_arg=""):
                         continue
                     msg.append(m)
         else:
-            dia = _build_default_completion_dialog()
+            # No assistant named: a direct chat still uses the models of the
+            # workspace the caller is working in, which is the tenant that owns
+            # them. A member owns none of its own.
+            dia = _build_default_completion_dialog(_active_workspace_id())
 
         req.pop("messages", None)
         req.pop("question", None)

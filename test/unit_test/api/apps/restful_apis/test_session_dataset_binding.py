@@ -118,6 +118,8 @@ class _FakeDialogService:
         self.dialog = SimpleNamespace(
             id=chat_id,
             tenant_id=MEMBER_ID,
+            status="1",
+            icon="",
             kb_ids=list(ASSISTANT_DATASETS),
             prompt_config={"prologue": "hi"},
             llm_id="chat-model",
@@ -171,8 +173,8 @@ def sessions(monkeypatch):
 def _own_session(monkeypatch):
     monkeypatch.setattr(
         chat_api,
-        "_ensure_owned_chat",
-        lambda _chat_id: _AwaitableValue([SimpleNamespace(id=CHAT_ID)]),
+        "_accessible_chat",
+        lambda _chat_id: _AwaitableValue(SimpleNamespace(id=CHAT_ID, tenant_id=MEMBER_ID, status="1", icon="", prompt_config={"prologue": ""})),
     )
 
 

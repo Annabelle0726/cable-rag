@@ -50,6 +50,7 @@ from rag.advanced_rag.knowlege_compile.mind_map_extractor import MindMapExtracto
 from rag.app.tag import label_question
 from rag.llm.retrieval_guard import mandatory_retrieval
 from rag.nlp.search import index_name
+from rag.retrieval import retrieve_multi_route
 from rag.prompts.generator import chunks_format, citation_prompt, cross_languages, full_question, kb_prompt, keyword_extraction, message_fit_in, PROMPT_JINJA_ENV, ASK_SUMMARY
 from common.token_utils import num_tokens_from_string
 from rag.utils.web_search_conn import create_web_search_provider, has_web_search_provider
@@ -872,21 +873,32 @@ async def async_chat(dialog, messages, stream=True, **kwargs):
         tenant_ids = list(set([kb.tenant_id for kb in kbs]))
         knowledges = []
         if embd_mdl:
-            kbinfos = await retriever.retrieval(
-                " ".join(questions),
-                embd_mdl,
-                tenant_ids,
-                dialog.kb_ids,
-                1,
-                dialog.top_n,
-                dialog.similarity_threshold,
-                dialog.vector_similarity_weight,
-                doc_ids=scoped_doc_ids,
-                knn_top_k=dialog.top_k,
-                aggs=True,
+            # Multi-route retrieval (rag/retrieval/): a question that asks for
+            # several parameters at once is decomposed into atomic sub-queries,
+            # each route is retrieved hybrid and concurrently, the routes are
+            # merged by chunk_id, and the merged pool is reranked against the
+            # ORIGINAL question before the answer model sees it. A question with
+            # one information need still takes exactly one route, so it keeps the
+            # retrieval behaviour it had before this pipeline existed. Reranking
+            # happens once, over the union - the routes pass no rerank model of
+            # their own. `dialog.top_n` still decides how many passages the answer
+            # gets; the per-route recall window is the pipeline's own 12-passage
+            # default, inside the recommended 10-15 band.
+            kbinfos = await retrieve_multi_route(
+                retriever=retriever,
+                question=" ".join(questions),
+                chat_mdl=chat_mdl,
+                embd_mdl=embd_mdl,
                 rerank_mdl=rerank_mdl,
-                rank_feature=label_question(" ".join(questions), kbs),
+                tenant_ids=tenant_ids,
+                kb_ids=dialog.kb_ids,
+                similarity_threshold=dialog.similarity_threshold,
+                vector_similarity_weight=dialog.vector_similarity_weight,
+                final_top_n=dialog.top_n,
+                knn_top_k=dialog.top_k,
                 rerank_candidates_count=rerank_candidates_count,
+                doc_ids=scoped_doc_ids,
+                rank_feature=label_question(" ".join(questions), kbs),
             )
             if prompt_config.get("toc_enhance"):
                 cks = await retriever.retrieval_by_toc(" ".join(questions), kbinfos["chunks"], tenant_ids, chat_mdl, dialog.top_n)
