@@ -88,24 +88,33 @@ async def test_a_composite_question_adds_the_original_as_its_first_route(llm):
         kb_ids=["kb-1"],
     )
 
-    assert store.questions == [question, "绝缘标称厚度是多少", "交流电压试验要求是多少"]
+    assert store.questions == [
+        question,
+        "绝缘标称厚度是多少",
+        "交流电压试验要求是多少",
+        # The question asks how something is TESTED, so the deterministic
+        # prose-tier route goes on the end (see the clause-route tests below).
+        f"{question} {decomposition.CLAUSE_ROUTE_ANCHOR}",
+    ]
 
 
-async def test_a_failed_decomposition_still_answers_from_one_route(llm):
+async def test_a_failed_decomposition_still_answers_from_a_route(llm):
+    """The clause route is deterministic: a dead LLM node must not lose it."""
     calls = llm(None)
     store = _Store([_chunk("c1", 0.8)])
+    question = "绝缘标称厚度和例行交流电压试验要求分别是什么"
 
     result = await pipeline.retrieve_multi_route(
         retriever=store,
-        question="绝缘标称厚度和例行交流电压试验要求分别是什么",
+        question=question,
         chat_mdl=object(),
         embd_mdl=object(),
         tenant_ids=["t-1"],
         kb_ids=["kb-1"],
     )
 
-    assert len(calls) == 1
-    assert len(store.questions) == 1
+    assert len(calls) == 1, "the LLM node was asked once and failed"
+    assert store.questions == [question, f"{question} {decomposition.CLAUSE_ROUTE_ANCHOR}"]
     assert [c["chunk_id"] for c in result["chunks"]] == ["c1"]
 
 

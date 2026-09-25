@@ -84,6 +84,39 @@ _CONJUNCTION_RE = re.compile(r"[、；;]|(?<![饱柔混搅调缓总均附])和|�
 #: information need even without a conjunction ("厚度是多少 电阻又是多少").
 _INTERROGATIVE_RE = re.compile(r"多少|多大|是什么|有哪些|如何|怎样|要求|规定|标准|参数|数值|类型|区别|几")
 
+#: A question that wants a NORMATIVE CLAUSE rather than a value: it asks how
+#: something is tested, which rule wins, what is required. On a standards corpus
+#: this is the question shape a bidder fill-in table can never answer - the table
+#: repeats parameter names, the clause is what states the rule - so it is also
+#: the shape that needs a route aimed at the normative prose tier.
+#:
+#: ``例行[^，。？;；]{0,8}试验`` is not the same as the literal ``例行试验``: the live
+#: failing question was 例行**交流电压**试验的维持时间是多少, and a term list without
+#: the gap matches neither it nor 例行局部放电试验.
+_CLAUSE_INTENT_RE = re.compile(
+    r"例行[^，。？;；]{0,8}试验"
+    r"|型式[^，。？;；]{0,8}试验"
+    r"|抽样[^，。？;；]{0,6}(?:试验|检查|方案|规则)"
+    r"|检验规则|验收规则|试验(?:标准|方法|条件|项目|程序|顺序)"
+    r"|规则|条款|条文|规定|优先|为准|矛盾|冲突|不一致|判定|判据|合格"
+    r"|如何执行|是否允许|应否|允许偏差|维持时间|持续时间|时限|频次|周期"
+)
+
+#: A weaker cue, used only for the ordering nudge: the question is about a
+#: requirement or a test, so a table that merely repeats the query's nouns should
+#: not outrank a passage that states something. Too broad for the prose floor - a
+#: parameter table IS the right source for 绝缘电阻试验的数值是多少.
+_REQUIREMENT_RE = re.compile(r"试验|要求|规定|标准|数值|参数|耐受|允许|不小于|不大于|极值")
+
+#: What the clause route is anchored on. ``通用技术规范`` is the tier's own name -
+#: a corpus puts it in the document title (《…第1部分：通用技术规范》), and the doc
+#: store scores title tokens at ^10/^5, so the anchor RAISES the prose document's
+#: passages instead of diluting them the way an unrelated appended term would.
+#: ``正文条款`` adds the prose register a fill-in table does not carry. Deliberately
+#: no ``第1部分``: a structural reference is exactly what this module strips from
+#: every other search statement.
+CLAUSE_ROUTE_ANCHOR = "通用技术规范 正文条款"
+
 _WHITESPACE_RE = re.compile(r"\s+")
 
 
@@ -131,6 +164,53 @@ def looks_composite(question: str) -> bool:
 
 def _normalized(text: str) -> str:
     return _WHITESPACE_RE.sub("", str(text or "")).lower()
+
+
+def seeks_clause(question: str) -> bool:
+    """Whether the question wants a normative clause rather than a value.
+
+    "例行交流电压试验的维持时间是多少" and "两份规范对不上时以谁为准" are clause
+    questions: their answer is prose that states a rule. "绝缘标称厚度是多少"
+    is a value question, and a parameter table answers it fine.
+    """
+    return bool(_CLAUSE_INTENT_RE.search(str(question or "")))
+
+
+def mentions_requirement(question: str) -> bool:
+    """Whether the question is phrased as a requirement or a test at all.
+
+    Used for the ordering nudge only (see ``DiversityPolicy``): broad enough to
+    cover 绝缘电阻试验的数值是多少 without reserving that question's window for prose.
+    """
+    text = str(question or "")
+    return bool(_CLAUSE_INTENT_RE.search(text) or _REQUIREMENT_RE.search(text))
+
+
+def clause_route(question: str) -> str | None:
+    """A deterministic extra route aimed at the normative PROSE tier, or None.
+
+    Two measured failures this exists for. A fill-in parameter table repeats every
+    parameter name and unit the question uses, so it wins the fused score and
+    fills the window; the clause that answers the question never reaches the
+    answer model ("只有表格，没有正文规定"). And when the question carries no
+    standard number, no route is anchored anywhere near the 通用技术规范 document
+    that holds the rule, so the clause is not recalled at all.
+
+    The route keeps the user's own subject (so what comes back is on-topic) and
+    appends :data:`CLAUSE_ROUTE_ANCHOR`. It is raised for by the doc store's
+    title-token boost, so unlike an arbitrary appended keyword it does not dilute
+    the passages it is meant to find.
+
+    No LLM call: this must fire on every clause question, including the ones the
+    decomposition node fails on.
+    """
+    text = _WHITESPACE_RE.sub(" ", str(question or "")).strip()
+    if not text or not seeks_clause(text):
+        return None
+    subject = strip_section_references(text)[:MAX_SUB_QUERY_CHARS].strip()
+    if not subject:
+        return None
+    return f"{subject} {CLAUSE_ROUTE_ANCHOR}"
 
 
 def _sub_query_text(item) -> str:

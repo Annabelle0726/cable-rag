@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import logging
 
-from rag.retrieval.decomposition import MAX_SUB_QUERIES, decompose_question, looks_composite
+from rag.retrieval.decomposition import MAX_SUB_QUERIES, clause_route, decompose_question, looks_composite
 from rag.retrieval.multi_route import (
     DEFAULT_ROUTES_TOP_K,
     DEFAULT_VECTOR_SIMILARITY_WEIGHT,
@@ -93,6 +93,13 @@ async def retrieve_multi_route(
     routes = [question]
     if looks_composite(question):
         routes.extend(await decompose_question(chat_mdl, question, max_sub_queries))
+    # A rule-seeking question also gets a route at the normative PROSE tier. It is
+    # deterministic on purpose: it must fire on every clause question, including
+    # the ones the LLM decomposition failed on or never saw (single-dimension
+    # wording), because a bidder fill-in table can win the fused score against it.
+    targeted = clause_route(question)
+    if targeted:
+        routes.append(targeted)
     _LOG.info("[Multi-route] question=%r -> %d route(s): %s", question[:80], len(routes), routes)
 
     merged = await multi_route_retrieve(
