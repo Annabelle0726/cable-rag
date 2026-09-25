@@ -372,8 +372,12 @@
     --bg-card: #2a2e37;
     --bg-component: #2a2e37;
     --bg-input: #31363f;
-    --bg-canvas: 220 14% 16%;
-    --bg-list: 220 13% 19%;
+    /* RGB channel triples, not hsl() triples: these two are consumed as
+       rgb(var(--bg-canvas) / <alpha-value>) in tailwind.config.js and as
+       rgb(var(--bg-canvas)) in components/canvas/background.tsx, so an HSL
+       triple here resolves channel-wise to rgb(220, 36, 41) - a red canvas. */
+    --bg-canvas: 35 39 47; /* #23272f - same level as --bg-base, as in light */
+    --bg-list: 42 46 55; /* #2a2e37 - one step up, same as --bg-card */
 
     --text-primary: 208 212 220; /* #d0d4dc 柔和哑光文字 */
     --text-secondary: 152 160 174; /* #98a0ae 暗淡次要文字 */
