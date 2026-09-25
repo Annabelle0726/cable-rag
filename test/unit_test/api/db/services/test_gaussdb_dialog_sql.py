@@ -230,6 +230,7 @@ def _install_settings_import_stubs(monkeypatch):
         resolve_model_config=lambda *_args, **_kwargs: ({"model_type": "chat"}, None),
         resolve_model_type=lambda *_args, **_kwargs: None,
         get_model_config_by_id=lambda *_args, **_kwargs: {},
+        get_default_rerank_model_config=lambda *_args, **_kwargs: None,
     )
     install_module("api.db.db_models", DB=_DummyDB, Dialog=_Dummy)
     install_module("common.metadata_utils", apply_meta_data_filter=lambda *_args, **_kwargs: None)
@@ -256,9 +257,23 @@ def _install_settings_import_stubs(monkeypatch):
         keyword_extraction=lambda *_args, **_kwargs: "",
         message_fit_in=lambda *_args, **_kwargs: (0, []),
         PROMPT_JINJA_ENV=types.SimpleNamespace(from_string=lambda *_args, **_kwargs: types.SimpleNamespace(render=lambda **_kw: "")),
+        # ``rag.retrieval`` (async_chat's multi-route retrieval) imports the JSON
+        # LLM helper at module load, and ``rag.llm.cv_model`` imports this prompt.
+        # No question in this file is composite, so decomposition never runs; the
+        # stubs only have to exist.
+        gen_json=lambda *_args, **_kwargs: None,
+        vision_llm_describe_prompt="",
         ASK_SUMMARY="",
     )
-    install_module("common.token_utils", num_tokens_from_string=lambda *_args, **_kwargs: 0)
+    install_module(
+        "common.token_utils",
+        num_tokens_from_string=lambda *_args, **_kwargs: 0,
+        total_token_count_from_response=lambda *_args, **_kwargs: 0,
+        usage_from_response=lambda *_args, **_kwargs: {},
+        get_encoder=lambda *_args, **_kwargs: None,
+        truncate=lambda text, *_args, **_kwargs: text,
+        record_run_token_usage=lambda *_args, **_kwargs: None,
+    )
     install_module("rag.utils.tavily_conn", Tavily=_Dummy)
     install_module("rag.utils.tts_cache", synthesize_with_cache=lambda *_args, **_kwargs: None)
 
@@ -752,6 +767,52 @@ def _expected_fallback_reference(kb_id):
     }
 
 
+def _assert_reference_is_the_retrieved_chunk(reference, expected):
+    """The reference is the retriever's passage, plus the multi-route provenance.
+
+    ``async_chat`` retrieves through ``rag/retrieval``, which records on every
+    passage the routes that found it (``retrieval_routes`` / ``route_hits``) so a
+    composite question can be told apart from a single-route one in the output.
+    The comparison is therefore field-wise over the retriever's own fields.
+    """
+    assert reference["total"] == expected["total"]
+    assert reference["doc_aggs"] == expected["doc_aggs"]
+    assert len(reference["chunks"]) == len(expected["chunks"])
+    for got, want in zip(reference["chunks"], expected["chunks"]):
+        assert {key: got[key] for key in want} == want
+        assert got["retrieval_routes"], "a retrieved passage names the route that found it"
+
+
+def _assert_multi_route_retrieval(retriever, question, embd_mdl, tenant_id, kb_id):
+    """The one retrieval call ``async_chat`` makes now goes through the pipeline.
+
+    The route window is the pipeline's own recall setting - 12 passages, inside
+    the recommended 10-15 band (``multi_route.DEFAULT_ROUTES_TOP_K``) - and NOT
+    ``dialog.top_n``, which still decides how many passages the answer context
+    gets (these dialogs set it to 8). No route is handed a rerank model: the
+    reranker runs once, over the union, against the original question. Everything
+    else - the assistant's threshold, weights, kNN pool, document scope and
+    candidate window - still reaches the doc store verbatim.
+    """
+    retriever.retrieval.assert_awaited_once_with(
+        question,
+        embd_mdl,
+        [tenant_id],
+        [kb_id],
+        1,
+        12,
+        0.2,
+        vector_similarity_weight=0.3,
+        knn_top_k=32,
+        aggs=True,
+        highlight=False,
+        doc_ids=None,
+        rank_feature=None,
+        rerank_candidates_count=64,
+        allow_dense_fallback=True,
+    )
+
+
 def test_tc_sql_002_field_map_empty_uses_normal_retrieval(
     monkeypatch,
     dialog_service,
@@ -784,8 +845,7 @@ def test_tc_sql_002_field_map_empty_uses_normal_retrieval(
     retrieval.assert_awaited_once()
     assert retrieval.await_args.args[3] == [kb_id]
     assert results[-1]["answer"] == "fallback answer"
-    assert results[-1]["reference"]["chunks"] == chunks
-    assert results[-1]["reference"]["doc_aggs"] == doc_aggs
+    _assert_reference_is_the_retrieved_chunk(results[-1]["reference"], {"total": len(chunks), "chunks": chunks, "doc_aggs": doc_aggs})
     assert "Use SQL to retrieval" not in caplog.text
 
 
@@ -1689,24 +1749,9 @@ def test_tc_sql_1001_use_sql_none_falls_back_to_retrieval(
         [kb_id],
         doc_ids=None,
     )
-    retriever.retrieval.assert_awaited_once_with(
-        question,
-        embd_mdl,
-        [tenant_id],
-        [kb_id],
-        1,
-        8,
-        0.2,
-        0.3,
-        doc_ids=None,
-        knn_top_k=32,
-        aggs=True,
-        rerank_mdl=None,
-        rank_feature=None,
-        rerank_candidates_count=64,
-    )
+    _assert_multi_route_retrieval(retriever, question, embd_mdl, tenant_id, kb_id)
     assert results[-1]["answer"] == "fallback answer"
-    assert results[-1]["reference"] == _expected_fallback_reference(kb_id)
+    _assert_reference_is_the_retrieved_chunk(results[-1]["reference"], _expected_fallback_reference(kb_id))
     assert "SQL failed or returned no results, falling back to vector search" in caplog.text
 
 
@@ -1738,24 +1783,9 @@ def test_tc_sql_1002_validator_rejection_falls_back_to_retrieval(
     get_field_map.assert_called_once_with([kb_id])
     assert len(chat.calls) == 3
     assert retriever.sqls == []
-    retriever.retrieval.assert_awaited_once_with(
-        question,
-        embd_mdl,
-        [tenant_id],
-        [kb_id],
-        1,
-        8,
-        0.2,
-        0.3,
-        doc_ids=None,
-        knn_top_k=32,
-        aggs=True,
-        rerank_mdl=None,
-        rank_feature=None,
-        rerank_candidates_count=64,
-    )
+    _assert_multi_route_retrieval(retriever, question, embd_mdl, tenant_id, kb_id)
     assert results[-1]["answer"] == "fallback answer"
-    assert results[-1]["reference"] == _expected_fallback_reference(kb_id)
+    _assert_reference_is_the_retrieved_chunk(results[-1]["reference"], _expected_fallback_reference(kb_id))
     assert "cross-schema SQL is not allowed" in caplog.text
     assert "SQL failed or returned no results, falling back to vector search" in caplog.text
 
@@ -1789,24 +1819,9 @@ def test_tc_sql_1003_sql_timeout_falls_back_to_retrieval(
     get_field_map.assert_called_once_with([kb_id])
     expected_sql = f"{valid_sql} WHERE kb_id = '{kb_id}' LIMIT 128"
     assert retriever.sqls == [expected_sql, expected_sql]
-    retriever.retrieval.assert_awaited_once_with(
-        question,
-        embd_mdl,
-        [tenant_id],
-        [kb_id],
-        1,
-        8,
-        0.2,
-        0.3,
-        doc_ids=None,
-        knn_top_k=32,
-        aggs=True,
-        rerank_mdl=None,
-        rank_feature=None,
-        rerank_candidates_count=64,
-    )
+    _assert_multi_route_retrieval(retriever, question, embd_mdl, tenant_id, kb_id)
     assert results[-1]["answer"] == "fallback answer"
-    assert results[-1]["reference"] == _expected_fallback_reference(kb_id)
+    _assert_reference_is_the_retrieved_chunk(results[-1]["reference"], _expected_fallback_reference(kb_id))
     assert "query timeout" in caplog.text
     assert "SQL failed or returned no results, falling back to vector search" in caplog.text
 

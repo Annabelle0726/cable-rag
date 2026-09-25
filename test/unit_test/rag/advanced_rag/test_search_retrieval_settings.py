@@ -37,6 +37,7 @@ import logging
 import pytest
 
 from rag.advanced_rag.harness.tools import search as search_tools
+from rag.retrieval import multi_route
 
 pytestmark = pytest.mark.p1
 
@@ -329,18 +330,18 @@ async def test_hybrid_search_rescues_a_pool_the_threshold_emptied(scripted):
     answered" then refuses a question the corpus answers verbatim, so the search
     re-runs once at the recall floor instead.
     """
-    rec = scripted({search_tools._THRESHOLD_RESCUE_FLOOR: [{"chunk_id": "answer"}]})
+    rec = scripted({multi_route.RECALL_FLOOR: [{"chunk_id": "answer"}]})
     tools = _Tools(similarity_threshold=0.55, vector_similarity_weight=0.5, top_n=12, rerank_candidates_count=30)
 
     res = await search_tools.hybrid_search(tools, query="q")
 
-    assert rec.thresholds == [0.55, search_tools._THRESHOLD_RESCUE_FLOOR]
+    assert rec.thresholds == [0.55, multi_route.RECALL_FLOOR]
     assert [c["chunk_id"] for c in res["chunks"]] == ["answer"]
 
 
 async def test_hybrid_search_logs_the_rescue(scripted, caplog):
     """The substitution is visible in the transcript, or the tuning looks applied."""
-    scripted({search_tools._THRESHOLD_RESCUE_FLOOR: [{"chunk_id": "answer"}]})
+    scripted({multi_route.RECALL_FLOOR: [{"chunk_id": "answer"}]})
 
     with caplog.at_level(logging.WARNING):
         await search_tools.hybrid_search(_Tools(similarity_threshold=0.55), query="q")
@@ -350,7 +351,7 @@ async def test_hybrid_search_logs_the_rescue(scripted, caplog):
 
 async def test_hybrid_search_keeps_a_threshold_that_discriminates(scripted):
     """A threshold that returns anything keeps its effect on the tail untouched."""
-    rec = scripted({0.55: [{"chunk_id": "kept"}], search_tools._THRESHOLD_RESCUE_FLOOR: [{"chunk_id": "tail"}]})
+    rec = scripted({0.55: [{"chunk_id": "kept"}], multi_route.RECALL_FLOOR: [{"chunk_id": "tail"}]})
     tools = _Tools(similarity_threshold=0.55, top_n=12, rerank_candidates_count=30)
 
     res = await search_tools.hybrid_search(tools, query="q")
@@ -362,11 +363,11 @@ async def test_hybrid_search_keeps_a_threshold_that_discriminates(scripted):
 async def test_hybrid_search_does_not_retry_at_or_below_the_floor(scripted):
     """Nothing to fall back TO below the floor: a bare default reports an empty result."""
     rec = scripted({})
-    tools = _Tools(similarity_threshold=search_tools._THRESHOLD_RESCUE_FLOOR)
+    tools = _Tools(similarity_threshold=multi_route.RECALL_FLOOR)
 
     res = await search_tools.hybrid_search(tools, query="q")
 
-    assert rec.thresholds == [search_tools._THRESHOLD_RESCUE_FLOOR]
+    assert rec.thresholds == [multi_route.RECALL_FLOOR]
     assert res["chunks"] == []
 
 

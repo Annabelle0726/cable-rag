@@ -10,6 +10,7 @@ import re
 from typing import Any
 
 from common import settings
+from rag.retrieval import retrieve_multi_route
 from rag.advanced_rag.harness.chunk_utils import (  # noqa: F401
     _chunk_attr,
     _chunk_id,
@@ -52,21 +53,6 @@ _DEFAULT_HYBRID_VECTOR_WEIGHT = 0.3
 _DEFAULT_TOP_N = 12
 _DEFAULT_RERANK_CANDIDATES = 64
 _DEFAULT_TOP_K = 1024
-
-# Gate a hybrid search falls back to when the caller's own threshold returned
-# nothing. An absolute similarity threshold is only comparable inside ONE
-# corpus/embedding pair, because the fused score is
-# ``vector_weight * cosine + term_weight * term_recall`` and both legs' scales are
-# properties of the deployed models: on the cable corpus the embedding leg alone
-# contributes ~0.45 for EVERY chunk (measured cosines 0.88-0.92), so a threshold
-# calibrated on a setup with a wider cosine spread can sit above the entire
-# candidate pool. When that happens the knowledge base was searched and the gate,
-# not the corpus, produced the empty result — an answer layer that reads "no
-# chunks" as "the knowledge base cannot answer this" then refuses a question the
-# corpus answers verbatim. The floor is the long-standing hybrid default, and it
-# is applied ONLY when the configured threshold returned nothing, so a threshold
-# that does discriminate keeps its effect on the tail.
-_THRESHOLD_RESCUE_FLOOR = _DEFAULT_SIMILARITY_THRESHOLD
 
 
 def _setting(tools, name: str, default):
@@ -193,42 +179,46 @@ async def hybrid_search(tools, query: str, kb_ids: list[str] | None = None, top_
         rerank_candidates_count,
     )
 
-    async def _retrieve(threshold: float) -> dict:
-        res = await settings.retriever.retrieval(
-            effective_query,
-            embd_mdl,
-            tools.tenant_ids,
-            target_ids,
-            1,
-            top_n,
-            threshold,
-            vector_similarity_weight=vector_weight,
-            knn_top_k=knn_top_k,
-            aggs=True,
-            highlight=False,
-            doc_ids=doc_scope,
-            must_not={"exists": "compile_kwd"},  # plain retrieval = document chunks only; compiled products have their own tools
-            rerank_candidates_count=rerank_candidates_count,
-            allow_dense_fallback=False,
-        )
-        return _normalize(res, tools.tenant_ids)
-
-    kbinfos = await _retrieve(similarity_threshold)
-    if not (kbinfos.get("chunks") or []) and float(similarity_threshold or 0.0) > _THRESHOLD_RESCUE_FLOOR:
-        # The threshold emptied a pool the corpus can fill (see the floor's
-        # comment). Retry once below it rather than reporting an empty knowledge
-        # base: the answer layer treats "no chunks" as "cannot be answered".
-        _LOG.warning(
-            '[Hybrid search] "%s" -> 0 chunk(s) at the configured threshold=%s (vector_weight=%s); re-running with the %.2f recall floor.',
-            effective_query[:80],
-            similarity_threshold,
-            vector_weight,
-            _THRESHOLD_RESCUE_FLOOR,
-        )
-        rescued = await _retrieve(_THRESHOLD_RESCUE_FLOOR)
-        if rescued.get("chunks"):
-            kbinfos = rescued
-            similarity_threshold = _THRESHOLD_RESCUE_FLOOR
+    # One retrieval pass became the multi-route pipeline (``rag/retrieval/``):
+    # a question that carries more than one information need is decomposed into
+    # atomic sub-queries, the original question plus every sub-query is retrieved
+    # hybrid and CONCURRENTLY with ``top_n`` passages of its own, the routes are
+    # merged by ``chunk_id``, and the union is reranked against the ORIGINAL
+    # question before the caller's ``top_n`` cut.
+    #
+    # A single pass is what emptied the result on this stack: the fused score's
+    # text leg is a query-RECALL ratio, so a passage covering one of six
+    # asked-for parameters scores 1/6 on the composite question and never clears
+    # the assistant's gate - the knowledge base was searched and the gate, not the
+    # corpus, produced "no matching passages". ``top_n`` keeps its meaning for the
+    # caller (passages this search returns) and is also the window each route
+    # gets, because a route that cannot fill the page it has to return cannot
+    # contribute to it. The empty-pool rescue now lives in that pipeline too
+    # (``multi_route.RECALL_FLOOR``), applied per route instead of once globally.
+    kbinfos = await retrieve_multi_route(
+        retriever=settings.retriever,
+        question=effective_query,
+        chat_mdl=getattr(tools, "chat_mdl", None),
+        embd_mdl=embd_mdl,
+        # No rerank model is attached to RAGTools on the chat path: one harness
+        # question issues many searches (fan-out channels, react rounds), and a
+        # rerank is a provider round trip each time, so the merged pool keeps the
+        # routes' fused ordering here. A caller that does carry one - an agent
+        # component, or a future RAGTools field - gets module C for free.
+        rerank_mdl=getattr(tools, "rerank_mdl", None),
+        tenant_ids=tools.tenant_ids,
+        kb_ids=target_ids,
+        similarity_threshold=similarity_threshold,
+        vector_similarity_weight=vector_weight,
+        routes_top_k=top_n,
+        final_top_n=top_n,
+        knn_top_k=knn_top_k,
+        rerank_candidates_count=rerank_candidates_count,
+        doc_ids=doc_scope,
+        must_not={"exists": "compile_kwd"},  # plain retrieval = document chunks only; compiled products have their own tools
+        allow_dense_fallback=False,
+    )
+    kbinfos = _normalize(kbinfos, tools.tenant_ids)
     # Preserve the RAW retrieved chunks in the central memory store BEFORE any
     # narrowing. search is cheap and the raw corpus may hold a fact the LLM's
     # report/grounded extraction later compresses away — a gap-driven grep over
