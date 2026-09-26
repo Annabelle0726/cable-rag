@@ -35,7 +35,7 @@ from __future__ import annotations
 import logging
 from typing import Sequence
 
-from rag.retrieval.chunk_profile import document_id, document_key, document_name, resolve_core_documents
+from rag.retrieval.chunk_profile import document_id, document_key, document_name, is_prose_chunk, resolve_core_documents
 from rag.retrieval.decomposition import MAX_SUB_QUERIES, clause_route, decompose_question, looks_composite, seeks_clause
 from rag.retrieval.multi_route import (
     DEFAULT_ROUTES_TOP_K,
@@ -53,14 +53,21 @@ _LOG = logging.getLogger(__name__)
 #: individual clauses, so they are served first.
 MAX_CORE_DOCUMENT_ROUTES = 3
 
+#: How thin a standard's PROSE may be before a clause question triggers the
+#: document-scoped follow-up regardless of what the auxiliary documents did. Two
+#: passages from the standard, on a question that asks for a rule, means the rest
+#: of its clauses are buried rather than absent - and that conclusion must not
+#: depend on how loud some working document happens to be.
+MIN_CORE_PROSE_PASSAGES = 4
+
 
 def empty_kbinfos() -> dict:
     """A fresh empty result, in the shape every retrieval caller expects."""
     return {"total": 0, "chunks": [], "doc_aggs": []}
 
 
-def core_document_followup(chunks, question: str, preferred_routes: Sequence[str] = ()) -> tuple[str, str, list[str]] | None:
-    """``(doc_id, doc_name, queries)`` for a standard losing its own question.
+def core_document_followup(chunks, question: str, preferred_routes: Sequence[str] = ()) -> tuple[list[str], str, list[str]] | None:
+    """``(doc_ids, scope_name, queries)`` for a standard losing its own PROSE.
 
     The measured gap this exists for: a three-parameter question whose pool held
     two passages from 《Q/GDW 73237.1 通用技术规范》 and seven from an auxiliary
@@ -70,16 +77,34 @@ def core_document_followup(chunks, question: str, preferred_routes: Sequence[str
     else matches the same words, so those clauses never enter any route's window.
     No cut-stage policy can recover a passage that was never recalled; the only
     lever left is to search the standard ITSELF, which is what this returns the
-    material for: a retrieval scoped to the standard's ``doc_ids``.
+    material for: a retrieval scoped to the prose tier's ``doc_ids``.
 
-    Fires only on the measured symptom, so an ordinary turn pays nothing:
+    Counting is done on PROSE ONLY, and that is the refinement the second live
+    round forced. The first version compared every core passage with every
+    non-core passage, so a pool of
 
-    * a standard must be identifiable (:func:`resolve_core_documents`);
-    * the question must be about several parameters or about a rule - the shapes
-      whose clause can be buried by an auxiliary document;
-    * a non-core document must have contributed MORE passages than every core
-      document together. A standard that already leads its own question is left
-      alone, because nothing says a passage is missing.
+        《第1部分：通用技术规范》       2 passages (the normative clauses)
+        《第2部分：专用技术规范》       4 passages (parameter TABLES)
+        《20_抽检工作规范》             3 passages
+
+    added the two parts together (6), declared the standard ahead of the
+    auxiliary file (3), and silently skipped the follow-up - while the document
+    that holds the CLAUSES had contributed two passages. A parameter table cannot
+    state a rule, so it cannot stand in for one when deciding whether the
+    standard was recalled. Both the count and the SCOPE are therefore prose-only:
+    the pass searches the core documents that actually contributed prose, not the
+    table part that padded the number.
+
+    Fires when either symptom holds, so an ordinary turn pays nothing:
+
+    * a standard must be identifiable (:func:`resolve_core_documents`) and the
+      question must be about several parameters or about a rule;
+    * **(A)** a non-core document contributed more PROSE passages than every core
+      document together - the standard is losing its own question; or
+    * **(B)** the question asks for a RULE and the standard's prose is thinner
+      than :data:`MIN_CORE_PROSE_PASSAGES` - a clause question that sees two
+      passages from the standard has clauses buried somewhere, whether or not an
+      auxiliary file happens to be louder.
 
     ``preferred_routes`` are searched first inside the standard (the atomic
     sub-queries and the prose-tier route), then the question itself.
@@ -90,27 +115,54 @@ def core_document_followup(chunks, question: str, preferred_routes: Sequence[str
     if not (looks_composite(question) or seeks_clause(question)):
         return None
 
-    core_counts: dict[str, int] = {}
-    auxiliary_counts: dict[str, int] = {}
-    best_core: tuple[float, str, str] = (-1.0, "", "")
+    prose_by_document: dict[str, int] = {}
+    best_prose: dict[str, tuple[float, str]] = {}
+    auxiliary_prose: dict[str, int] = {}
+    auxiliary_total = 0
     for chunk in chunks or []:
         key = document_key(chunk)
         if key in core:
-            core_counts[key] = core_counts.get(key, 0) + 1
+            if not is_prose_chunk(chunk):
+                continue  # a table cannot answer a clause, and cannot pad the count
+            prose_by_document[key] = prose_by_document.get(key, 0) + 1
             score = float(chunk.get("similarity") or 0.0)
-            if score > best_core[0]:
-                best_core = (score, document_id(chunk), document_name(chunk))
+            if score > best_prose.get(key, (-1.0, ""))[0]:
+                best_prose[key] = (score, document_id(chunk))
         else:
-            auxiliary_counts[key] = auxiliary_counts.get(key, 0) + 1
+            auxiliary_total += 1
+            if is_prose_chunk(chunk):
+                auxiliary_prose[key] = auxiliary_prose.get(key, 0) + 1
 
-    core_total = sum(core_counts.values())
-    if not core_total or max(auxiliary_counts.values(), default=0) <= core_total:
+    core_prose = sum(prose_by_document.values())
+    loudest_auxiliary = max(auxiliary_prose.values(), default=0)
+    out_numbered = bool(core_prose) and loudest_auxiliary > core_prose
+    thin_for_a_clause = seeks_clause(question) and core_prose < MIN_CORE_PROSE_PASSAGES
+
+    if not out_numbered and not thin_for_a_clause:
+        _LOG.info(
+            "[Multi-route] the standard's prose holds %d passage(s) against %d auxiliary prose passage(s) and %d passage(s) in total; no document-scoped route needed",
+            core_prose,
+            loudest_auxiliary,
+            auxiliary_total,
+        )
         return None
-    _, doc_id, doc_name = best_core
-    if not doc_id:
-        # Only a file name is known, and a file name is not a doc-store id: a
-        # scoped search would match nothing and hide the standard completely.
-        _LOG.info("[Multi-route] the standard for this question has no doc id (%s); skipping the document-scoped route", doc_name or "?")
+
+    # The scope is the prose tier: core documents that actually contributed a
+    # clause, best first, so the table part of a multi-part standard is not
+    # searched again for something it cannot contain.
+    scope: list[str] = []
+    names: list[str] = []
+    for key, _count in sorted(prose_by_document.items(), key=lambda item: (item[1], best_prose.get(item[0], (0.0, ""))[0]), reverse=True):
+        doc_id = best_prose.get(key, (0.0, ""))[1]
+        if doc_id and doc_id not in scope:
+            scope.append(doc_id)
+        name = next((document_name(chunk) for chunk in chunks if document_key(chunk) == key), "")
+        if name and name not in names:
+            names.append(name)
+    if not scope:
+        # Only file names are known, and a file name is not a doc-store id: a
+        # scoped search on one matches nothing and would hide the standard.
+        _LOG.info("[Multi-route] the standard for this question has no doc id (%s); skipping the document-scoped route", ", ".join(names) or "?")
         return None
 
     queries: list[str] = []
@@ -121,13 +173,16 @@ def core_document_followup(chunks, question: str, preferred_routes: Sequence[str
         if len(queries) >= MAX_CORE_DOCUMENT_ROUTES:
             break
     _LOG.info(
-        "[Multi-route] the standard is out-numbered %d to %d in the pool; searching %s itself (%d route(s))",
-        core_total,
-        max(auxiliary_counts.values(), default=0),
-        doc_name or doc_id,
+        "[Multi-route] %s; searching the standard's own prose %s (%d route(s))",
+        (
+            f"the standard's prose is out-numbered {loudest_auxiliary} to {core_prose} in the pool"
+            if out_numbered
+            else f"a clause question sees only {core_prose} prose passage(s) from the standard (floor {MIN_CORE_PROSE_PASSAGES})"
+        ),
+        ", ".join(names) or ", ".join(scope),
         len(queries),
     )
-    return doc_id, doc_name, queries
+    return scope, ", ".join(names) or ", ".join(scope), queries
 
 
 async def retrieve_multi_route(
@@ -212,14 +267,14 @@ async def retrieve_multi_route(
     # rule), one more pass searches the standard itself.
     followup = core_document_followup(merged["chunks"], question, preferred_routes=[*sub_queries, *([targeted] if targeted else [])])
     if followup:
-        doc_id, doc_name, queries = followup
-        scoped = await _retrieve(queries, [doc_id])
+        scope, scope_name, queries = followup
+        scoped = await _retrieve(queries, scope)
         before = len(merged["chunks"])
         merged = merge_route_hits(
             [RouteResult(query=query, chunks=[dict(chunk, core_scoped=True) for chunk in scoped["chunks"]], doc_aggs=scoped["doc_aggs"]) for query in queries],
             existing=merged,
         )
-        _LOG.info("[Multi-route] document-scoped follow-up on %s added %d passage(s) (%d -> %d in the pool)", doc_name or doc_id, len(merged["chunks"]) - before, before, len(merged["chunks"]))
+        _LOG.info("[Multi-route] document-scoped follow-up on %s added %d passage(s) (%d -> %d in the pool)", scope_name, len(merged["chunks"]) - before, before, len(merged["chunks"]))
 
     chunks = await rerank_chunks(rerank_mdl, merged["chunks"], question, final_top_n)
     return {"total": merged.get("total", len(chunks)), "chunks": chunks, "doc_aggs": merged.get("doc_aggs", [])}

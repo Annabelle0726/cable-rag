@@ -155,7 +155,7 @@ async def test_the_follow_up_is_capped_and_logged(decomposition_node, caplog):
         await _run(store)
 
     assert len(_scoped_calls(store)) <= pipeline.MAX_CORE_DOCUMENT_ROUTES
-    assert "searching Q_GDW_73237.1-2026_通用技术规范.pdf itself" in caplog.text
+    assert "searching the standard's own prose" in caplog.text
     assert "document-scoped follow-up" in caplog.text
 
 
@@ -244,6 +244,132 @@ async def test_a_question_that_names_the_standard_still_scopes_when_needed(decom
     await _run(store, question="Q/GDW 73237.1 的标称厚度、绝缘电阻和交流电压试验要求分别是多少？")
 
     assert _scoped_calls(store), "the pool still shows the auxiliary document out-recalling the standard"
+
+
+# ---------------------------------------------------------------------------
+# The trigger must count PROSE, not passages
+# ---------------------------------------------------------------------------
+
+_PART_1 = "doc-73237-1-general"
+_PART_2 = "doc-73237-2-specific"
+_PART_1_NAME = "Q_GDW_73237.1-2026_第1部分：通用技术规范.pdf"
+_PART_2_NAME = "Q_GDW_73237.2-2026_第2部分：专用技术规范.pdf"
+
+#: The live pool that exposed the table-blind count: the clauses' document has
+#: two passages, the TABLES' document has four, and the auxiliary file three.
+#: Adding the two parts (6) made the standard look ahead of the auxiliary (3).
+_TABLE_PADDED_POOL = [
+    ("p1-a", _PART_1, _PART_1_NAME, "text", 0.59),
+    ("p1-b", _PART_1, _PART_1_NAME, "text", 0.585),
+    ("p2-a", _PART_2, _PART_2_NAME, "table", 0.63),
+    ("p2-b", _PART_2, _PART_2_NAME, "table", 0.625),
+    ("p2-c", _PART_2, _PART_2_NAME, "table", 0.62),
+    ("p2-d", _PART_2, _PART_2_NAME, "table", 0.615),
+    ("aux-a", _AUXILIARY_DOC, "20_架空绝缘导线抽检工作规范.pdf", "text", 0.60),
+    ("aux-b", _AUXILIARY_DOC, "20_架空绝缘导线抽检工作规范.pdf", "text", 0.598),
+    ("aux-c", _AUXILIARY_DOC, "20_架空绝缘导线抽检工作规范.pdf", "text", 0.596),
+]
+
+
+class _TablePaddedStore:
+    """Unscoped: the measured pool. Scoped: the clause the question needs."""
+
+    def __init__(self):
+        self.calls = []
+
+    async def retrieval(self, question, embd_mdl, tenant_ids, kb_ids, page, page_size, threshold, **kwargs):
+        doc_ids = kwargs.get("doc_ids")
+        self.calls.append({"question": question, "doc_ids": list(doc_ids) if doc_ids else None})
+        if doc_ids:
+            rows = [(cid, text, score) for cid, text, score in _SCOPED.get(question, [])]
+            rows.append(("p1-resistance", "6.2.2 绝缘电阻应不小于 1500/1000 MΩ·km", 0.69))
+            chunks = [
+                {
+                    "chunk_id": cid,
+                    "doc_id": _PART_1,
+                    "docnm_kwd": _PART_1_NAME,
+                    "doc_type_kwd": "text",
+                    "content_with_weight": text,
+                    "similarity": score,
+                }
+                for cid, text, score in rows
+            ]
+        else:
+            chunks = [
+                {
+                    "chunk_id": cid,
+                    "doc_id": doc_id,
+                    "docnm_kwd": name,
+                    "doc_type_kwd": kind,
+                    "content_with_weight": f"{cid} 绝缘标称厚度 绝缘电阻 交流电压试验 例行试验",
+                    "similarity": score,
+                }
+                for cid, doc_id, name, kind, score in _TABLE_PADDED_POOL
+            ]
+        return {"total": len(chunks), "chunks": chunks[:page_size], "doc_aggs": []}
+
+    @staticmethod
+    def retrieval_by_children(chunks, _tenant_ids):
+        return chunks
+
+
+async def test_table_passages_do_not_pad_the_standard_out_of_a_follow_up(decomposition_node):
+    """The reported miss: 2 clauses + 4 tables looked like 6 clauses."""
+    store = _TablePaddedStore()
+
+    result = await _run(store)
+
+    scoped = _scoped_calls(store)
+    assert scoped, "the clauses' document held two passages, whatever the table part held"
+    assert {doc_id for call in scoped for doc_id in call["doc_ids"]} == {_PART_1}, "and the TABLE part is not searched for a clause"
+    assert "p1-resistance" in [chunk["chunk_id"] for chunk in result["chunks"]]
+    assert "p1-b" in [chunk["chunk_id"] for chunk in result["chunks"]]
+
+
+async def test_a_thin_clause_tier_triggers_even_when_no_auxiliary_file_shouts(decomposition_node):
+    """(B): a clause question seeing two standard passages fires on its own."""
+    pool = [
+        {"chunk_id": "p1-a", "doc_id": _PART_1, "docnm_kwd": _PART_1_NAME, "doc_type_kwd": "text", "content_with_weight": "5.3.3 绝缘标称厚度", "similarity": 0.59},
+        {"chunk_id": "p1-b", "doc_id": _PART_1, "docnm_kwd": _PART_1_NAME, "doc_type_kwd": "text", "content_with_weight": "6.2.3 交流电压试验", "similarity": 0.585},
+        {"chunk_id": "aux-a", "doc_id": _AUXILIARY_DOC, "docnm_kwd": "20_抽检工作规范.pdf", "doc_type_kwd": "text", "content_with_weight": "抽检", "similarity": 0.51},
+    ]
+
+    class _ThinProse(_Store):
+        async def retrieval(self, question, *args, **kwargs):
+            self.calls.append({"question": question, "doc_ids": list(kwargs["doc_ids"]) if kwargs.get("doc_ids") else None, "page_size": args[4]})
+            if kwargs.get("doc_ids"):
+                chunks = [_chunk("p1-resistance", _PART_1, "6.2.2 绝缘电阻应不小于 1500/1000 MΩ·km", 0.69)]
+            else:
+                chunks = [dict(chunk) for chunk in pool]
+            return {"total": len(chunks), "chunks": chunks, "doc_aggs": []}
+
+    store = _ThinProse()
+
+    result = await _run(store, question="例行交流电压试验的维持时间和绝缘电阻是怎么规定的？")
+
+    assert _scoped_calls(store), "two standard passages for a clause question is the symptom"
+    assert "p1-resistance" in [chunk["chunk_id"] for chunk in result["chunks"]]
+
+
+async def test_a_thick_clause_tier_is_left_alone(decomposition_node, caplog):
+    """Eleven standard passages for a clause question: nothing says one is missing."""
+    pool = [
+        {"chunk_id": f"p1-{i}", "doc_id": _PART_1, "docnm_kwd": _PART_1_NAME, "doc_type_kwd": "text", "content_with_weight": f"6.2.{i} 例行交流电压试验规定", "similarity": 0.70 - i * 0.001}
+        for i in range(11)
+    ]
+
+    class _ThickProse(_Store):
+        async def retrieval(self, question, *args, **kwargs):
+            self.calls.append({"question": question, "doc_ids": list(kwargs["doc_ids"]) if kwargs.get("doc_ids") else None, "page_size": args[4]})
+            return {"total": len(pool), "chunks": pool, "doc_aggs": []}
+
+    store = _ThickProse()
+
+    with caplog.at_level(logging.INFO):
+        await _run(store, question="例行交流电压试验的维持时间是怎么规定的？")
+
+    assert _scoped_calls(store) == []
+    assert "no document-scoped route needed" in caplog.text, "and the skip is visible instead of silent"
 
 
 # ---------------------------------------------------------------------------
