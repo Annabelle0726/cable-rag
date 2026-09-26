@@ -127,7 +127,7 @@ def _score(chunk: dict) -> float:
         return 0.0
 
 
-def merge_route_hits(hits: Sequence[RouteResult]) -> dict:
+def merge_route_hits(hits: Sequence[RouteResult], existing: dict | None = None) -> dict:
     """De-duplicate and merge the passages every route returned.
 
     A passage found by several routes keeps the best score it earned on any of
@@ -135,9 +135,25 @@ def merge_route_hits(hits: Sequence[RouteResult]) -> dict:
     show which sub-query reached which chapter. ``doc_aggs`` counts are summed
     per document, which makes the reference list reflect the merged pool rather
     than whichever route happened to run first.
+
+    ``existing`` seeds the merge with an already-merged pool (a second retrieval
+    pass whose result must be ADDED to the first). Provenance is preserved by
+    construction: the seeded passages keep the routes that found them and gain
+    the new one when the same passage comes back, instead of having their
+    ``retrieval_routes`` reset - the context cut's route coverage reads that list.
     """
     merged: dict[str, dict] = {}
     doc_aggs: dict[str, dict] = {}
+    if existing:
+        for chunk in existing.get("chunks") or []:
+            merged[chunk_key(chunk)] = dict(chunk)
+        for agg in existing.get("doc_aggs") or []:
+            doc_id = str(agg.get("doc_id") or agg.get("doc_name") or "")
+            doc_aggs[doc_id] = {
+                "doc_name": agg.get("doc_name") or "",
+                "doc_id": agg.get("doc_id") or "",
+                "count": int(agg.get("count") or 0),
+            }
 
     for hit in hits:
         for chunk in hit.chunks or []:

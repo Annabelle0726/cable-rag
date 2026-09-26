@@ -90,6 +90,16 @@ def document_key(chunk: dict) -> str:
     return ""
 
 
+def document_id(chunk: dict) -> str:
+    """The doc-store id only - what a ``doc_ids`` scope can be built from.
+
+    Distinct from :func:`document_key`, which falls back to the file name for
+    grouping: a file name is fine for counting passages per document, but handing
+    one to the doc store as a ``doc_id`` filter would match nothing.
+    """
+    return str(chunk.get("doc_id") or "")
+
+
 def document_name(chunk: dict) -> str:
     """The document's file name/title as the transcript shows it."""
     for name in ("docnm_kwd", "docnm", "document_name"):
