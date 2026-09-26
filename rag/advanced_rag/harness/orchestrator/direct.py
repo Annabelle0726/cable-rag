@@ -23,8 +23,10 @@ async def direct_search(state: dict, tools) -> dict:
     _merge_kbinfos(tools, result)
 
     if not _has_chunks(tools):
+        # The pool is the report: the composer decides from it, and says so when it
+        # is empty. This used to also park ``empty_result: True`` in the state,
+        # which nothing ever cleared - see the composer's comment.
         _LOG.info("[Direct search] Found no matching passages.")
-        return {"empty_result": True, "kbinfos": tools.kbinfos}
 
     return {"kbinfos": tools.kbinfos}
 

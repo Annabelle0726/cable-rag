@@ -216,7 +216,6 @@ class AgenticState(TypedDict, total=False):
     rag_answer: str  # latest RAG-agent research report
     partial_answer: bool
     abstain: bool
-    empty_result: bool
     verdict: dict  # sufficiency verdict as a plain dict (status/score/gaps/...)
     sca: dict  # raw SCA payload (its gaps feed the Query Rewriter)
 
@@ -1075,16 +1074,28 @@ async def _compose_answer_from_evidence(state: AgenticState, tools, token_queue:
     question = state.get("question") or ""
     partial = state.get("partial_answer", False)
     abstain = state.get("abstain", False)
-    empty_result = state.get("empty_result", False)
 
     _note = " — partial answer, some gaps remain" if partial else (" — not enough evidence to answer" if abstain else "")
     _LOG.info('[Composing the answer] Writing the final answer to "%s" from %d gathered passage(s)%s.', _snip(question), len(kbinfos["chunks"]), _note)
 
     tools.kbinfos = kbinfos
 
-    no_evidence = abstain or empty_result or not kbinfos["chunks"]
+    # The evidence test is the EVIDENCE: the passages this call is about to write
+    # from, plus an explicit post-retrieval verdict. It used to also OR in
+    # ``state["empty_result"]``, and that was a false kill - the flag was set True
+    # by ``formalize_question`` BEFORE any retrieval ran and nothing ever cleared
+    # it, so a research turn that gathered eight passages still looked empty here
+    # and the canned ``empty_response`` was streamed without calling the answer
+    # model at all ("from 8 gathered passage(s)" followed immediately by "No
+    # supporting evidence was found"). A flag that can only ever be written True
+    # tells a reader of the pool nothing it does not already know, so it is
+    # deleted rather than repaired.
+    no_evidence = abstain or not kbinfos["chunks"]
     if no_evidence and getattr(tools, "empty_response", ""):
-        _LOG.info("[Composing the answer] No supporting evidence was found; returning the configured empty response without calling the answer model.")
+        _LOG.info(
+            "[Composing the answer] No supporting evidence was found (%s); returning the configured empty response without calling the answer model.",
+            "the verdict was to abstain" if abstain else "retrieval gathered no passage",
+        )
         token_queue.put_nowait(tools.empty_response)
         return {"final_answer": tools.empty_response}
 
@@ -1161,8 +1172,20 @@ async def _compose_answer_from_evidence(state: AgenticState, tools, token_queue:
     # while the client resolves it against another opens the wrong passage.
     tools._rag_cite_chunks = cite_chunks
     evidence_kbinfos = dict(kbinfos, chunks=cite_chunks)
-    evidence_blocks = kb_prompt(evidence_kbinfos, min(tools.chat_mdl.max_length, _EVIDENCE_BUDGET_TOKENS))
+    _evidence_budget = min(tools.chat_mdl.max_length, _EVIDENCE_BUDGET_TOKENS)
+    evidence_blocks = kb_prompt(evidence_kbinfos, _evidence_budget)
     evidence = "\n".join(evidence_blocks) if isinstance(evidence_blocks, list) else str(evidence_blocks)
+    if cite_chunks and not evidence.strip():
+        # The pool reached this stage but rendered to nothing: kb_prompt drops a
+        # block that does not fit the budget, so a pool of oversized passages can
+        # still hand the model an empty Evidence section - the same false "no
+        # evidence" the pool-level test above exists to prevent, one layer down.
+        # Say so instead of letting the answer read as a corpus gap.
+        _LOG.warning(
+            "[Composing the answer] %d passage(s) were gathered but no evidence block fitted the %d-token budget; the answer model is being called with an empty Evidence section.",
+            len(cite_chunks),
+            _evidence_budget,
+        )
 
     parts = [f"Question:\n{question}\n"]
 
@@ -1348,7 +1371,6 @@ def build_agentic_graph(
             "kbinfos": {"chunks": [], "doc_aggs": []},
             "partial_answer": False,
             "abstain": False,
-            "empty_result": True,
             "current_queries": [],
             "research_feedback": [],
             "rag_answer": "",
