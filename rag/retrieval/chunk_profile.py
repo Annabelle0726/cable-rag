@@ -90,6 +90,98 @@ def document_key(chunk: dict) -> str:
     return ""
 
 
+def document_name(chunk: dict) -> str:
+    """The document's file name/title as the transcript shows it."""
+    for name in ("docnm_kwd", "docnm", "document_name"):
+        value = chunk.get(name)
+        if value:
+            return str(value)
+    return ""
+
+
+#: A standard designation in a file name or a question: ``Q/GDW 73237.1-2026``,
+#: ``GB/T 19666``, ``DL/T 5221``. ``_`` and spaces are interchangeable with the
+#: slash, because an archived file is routinely named ``Q_GDW_73237.2-2026_…``.
+_STANDARD_DESIGNATION_RE = re.compile(
+    r"\b(?:Q\s*/?\s*GDW|GB\s*/?\s*T|GB|DL\s*/?\s*T|JB\s*/?\s*T|NB\s*/?\s*T|YD\s*/?\s*T|T\s*/?\s*CEC|JJG|JG)\s*\d{2,}(?:\.\d+)?",
+    re.IGNORECASE,
+)
+
+#: Names that say "this file IS the standard the corpus is about", without a
+#: designation of their own. Deliberately NOT a list of auxiliary names (抽检/
+#: 检验/试验/方案…): a corpus is free to name a standard 《…验收规范》, and a
+#: blacklist would then hide the standard itself. The rule is positive - a file
+#: either carries a standard designation (or one of these tier names) or it does
+#: not - so it generalises past the corpus that produced it.
+CORE_DOCUMENT_NAME_CUES = ("采购标准", "通用技术规范", "专用技术规范")
+
+
+def _normalized_name(text: str) -> str:
+    return re.sub(r"[\s_]+", " ", str(text or "")).strip()
+
+
+def standard_designations(text: str) -> set[str]:
+    """Every standard designation a file name or question carries, normalized.
+
+    Normalization drops the separators so ``Q/GDW73237.1`` in a question matches
+    ``Q_GDW_73237.1-2026`` in a file name.
+    """
+    found = set()
+    for match in _STANDARD_DESIGNATION_RE.finditer(_normalized_name(text)):
+        found.add(re.sub(r"[\s/]+", "", match.group(0)).upper())
+    return found
+
+
+def core_document_score(chunk_or_name) -> int:
+    """How strongly a document presents itself as the corpus's standard.
+
+    2 = carries a standard designation, 1 = carries a tier name (采购标准 /
+    通用技术规范 / 专用技术规范), 0 = neither.
+    """
+    name = chunk_or_name if isinstance(chunk_or_name, str) else document_name(chunk_or_name)
+    if not name:
+        return 0
+    score = 0
+    if standard_designations(name):
+        score += 2
+    normalized = _normalized_name(name)
+    if any(cue in normalized for cue in CORE_DOCUMENT_NAME_CUES):
+        score += 1
+    return score
+
+
+def resolve_core_documents(chunks: Sequence[dict], question: str = "") -> set[str]:
+    """The documents that ARE the standard this question is about, if any.
+
+    Two rules, in order:
+
+    1. the question names a designation (``Q/GDW 73237.1``) - the documents whose
+       file name or whose own passage text carries it are the core;
+    2. otherwise every document whose name carries a designation or a tier name.
+
+    An empty result means the corpus does not advertise a standard at all (a
+    folder of supplier datasheets, product manuals, test reports). Callers must
+    then leave document-level policy alone rather than guess which file is
+    "main" - guessing is how an auxiliary working document gets promoted or a
+    legitimate single-document answer gets truncated.
+    """
+    by_document: dict[str, list[dict]] = {}
+    for chunk in chunks or []:
+        key = document_key(chunk)
+        if key:
+            by_document.setdefault(key, []).append(chunk)
+    if not by_document:
+        return set()
+
+    named = standard_designations(question)
+    if named:
+        hit = {key for key, group in by_document.items() if standard_designations(document_name(group[0])) & named or any(named & standard_designations(_content(chunk)) for chunk in group)}
+        if hit:
+            return hit
+
+    return {key for key, group in by_document.items() if core_document_score(group[0]) > 0}
+
+
 def summarize(chunks: Sequence[dict]) -> str:
     """One line describing a passage pool or a context: types and provenance."""
     chunks = list(chunks or [])
@@ -98,3 +190,22 @@ def summarize(chunks: Sequence[dict]) -> str:
     prose = sum(1 for chunk in chunks if is_prose_chunk(chunk))
     documents = {document_key(chunk) for chunk in chunks if document_key(chunk)}
     return f"{len(chunks)} passage(s): {prose} prose / {tables} table / {images} image from {len(documents)} document(s)"
+
+
+def document_breakdown(chunks: Sequence[dict], limit: int = 3) -> str:
+    """``Q/GDW 73237.1…pdf x5, 抽检工作规范.pdf x4`` - who filled the context.
+
+    The measurement that started this: nine recalled passages, seven of them from
+    one auxiliary working document (22,684 characters) and two from the standard
+    the question was about (1,130 characters). A count per document makes that
+    visible in one line of the transcript.
+    """
+    counts: dict[str, int] = {}
+    for chunk in chunks or []:
+        key = document_name(chunk) or document_key(chunk) or "?"
+        counts[key] = counts.get(key, 0) + 1
+    ordered = sorted(counts.items(), key=lambda item: item[1], reverse=True)
+    shown = [f"{name} x{count}" for name, count in ordered[:limit]]
+    if len(ordered) > limit:
+        shown.append(f"+{len(ordered) - limit} more")
+    return ", ".join(shown)

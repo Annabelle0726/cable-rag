@@ -64,7 +64,7 @@ from dataclasses import dataclass
 from typing import Any, Sequence
 
 from common.misc_utils import thread_pool_exec
-from rag.retrieval.chunk_profile import is_prose_chunk, is_table_chunk, summarize
+from rag.retrieval.chunk_profile import document_breakdown, document_key, document_name, is_prose_chunk, is_table_chunk, resolve_core_documents, summarize
 from rag.retrieval.decomposition import mentions_requirement, seeks_clause
 from rag.retrieval.multi_route import chunk_key
 
@@ -85,35 +85,82 @@ MAX_TABLE_SHARE = 0.5
 #: Ordering nudge for a tabular passage: enough to put a comparable prose clause
 #: first, not enough to reorder passages whose scores actually differ.
 TABLE_PENALTY = 0.85
+#: Share of the window ONE auxiliary document may take.
+#:
+#: Document flooding, measured: nine recalled passages, seven of them from
+#: 《20_架空绝缘导线抽检工作规范.pdf》 (22,684 characters) and two from the standard
+#: the question was about (1,130 characters). A working document whose whole text
+#: repeats 例行试验 out-scores the clause that defines the test, and a plain
+#: top-N then hands the answer model the working document and little else.
+#: 0.4 is the generous end of the 30-40% band, so an auxiliary file still
+#: contributes while it cannot own the window. The standard itself is exempt:
+#: the earlier milestone's winning answer came from eleven passages of ONE
+#: document and must keep doing so.
+MAX_AUXILIARY_DOCUMENT_SHARE = 0.4
+#: Ordering nudge for a passage from the standard the question is about.
+CORE_DOCUMENT_BOOST = 1.15
 
 
 @dataclass(frozen=True)
 class DiversityPolicy:
-    """How much room the cut must leave for non-tabular prose.
+    """How the context cut balances passage TYPE and DOCUMENT.
 
-    Two strengths, because the two intents differ. A RULE question ("例行交流电压
-    试验的维持时间是多少", "两份规范对不上时以谁为准") gets the full policy: a
-    window reserved for prose is the only way it gets answered, since a fill-in
-    table cannot state a rule. A question that merely mentions a requirement or a
-    test gets the ordering nudge alone - a parameter table IS the right source for
-    绝缘电阻试验的数值是多少, so its window is not reserved for prose.
+    Two strengths on the type axis, because the two intents differ. A RULE
+    question ("例行交流电压试验的维持时间是多少", "两份规范对不上时以谁为准") gets the
+    full policy: a window reserved for prose is the only way it gets answered,
+    since a fill-in table cannot state a rule. A question that merely mentions a
+    requirement or a test gets the ordering nudge alone - a parameter table IS
+    the right source for 绝缘电阻试验的数值是多少, so its window is not reserved for
+    prose.
+
+    On the document axis the policy applies ONLY when the corpus advertises a
+    standard (``core_documents``): a per-document quota for the auxiliary files,
+    and a boost for the standard itself. A corpus that identifies no standard
+    (supplier datasheets, product manuals, test reports) keeps a plain top-N - a
+    quota invented for a corpus we could not read would truncate exactly the
+    answer it was meant to protect.
     """
 
     min_prose: int = 0
     max_table_share: float = 1.0
     table_penalty: float = 1.0
+    max_auxiliary_document_share: float = 1.0
+    core_document_boost: float = 1.0
+    core_documents: frozenset[str] = frozenset()
 
     @classmethod
-    def for_question(cls, question: str) -> "DiversityPolicy":
+    def for_question(cls, question: str, chunks: Sequence[dict] = ()) -> "DiversityPolicy":
+        core = frozenset(resolve_core_documents(chunks, question))
+        document_axes = {
+            "max_auxiliary_document_share": MAX_AUXILIARY_DOCUMENT_SHARE if core else 1.0,
+            "core_document_boost": CORE_DOCUMENT_BOOST if core else 1.0,
+            "core_documents": core,
+        }
         if seeks_clause(question):
-            return cls(min_prose=MIN_PROSE_PASSAGES, max_table_share=MAX_TABLE_SHARE, table_penalty=TABLE_PENALTY)
-        if mentions_requirement(question):
-            return cls(table_penalty=TABLE_PENALTY)
-        return cls()
+            return cls(
+                min_prose=MIN_PROSE_PASSAGES,
+                max_table_share=MAX_TABLE_SHARE,
+                table_penalty=TABLE_PENALTY,
+                **document_axes,
+            )
+        return cls(
+            table_penalty=TABLE_PENALTY if mentions_requirement(question) else 1.0,
+            **document_axes,
+        )
 
     @property
     def active(self) -> bool:
-        return self.min_prose > 0 or self.max_table_share < 1.0 or self.table_penalty != 1.0
+        return self.min_prose > 0 or self.max_table_share < 1.0 or self.table_penalty != 1.0 or self.max_auxiliary_document_share < 1.0 or self.core_document_boost != 1.0
+
+    def is_core_document(self, chunk: dict) -> bool:
+        """Whether ``chunk`` belongs to the standard this question is about.
+
+        A passage with no document identity belongs to no auxiliary file, so it is
+        treated as core: an unidentifiable passage must never be charged against a
+        quota it cannot be counted against.
+        """
+        key = document_key(chunk)
+        return True if not key else key in self.core_documents
 
 
 def _score(chunk: dict, *, key: str = "similarity") -> float:
@@ -123,8 +170,8 @@ def _score(chunk: dict, *, key: str = "similarity") -> float:
         return 0.0
 
 
-def apply_type_penalty(chunks: Sequence[dict], policy: DiversityPolicy) -> list[dict]:
-    """Order the pool by its score, tabular passages nudged down.
+def apply_rank_adjustments(chunks: Sequence[dict], policy: DiversityPolicy) -> list[dict]:
+    """Order the pool by its score, nudged by passage type and by document.
 
     Writes ``rank_score`` (the value the cut orders by) and leaves the model's own
     numbers untouched: ``similarity`` still means what the reranker or the fused
@@ -133,7 +180,8 @@ def apply_type_penalty(chunks: Sequence[dict], policy: DiversityPolicy) -> list[
     for chunk in chunks:
         base = _score(chunk, key="rerank_score") or _score(chunk)
         penalty = policy.table_penalty if is_table_chunk(chunk) else 1.0
-        chunk["rank_score"] = base * penalty
+        boost = policy.core_document_boost if policy.is_core_document(chunk) else 1.0
+        chunk["rank_score"] = base * penalty * boost
     return sorted(chunks, key=lambda chunk: _score(chunk, key="rank_score"), reverse=True)
 
 
@@ -186,40 +234,76 @@ def select_context(ordered: Sequence[dict], top_n: int, policy: DiversityPolicy 
     2. the prose floor, when the question asks for a rule: normative clauses
        first, because a parameter table cannot state one;
     3. everything else by score - non-table passages first, then tables up to
-       ``policy.max_table_share`` of the window.
+       ``policy.max_table_share`` of the window, and never more than
+       ``policy.max_auxiliary_document_share`` of it from ONE auxiliary
+       document.
 
-    A pool with nothing but tables fills the window anyway (step 4): a window of
-    tables is worse than a mixed one, but it is not worse than a short one, and
-    reserving slots a pool cannot fill would silently shrink the evidence.
+    Both caps are quotas, not preferences: a slot a cap withholds is not handed
+    to the passage the cap excluded just because nothing else is left, so a
+    window can come back SHORTER than ``top_n`` (twelve tables and three clauses
+    at a 12-slot window is nine passages, and a flooding auxiliary document at a
+    40% quota frees slots the standard fills). Two exceptions, both deliberate:
+    a pool with nothing but tables fills the window anyway - a window of tables
+    is worse than a mixed one but not worse than a short one - and a document
+    that carries no identity is never charged against the document quota.
 
-    What a cap DOES cost is honesty about the window's size: with twelve tables
-    and three clauses, a 12-slot window at a 50% table cap comes back with 9
-    passages, not 12 - the three slots the cap withheld had no prose to go to.
-    The caller is told (see :func:`_select`).
+    A pool that FITS the window is cut the same way, and that is deliberate: the
+    measured flooding case recalled nine passages for a twelve-slot window, so
+    seven auxiliary passages and two standard clauses were all "inside" the
+    window and a shortcut for a fitting pool would have changed nothing. The
+    quota is relative to ``top_n``, the window, not to how full the pool happens
+    to be.
 
     The result keeps ``ordered``'s order, so the prompt and its citation numbers
-    stay relevance-ordered.
+    stay relevance-ordered. The caller is told what the cut cost and who filled
+    it (see :func:`_select`).
     """
     if top_n <= 0:
         return []
-    if len(ordered) <= top_n:
-        return list(ordered)
 
     chosen_keys: set[str] = set()
     chosen: list[str] = []
+    table_count = 0
+    document_counts: dict[str, int] = {}
 
-    def take(chunk: dict) -> bool:
+    table_cap = top_n if policy.max_table_share >= 1.0 else min(top_n, math.ceil(top_n * policy.max_table_share))
+    # At least one slot, so an auxiliary document still contributes its best
+    # passage instead of vanishing behind its own quota.
+    document_cap = 0 if policy.max_auxiliary_document_share >= 1.0 else max(1, min(top_n, math.ceil(top_n * policy.max_auxiliary_document_share)))
+
+    def document_of(chunk: dict) -> str:
+        """The quota bucket a passage is charged to (its own key when unknown)."""
+        key = document_key(chunk)
+        return f"chunk:{chunk_key(chunk)}" if not key else key
+
+    def quota_blocks(chunk: dict) -> bool:
+        if is_table_chunk(chunk) and table_count >= table_cap:
+            return True
+        if document_cap and not policy.is_core_document(chunk) and document_counts.get(document_of(chunk), 0) >= document_cap:
+            return True
+        return False
+
+    def take(chunk: dict, *, ignore_table_quota: bool = False) -> bool:
+        """Claim a slot. ``ignore_table_quota`` is step 4's escape hatch: a
+        table-only pool may exceed the table cap, but never the document quota."""
+        nonlocal table_count
         if len(chosen) >= top_n:
             return False
         key = chunk_key(chunk)
         if key in chosen_keys:
             return False
+        if ignore_table_quota:
+            if document_cap and not policy.is_core_document(chunk) and document_counts.get(document_of(chunk), 0) >= document_cap:
+                return False
+        elif quota_blocks(chunk):
+            return False
         chosen.append(key)
         chosen_keys.add(key)
+        if is_table_chunk(chunk):
+            table_count += 1
+        bucket = document_of(chunk)
+        document_counts[bucket] = document_counts.get(bucket, 0) + 1
         return True
-
-    def taken(predicate) -> int:
-        return sum(1 for chunk in ordered if chunk_key(chunk) in chosen_keys and predicate(chunk))
 
     # 1. one slot per route
     route_order: list[str] = []
@@ -235,32 +319,28 @@ def select_context(ordered: Sequence[dict], top_n: int, policy: DiversityPolicy 
 
     # 2. the prose floor
     if policy.min_prose > 0:
-        prose_taken = taken(is_prose_chunk)
+        prose_taken = sum(1 for chunk in ordered if chunk_key(chunk) in chosen_keys and is_prose_chunk(chunk))
         for chunk in ordered:
             if prose_taken >= policy.min_prose or len(chosen) >= top_n:
                 break
             if is_prose_chunk(chunk) and take(chunk):
                 prose_taken += 1
 
-    # 3. everything else by score. A capped cut takes non-table passages first;
-    # an uncapped one is a plain top-N and must not prefer anything.
-    cap = top_n if policy.max_table_share >= 1.0 else min(top_n, math.ceil(top_n * policy.max_table_share))
-    if cap < top_n:
+    # 3. everything else by score. A table-capped cut takes non-table passages
+    # first; an uncapped one is a plain top-N and must not prefer anything.
+    if table_cap < top_n:
         for chunk in ordered:
             if len(chosen) >= top_n:
                 break
             if not is_table_chunk(chunk):
                 take(chunk)
-        for chunk in ordered:
-            if len(chosen) >= top_n or taken(is_table_chunk) >= cap:
-                break
-            if is_table_chunk(chunk):
-                take(chunk)
         # 4. A pool with nothing but tables cannot satisfy the cap; a window of
         # tables is worse than a mixed one but not worse than a short one.
-        if not any(not is_table_chunk(chunk) for chunk in ordered):
-            for chunk in ordered:
-                take(chunk)
+        table_only_pool = not any(not is_table_chunk(chunk) for chunk in ordered)
+        for chunk in ordered:
+            if len(chosen) >= top_n:
+                break
+            take(chunk, ignore_table_quota=table_only_pool and is_table_chunk(chunk))
     else:
         for chunk in ordered:
             if len(chosen) >= top_n:
@@ -270,26 +350,56 @@ def select_context(ordered: Sequence[dict], top_n: int, policy: DiversityPolicy 
     return [chunk for chunk in ordered if chunk_key(chunk) in chosen_keys]
 
 
+def _shortfall_reason(ordered: Sequence[dict], selected: Sequence[dict], top_n: int, policy: DiversityPolicy) -> str:
+    """Name the quota that actually cost the window a slot.
+
+    A cap that is configured but could not bind (no tables in the pool, no
+    auxiliary document over its quota) must not be blamed in the transcript, or
+    the next investigation tunes the wrong number.
+    """
+    if len(selected) >= min(top_n, len(ordered)):
+        return ""
+    caps = []
+    if policy.max_table_share < 1.0:
+        table_cap = math.ceil(top_n * policy.max_table_share)
+        if sum(1 for chunk in ordered if is_table_chunk(chunk)) > table_cap:
+            caps.append(f"table cap {table_cap}")
+    if policy.max_auxiliary_document_share < 1.0:
+        document_cap = math.ceil(top_n * policy.max_auxiliary_document_share)
+        counts: dict[str, int] = {}
+        for chunk in ordered:
+            if not policy.is_core_document(chunk):
+                counts[document_key(chunk) or chunk_key(chunk)] = counts.get(document_key(chunk) or chunk_key(chunk), 0) + 1
+        if any(count > document_cap for count in counts.values()):
+            caps.append(f"per-document quota {document_cap}")
+    if policy.min_prose > 0 and sum(1 for chunk in ordered if is_prose_chunk(chunk)) < policy.min_prose:
+        caps.append(f"prose floor {policy.min_prose}")
+    return f"; window cut to {len(selected)} of {min(top_n, len(ordered))} because the {' and the '.join(caps) or 'configured quotas'} left no eligible passage"
+
+
 def _select(ordered: Sequence[dict], top_n: int, *, policy: DiversityPolicy, reason: str) -> list[dict]:
     selected = select_context(ordered, top_n, policy)
     tables = sum(1 for chunk in selected if is_table_chunk(chunk))
     prose = sum(1 for chunk in selected if is_prose_chunk(chunk))
-    prose_available = sum(1 for chunk in ordered if is_prose_chunk(chunk))
-    shortfall = ""
-    if len(selected) < min(top_n, len(ordered)):
-        shortfall = (
-            f"; window cut to {len(selected)} because the table cap ({math.ceil(top_n * policy.max_table_share)}) and the prose floor left no eligible passage (pool holds {prose_available} prose)"
-        )
     _LOG.info(
-        "[Rerank] %d candidate(s) -> %d passage(s) kept%s (%d prose / %d table; best scores %s)%s",
+        "[Rerank] %d candidate(s) -> %d passage(s) kept%s (%d prose / %d table; best scores %s; documents: %s)%s",
         len(ordered),
         len(selected),
         reason,
         prose,
         tables,
         ", ".join(f"{_score(chunk):.4f}" for chunk in selected[:3]) or "-",
-        shortfall,
+        document_breakdown(selected),
+        _shortfall_reason(ordered, selected, top_n, policy),
     )
+    if policy.max_auxiliary_document_share < 1.0:
+        core = next((document_name(chunk) for chunk in ordered if policy.is_core_document(chunk) and document_name(chunk)), "-")
+        _LOG.info(
+            "[Rerank] the standard for this question is %s; auxiliary documents are capped at %d of %d passage(s)",
+            core,
+            math.ceil(top_n * policy.max_auxiliary_document_share),
+            top_n,
+        )
     return selected
 
 
@@ -315,7 +425,7 @@ def _warn_when_the_pool_cannot_satisfy_the_floor(pool: Sequence[dict], policy: D
 
 
 def _by_fused_score(chunks: Sequence[dict], top_n: int, policy: DiversityPolicy = DiversityPolicy()) -> list[dict]:
-    return _select(apply_type_penalty(list(chunks), policy), top_n, policy=policy, reason="")
+    return _select(apply_rank_adjustments(list(chunks), policy), top_n, policy=policy, reason="")
 
 
 def resolve_final_top_n(value: Any) -> int:
@@ -345,7 +455,7 @@ async def rerank_chunks(rerank_mdl, chunks: Sequence[dict], question: str, top_n
     pool = dedupe_chunks(chunks)
     if not pool:
         return []
-    policy = DiversityPolicy.for_question(question)
+    policy = DiversityPolicy.for_question(question, pool)
     _warn_when_the_pool_cannot_satisfy_the_floor(pool, policy)
     if rerank_mdl is None or not str(question or "").strip():
         return _by_fused_score(pool, limit, policy)
@@ -375,6 +485,6 @@ async def rerank_chunks(rerank_mdl, chunks: Sequence[dict], question: str, top_n
         chunk["rerank_score"] = value
         chunk["similarity"] = value
 
-    selected = _select(apply_type_penalty(pool, policy), limit, policy=policy, reason=" by rerank score")
+    selected = _select(apply_rank_adjustments(pool, policy), limit, policy=policy, reason=" by rerank score")
     _LOG.info("[Rerank] pool %s -> context %s", summarize(pool), summarize(selected))
     return selected

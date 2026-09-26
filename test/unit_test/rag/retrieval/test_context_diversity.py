@@ -248,7 +248,7 @@ async def test_no_nudge_for_a_value_question():
 def test_the_nudge_never_overwrites_the_scores_a_transcript_reports():
     pool = [_table("t1", 0.60)]
 
-    rerank.apply_type_penalty(pool, rerank.DiversityPolicy.for_question(_CLAUSE_QUESTION))
+    rerank.apply_rank_adjustments(pool, rerank.DiversityPolicy.for_question(_CLAUSE_QUESTION))
 
     assert pool[0]["similarity"] == pytest.approx(0.60), "the model's own number stays"
     assert pool[0]["rank_score"] == pytest.approx(0.60 * rerank.TABLE_PENALTY)

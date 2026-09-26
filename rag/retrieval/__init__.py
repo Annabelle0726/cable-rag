@@ -32,10 +32,16 @@ from rag.retrieval.decomposition import (
     strip_section_references,
 )
 from rag.retrieval.chunk_profile import (
+    CORE_DOCUMENT_NAME_CUES,
+    core_document_score,
+    document_breakdown,
     document_key,
+    document_name,
     is_image_chunk,
     is_prose_chunk,
     is_table_chunk,
+    resolve_core_documents,
+    standard_designations,
     summarize,
 )
 from rag.retrieval.decomposition import (
@@ -55,13 +61,15 @@ from rag.retrieval.multi_route import (
 )
 from rag.retrieval.pipeline import empty_kbinfos, retrieve_multi_route
 from rag.retrieval.rerank import (
+    CORE_DOCUMENT_BOOST,
     DEFAULT_FINAL_TOP_N,
     FINAL_TOP_N_RECOMMENDED,
+    MAX_AUXILIARY_DOCUMENT_SHARE,
     MAX_TABLE_SHARE,
     MIN_PROSE_PASSAGES,
     TABLE_PENALTY,
     DiversityPolicy,
-    apply_type_penalty,
+    apply_rank_adjustments,
     dedupe_chunks,
     ensure_route_coverage,
     rerank_chunks,
@@ -72,10 +80,13 @@ from rag.retrieval.rerank import (
 
 __all__ = [
     "CLAUSE_ROUTE_ANCHOR",
+    "CORE_DOCUMENT_BOOST",
+    "CORE_DOCUMENT_NAME_CUES",
     "DEFAULT_FINAL_TOP_N",
     "DEFAULT_ROUTES_TOP_K",
     "DEFAULT_VECTOR_SIMILARITY_WEIGHT",
     "FINAL_TOP_N_RECOMMENDED",
+    "MAX_AUXILIARY_DOCUMENT_SHARE",
     "MAX_SUB_QUERIES",
     "MAX_TABLE_SHARE",
     "MIN_PROSE_PASSAGES",
@@ -84,11 +95,14 @@ __all__ = [
     "TABLE_PENALTY",
     "DiversityPolicy",
     "RouteResult",
-    "apply_type_penalty",
+    "apply_rank_adjustments",
     "clause_route",
+    "core_document_score",
     "dedupe_chunks",
     "decompose_question",
+    "document_breakdown",
     "document_key",
+    "document_name",
     "empty_kbinfos",
     "ensure_route_coverage",
     "is_image_chunk",
@@ -99,12 +113,14 @@ __all__ = [
     "multi_route_retrieve",
     "parse_sub_queries",
     "rerank_chunks",
+    "resolve_core_documents",
     "resolve_final_top_n",
     "resolve_routes_top_k",
     "retrieve_multi_route",
     "routes_of",
     "seeks_clause",
     "select_context",
+    "standard_designations",
     "strip_section_references",
     "summarize",
 ]
