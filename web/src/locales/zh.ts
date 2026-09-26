@@ -1,5 +1,26 @@
 export default {
   translation: {
+    onboarding: {
+      linkReady: '邀请链接已生成',
+      linkHint: '链接 72 小时内有效，仅可使用一次。请私下发送给受邀人。',
+      copy: '复制邀请链接',
+      copied: '链接已复制到剪贴板',
+      copyFailed: '复制失败，请选中链接手动复制。',
+      acceptTitle: '加入团队',
+      welcome: '您受邀加入 {{tenant}}，预设部门：{{department}}',
+      noDepartment: '未分配',
+      accept: '注册并加入团队',
+      invalid: '邀请链接无效或已过期，请联系管理员重新邀请。',
+      backToLogin: '返回登录',
+      forgot: '忘记密码？',
+      code: '验证码',
+      newPassword: '新密码（8–128 位）',
+      sendCode: '获取验证码',
+      codeSent: '若该账号支持找回密码，验证码已发送，5 分钟内有效。',
+      reset: '重置密码',
+      resetDone: '密码已重置，请使用新密码登录。',
+    },
+
     listVisibility: {
       inheritedHidden: '跟随知识库已隐藏，请先显示知识库',
       fileDetails: '文件详情',
@@ -1928,8 +1949,8 @@ export default {
       updateDate: '日期',
       role: '角色',
       invite: '邀请成员',
-      inviteTip: '仅支持邀请已注册用户，请先完成注册。',
-      inviteRoleTip: '角色即时生效。管理员可以管理成员与模型配置。',
+      inviteTip: '输入邮箱后将生成专属邀请链接；已注册用户将直接加入团队。',
+      inviteRoleTip: '成员加入后使用所选角色。管理员可以管理成员与模型配置。',
       department: '部门',
       departments: '部门管理',
       noDepartment: '未分配部门',

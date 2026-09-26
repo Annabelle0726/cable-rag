@@ -24,6 +24,11 @@
  * while the same calls succeeded when issued by hand.
  */
 
+const mockInvite = jest.fn();
+jest.mock('../onboarding-service', () => ({
+  __esModule: true,
+  default: { invite: (...args: unknown[]) => mockInvite(...args) },
+}));
 const mockGet = jest.fn();
 const mockPost = jest.fn();
 const mockPut = jest.fn();
@@ -84,32 +89,20 @@ describe('user-service request shapes', () => {
     );
   });
 
-  it('carries the role on an invitation', () => {
-    // `department_id` and `title` are optional in the contract: a call that
-    // supplies no profile must not put them on the wire at all, or the payload
-    // stops matching the shape the route documents.
-    addTenantUser('tenant-1', 'someone@example.com', 'admin');
-
-    const [url, options] = mockPost.mock.calls[0] as [string, any];
-    expect(url).toContain('/tenants/tenant-1/users');
-    expect(options.data).toEqual({
-      email: 'someone@example.com',
-      role: 'admin',
-    });
-  });
-
-  it('sends the department and title a caller did choose', () => {
-    addTenantUser('tenant-1', 'someone@example.com', 'normal', {
+  it('sends invitation data to the dedicated endpoint', () => {
+    addTenantUser('tenant-1', 'someone@example.com', 'admin', {
       departmentId: 'department-1',
-      title: 'Sales manager',
     });
-
-    const [, options] = mockPost.mock.calls[0] as [string, any];
-    expect(options.data).toEqual({
-      email: 'someone@example.com',
-      role: 'normal',
-      departmentId: 'department-1',
-      title: 'Sales manager',
-    });
+    expect(mockInvite).toHaveBeenCalledWith(
+      {
+        tenantId: 'tenant-1',
+        data: {
+          email: 'someone@example.com',
+          role: 'admin',
+          departmentId: 'department-1',
+        },
+      },
+      true,
+    );
   });
 });

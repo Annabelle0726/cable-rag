@@ -1,5 +1,29 @@
 export default {
   translation: {
+    onboarding: {
+      linkReady: 'Invitation link generated',
+      linkHint:
+        'This link expires in 72 hours and can be used once. Share it privately with the invited person.',
+      copy: 'Copy invitation link',
+      copied: 'Link copied to clipboard',
+      copyFailed: 'Unable to copy. Select the link and copy it manually.',
+      acceptTitle: 'Join your workspace',
+      welcome: 'You are invited to join {{tenant}}. Department: {{department}}',
+      noDepartment: 'Unassigned',
+      accept: 'Create account and join',
+      invalid:
+        'This invitation is invalid or expired. Ask your administrator for a new link.',
+      backToLogin: 'Back to login',
+      forgot: 'Forgot password?',
+      code: 'Verification code',
+      newPassword: 'New password (8–128 characters)',
+      sendCode: 'Send verification code',
+      codeSent:
+        'If this account supports recovery, a code has been sent. It expires in 5 minutes.',
+      reset: 'Reset password',
+      resetDone: 'Password reset. Sign in with your new password.',
+    },
+
     listVisibility: {
       inheritedHidden: 'Hidden with dataset; show the dataset first',
       fileDetails: 'File details',
@@ -2318,9 +2342,9 @@ export default {
       role: 'Role',
       invite: 'Invite member',
       inviteTip:
-        'Only registered users can be invited. Please register the account before sending an invitation.',
+        'Generate a personal invitation link. Existing accounts join the workspace directly.',
       inviteRoleTip:
-        'The role takes effect immediately. Admins can manage members and model configuration.',
+        'The selected role applies when the member joins. Admins can manage members and model configuration.',
       department: 'Department',
       departments: 'Departments',
       noDepartment: 'No department',

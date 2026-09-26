@@ -23,6 +23,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
+import { Button } from '@/components/ui/button';
+import message from '@/components/ui/message';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal/modal';
 import {
@@ -73,12 +76,13 @@ const AddingUserModal = ({
   hideModal,
   loading,
   onOk,
+  invitePath,
 }: IModalProps<{
   email: string;
   role?: string;
   departmentId?: string | null;
   title?: string | null;
-}>) => {
+}> & { invitePath?: string }) => {
   const { t } = useTranslation();
 
   const formSchema = z.object({
@@ -89,7 +93,6 @@ const AddingUserModal = ({
     role: z.string().default('normal'),
     // An empty string is the "no department" choice: a Select cannot hold null.
     departmentId: z.string().default(''),
-    title: z.string().default(''),
   });
 
   type FormData = z.infer<typeof formSchema>;
@@ -100,7 +103,6 @@ const AddingUserModal = ({
       email: '',
       role: TenantRole.Normal,
       departmentId: '',
-      title: '',
     },
   });
 
@@ -109,16 +111,22 @@ const AddingUserModal = ({
       email: data.email,
       role: data.role,
       departmentId: data.departmentId || null,
-      title: data.title || null,
     });
+  };
+
+  const inviteUrl = invitePath ? window.location.origin + invitePath : '';
+  const copyLink = (_text: string, result: boolean) => {
+    if (result) message.success(t('onboarding.copied'));
+    else message.error(t('onboarding.copyFailed'));
   };
 
   return (
     <Modal
-      title={t('setting.add')}
+      title={t(invitePath ? 'onboarding.linkReady' : 'setting.add')}
       open={visible || false}
       onOpenChange={(open) => !open && hideModal?.()}
       onOk={form.handleSubmit(handleOk)}
+      showfooter={!invitePath}
       confirmLoading={loading}
       okText={t('common.ok')}
       cancelText={t('common.cancel')}
@@ -126,97 +134,99 @@ const AddingUserModal = ({
       okButtonClassName={ConfirmButtonClassName}
       cancelButtonClassName={CancelButtonClassName}
     >
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleOk)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel required>{t('setting.email')}</FormLabel>
-                <FormControl>
-                  <Input
-                    className="ceramic-field h-11"
-                    placeholder={t('setting.email')}
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription className="text-xs">
-                  {t('setting.inviteTip')}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+      {invitePath ? (
+        <div className="min-w-0 space-y-4">
+          <p className="text-sm leading-relaxed text-text-secondary">
+            {t('onboarding.linkHint')}
+          </p>
+          <Input
+            className="ceramic-field h-11 w-full min-w-0 text-sm"
+            aria-label={t('onboarding.linkReady')}
+            value={inviteUrl}
+            readOnly
           />
-          <FormField
-            control={form.control}
-            name="role"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('setting.role')}</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+          <CopyToClipboard text={inviteUrl} onCopy={copyLink}>
+            <Button className="ceramic-cta h-10 w-full sm:w-auto">
+              {t('onboarding.copy')}
+            </Button>
+          </CopyToClipboard>
+        </div>
+      ) : (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleOk)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel required>{t('setting.email')}</FormLabel>
                   <FormControl>
-                    <SelectTrigger className="ceramic-field h-11">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <Input
+                      className="ceramic-field h-11"
+                      placeholder={t('setting.email')}
+                      {...field}
+                    />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value={TenantRole.Normal}>
-                      {t('setting.roleMember')}
-                    </SelectItem>
-                    <SelectItem value={TenantRole.Admin}>
-                      {t('setting.roleAdmin')}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription className="text-xs">
-                  {t('setting.inviteRoleTip')}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="departmentId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('setting.department')}</FormLabel>
-                <FormControl>
-                  <DepartmentSelect
-                    value={field.value}
-                    onChange={(departmentId) =>
-                      field.onChange(departmentId ?? '')
-                    }
-                    testId="invite-department"
-                  />
-                </FormControl>
-                <FormDescription className="text-xs">
-                  {t('setting.departmentTip')}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('setting.title')}</FormLabel>
-                <FormControl>
-                  <Input
-                    className="ceramic-field h-11"
-                    placeholder={t('setting.titlePlaceholder')}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </form>
-      </Form>
+                  <FormDescription className="text-xs">
+                    {t('setting.inviteTip')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('setting.role')}</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger className="ceramic-field h-11">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={TenantRole.Normal}>
+                        {t('setting.roleMember')}
+                      </SelectItem>
+                      <SelectItem value={TenantRole.Admin}>
+                        {t('setting.roleAdmin')}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription className="text-xs">
+                    {t('setting.inviteRoleTip')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="departmentId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('setting.department')}</FormLabel>
+                  <FormControl>
+                    <DepartmentSelect
+                      value={field.value}
+                      onChange={(departmentId) =>
+                        field.onChange(departmentId ?? '')
+                      }
+                      testId="invite-department"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    {t('setting.departmentTip')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+      )}
     </Modal>
   );
 };

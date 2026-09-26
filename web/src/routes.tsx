@@ -126,6 +126,11 @@ const withLazyRoute = (
 
 const routeConfigOptions = [
   {
+    path: '/accept-invite',
+    Component: () => import('@/pages/accept-invite'),
+    layout: false,
+  },
+  {
     path: '/login',
     Component: () => import('@/pages/login-next'),
     layout: false,

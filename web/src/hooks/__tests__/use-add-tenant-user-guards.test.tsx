@@ -62,8 +62,7 @@ const makeClient = () =>
 // path of the test transformer, and that path refuses an imported binding used
 // in a type annotation.
 const makeWrapper =
-  (queryClient: ReturnType<typeof makeClient>) =>
-  (props: { children?: any }) =>
+  (queryClient: ReturnType<typeof makeClient>) => (props: { children?: any }) =>
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
@@ -125,7 +124,7 @@ describe('invite mutation guards', () => {
 
     await expect(
       result.current.addTenantUser({ email: 'someone@example.com' }),
-    ).resolves.toBe(102);
+    ).resolves.toEqual({ code: 102 });
     expect(invalidate).not.toHaveBeenCalled();
     expect(
       queryClient.getQueryState(['listTenantUser', 'tenant-1'])?.isInvalidated,

@@ -13,6 +13,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+import hashlib
+import hmac
 import logging
 import os
 import sys
@@ -134,6 +136,9 @@ def _load_user_from_session():
     user = users[0]
     access_token = str(user.access_token or "").strip()
     if not access_token or len(access_token) < 32 or access_token.startswith("INVALID_"):
+        return None
+    digest = hashlib.sha256(access_token.encode()).hexdigest()
+    if not hmac.compare_digest(session.get("_user_token_digest", ""), digest):
         return None
     logging.debug("Authenticated request via session fallback for user_id=%s", user_id)
     g.auth_type = AUTH_JWT
@@ -361,6 +366,7 @@ def login_user(user, remember=False, duration=None, force=False, fresh=True):
         return False
 
     session["_user_id"] = user.id
+    session["_user_token_digest"] = hashlib.sha256(str(user.access_token).encode()).hexdigest()
     session["_fresh"] = fresh
     session["_id"] = get_uuid()
     return True
@@ -373,6 +379,7 @@ def logout_user():
     """
     if "_user_id" in session:
         session.pop("_user_id")
+    session.pop("_user_token_digest", None)
 
     if "_fresh" in session:
         session.pop("_fresh")

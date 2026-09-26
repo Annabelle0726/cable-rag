@@ -65,6 +65,8 @@ const UserSettingTeam = () => {
     hideAddingTenantModal,
     showAddingTenantModal,
     handleAddUserOk,
+    invitePath,
+    loading,
   } = useAddUser();
 
   return (
@@ -153,6 +155,8 @@ const UserSettingTeam = () => {
           visible
           hideModal={hideAddingTenantModal}
           onOk={handleAddUserOk}
+          invitePath={invitePath}
+          loading={loading}
         ></AddingUserModal>
       )}
     </ProfileSettingWrapperCard>

@@ -15,6 +15,7 @@
  */
 
 import api from '@/utils/api';
+import onboardingService from './onboarding-service';
 import registerServer from '@/utils/register-server';
 import request, { post } from '@/utils/request';
 
@@ -113,21 +114,13 @@ export const addTenantUser = (
   role?: string,
   profile?: ITenantUserProfileInput,
 ) => {
-  const body: Record<string, unknown> = { email, role };
-
-  // `department_id` and `title` are optional in the API contract, so a caller
-  // that supplies no profile must not send them at all: they used to go out
-  // unconditionally as `null`, which is not the payload the contract describes.
-  // An explicit `null` (the invite dialog's "no department" / "no title"
-  // choice) still travels, because that is a deliberate value.
-  if (profile?.departmentId !== undefined) {
-    body.departmentId = profile.departmentId;
-  }
-  if (profile?.title !== undefined) {
-    body.title = profile.title;
-  }
-
-  return post(api.addTenantUser(tenantId), body);
+  return onboardingService.invite(
+    {
+      tenantId,
+      data: { email, role, departmentId: profile?.departmentId ?? null },
+    },
+    true,
+  );
 };
 
 export const updateTenantUserProfile = ({

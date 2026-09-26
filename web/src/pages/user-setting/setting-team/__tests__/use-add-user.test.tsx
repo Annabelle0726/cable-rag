@@ -37,7 +37,7 @@ describe('invite submit', () => {
   });
 
   it('closes the dialog when the invitation is accepted', async () => {
-    mockAddTenantUser.mockResolvedValue(0);
+    mockAddTenantUser.mockResolvedValue({ code: 0, data: { joined: true } });
     const { result } = renderHook(() => useAddUser());
 
     await act(async () => {
@@ -47,8 +47,23 @@ describe('invite submit', () => {
     expect(mockHideModal).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a generated link visible until the next invitation', async () => {
+    mockAddTenantUser.mockResolvedValue({
+      code: 0,
+      data: { invite_path: '/accept-invite?token=example' },
+    });
+    const { result } = renderHook(() => useAddUser());
+    await act(async () => {
+      await result.current.handleAddUserOk({ email: 'new@example.com' });
+    });
+    expect(result.current.invitePath).toBe('/accept-invite?token=example');
+    expect(mockHideModal).not.toHaveBeenCalled();
+    act(() => result.current.showAddingTenantModal());
+    expect(result.current.invitePath).toBeUndefined();
+  });
+
   it('keeps the dialog open, and does not reject, when the server refuses', async () => {
-    mockAddTenantUser.mockResolvedValue(102);
+    mockAddTenantUser.mockResolvedValue({ code: 102 });
     const { result } = renderHook(() => useAddUser());
 
     await act(async () => {

@@ -50,6 +50,7 @@ import FlipCard3D, { FlipFaceContext } from './card';
 import { LoginHero } from './hero';
 import { LoginLanguageToggle } from './language-toggle';
 import './index.less';
+import PasswordRecovery from './password-recovery';
 
 type LoginFormContentProps = {
   isLoginPage: boolean;
@@ -166,34 +167,37 @@ function LoginFormContent({
               />
 
               {title === 'login' && (
-                <FormField
-                  control={form.control}
-                  name="remember"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-2 group">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={(checked) => {
-                              field.onChange(checked);
-                            }}
-                            className="group-hover:border-border-default group-hover:bg-border-button"
-                          />
-                        </FormControl>
-                        <FormLabel
-                          className={cn('cursor-pointer', {
-                            'text-text-disabled': !field.value,
-                            'text-text-primary': field.value,
-                          })}
-                        >
-                          {t('rememberMe')}
-                        </FormLabel>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="flex items-center justify-between gap-4">
+                  <FormField
+                    control={form.control}
+                    name="remember"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center gap-2 group">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={(checked) => {
+                                field.onChange(checked);
+                              }}
+                              className="group-hover:border-border-default group-hover:bg-border-button"
+                            />
+                          </FormControl>
+                          <FormLabel
+                            className={cn('cursor-pointer', {
+                              'text-text-disabled': !field.value,
+                              'text-text-primary': field.value,
+                            })}
+                          >
+                            {t('rememberMe')}
+                          </FormLabel>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {isActiveFace && <PasswordRecovery />}
+                </div>
               )}
               <ButtonLoading
                 data-testid="auth-submit"

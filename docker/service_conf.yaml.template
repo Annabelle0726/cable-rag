@@ -211,17 +211,17 @@ user_default_llm:
 #   switch: false
 #   component: false
 #   dataset: false
-# smtp:
-#   mail_server: ""
-#   mail_port: 465
-#   mail_use_ssl: true
-#   mail_use_tls: false
-#   mail_username: ""
-#   mail_password: ""
-#   mail_default_sender:
-#     - "RAGFlow" # display name
-#     - "" # sender email address
-#   mail_frontend_url: "https://your-frontend.example.com"
+# Optional password recovery. Token invitations never require SMTP.
+smtp:
+  mail_server: '${SMTP_HOST:-}'
+  mail_port: ${SMTP_PORT:-465}
+  mail_use_ssl: ${SMTP_SSL:-true}
+  mail_use_tls: ${SMTP_STARTTLS:-false}
+  mail_username: '${SMTP_USERNAME:-}'
+  mail_password: '${SMTP_PASSWORD:-}'
+  mail_default_sender:
+    - '${SMTP_SENDER_NAME:-Wenruo RAG}'
+    - '${SMTP_SENDER_EMAIL:-}'
 # tcadp_config:
 #   secret_id: '${TENCENT_SECRET_ID}'
 #   secret_key: '${TENCENT_SECRET_KEY}'

@@ -21,16 +21,22 @@ import {
   useDeleteTenantUser,
   useFetchUserInfo,
 } from '@/hooks/use-user-setting-request';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export const useAddUser = () => {
-  const { addTenantUser } = useAddTenantUser();
+  const { addTenantUser, loading } = useAddTenantUser();
+  const [invitePath, setInvitePath] = useState<string>();
   const {
     visible: addingTenantModalVisible,
     hideModal: hideAddingTenantModal,
-    showModal: showAddingTenantModal,
+    showModal,
   } = useSetModalState();
+
+  const showAddingTenantModal = useCallback(() => {
+    setInvitePath(undefined);
+    showModal();
+  }, [showModal]);
 
   const handleAddUserOk = useCallback(
     async (values: {
@@ -39,16 +45,11 @@ export const useAddUser = () => {
       departmentId?: string | null;
       title?: string | null;
     }) => {
-      // A refused invite (the address is already a member, or has no account) is
-      // reported by the request layer with the server's own message and resolves
-      // with `code !== 0`, which keeps the dialog open. A transport failure
-      // REJECTS instead, and this callback is async: without this catch the
-      // rejection escapes as an unhandled one, which is what turns a failed
-      // invite into a broken page rather than a closed dialog.
       try {
-        const code = await addTenantUser(values);
-        if (code === 0) {
-          hideAddingTenantModal();
+        const result = await addTenantUser(values);
+        if (result?.code === 0) {
+          if (result.data?.invite_path) setInvitePath(result.data.invite_path);
+          else hideAddingTenantModal();
         }
       } catch {
         // Already toasted by the request layer; the dialog stays open so the
@@ -59,6 +60,8 @@ export const useAddUser = () => {
   );
 
   return {
+    invitePath,
+    loading,
     addingTenantModalVisible,
     hideAddingTenantModal,
     showAddingTenantModal,

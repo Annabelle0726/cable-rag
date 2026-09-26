@@ -435,7 +435,7 @@ export const useAddTenantUser = () => {
           queryKey: UserSettingKeys.tenantRoster(),
         });
       }
-      return data?.code;
+      return data;
     },
   });
 

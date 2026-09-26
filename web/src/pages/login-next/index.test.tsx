@@ -3,6 +3,13 @@ import { changeLanguageAsync } from '@/locales/config';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Login from './index';
 
+jest.mock('@/hooks/use-onboarding', () => ({
+  usePasswordRecovery: () => ({
+    sendCode: { isPending: false },
+    reset: { isPending: false },
+  }),
+}));
+
 jest.mock('@/hooks/use-system-request', () => ({
   useSystemConfig: jest.fn(),
 }));
@@ -22,9 +29,11 @@ jest.mock('react-router', () => ({
   useNavigate: () => jest.fn(),
 }));
 
+let mockLanguage = 'zh-Hans';
+
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    i18n: { resolvedLanguage: 'zh-Hans', language: 'zh-Hans' },
+    i18n: { resolvedLanguage: mockLanguage, language: mockLanguage },
     t: (key: string) => key,
   }),
 }));
@@ -135,19 +144,17 @@ describe('login language switch', () => {
   });
 
   it.each([
-    ['English', 'en'],
-    ['简体中文', 'zh-Hans'],
-  ])(
-    'loads the %s bundle when that language is picked',
-    (label, code) => {
-      render(<Login />);
+    ['zh-Hans', 'English', 'en'],
+    ['en', '简体中文', 'zh'],
+  ])('switches from %s to the other language', (current, label, code) => {
+    mockLanguage = current;
+    render(<Login />);
 
-      fireEvent.click(screen.getByRole('button', { name: label }));
+    fireEvent.click(screen.getByRole('button', { name: label }));
 
-      // `changeLanguageAsync` and not `i18n.changeLanguage`: it is the call that
-      // actually fetches the bundle, which is what keeps the login and register
-      // copy translated instead of falling back to raw keys.
-      expect(MockChangeLanguageAsync).toHaveBeenCalledWith(code);
-    },
-  );
+    // `changeLanguageAsync` and not `i18n.changeLanguage`: it is the call that
+    // actually fetches the bundle, which is what keeps the login and register
+    // copy translated instead of falling back to raw keys.
+    expect(MockChangeLanguageAsync).toHaveBeenCalledWith(code);
+  });
 });
